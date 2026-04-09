@@ -3,17 +3,19 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Zap, Shield, Smartphone } from "lucide-react";
+import { Zap, Shield, Smartphone, ShoppingBag, User, Mail, Phone } from "lucide-react";
 
 interface Product {
   id: string;
   name: string;
   description: string | null;
   price: number;
+  image_url: string | null;
 }
 
 const Checkout = () => {
@@ -30,17 +32,25 @@ const Checkout = () => {
   });
 
   useEffect(() => {
-    const fetch = async () => {
-      const { data } = await supabase.from("products").select("id, name, description, price").eq("id", productId).single();
+    const fetchProduct = async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("id, name, description, price, image_url")
+        .eq("id", productId)
+        .single();
       setProduct(data);
       setLoading(false);
     };
-    fetch();
+    fetchProduct();
   }, [productId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!product) return;
+    if (!form.name || !form.email) {
+      toast.error("Preencha os campos obrigatórios");
+      return;
+    }
     setSubmitting(true);
     const { error } = await supabase.from("orders").insert({
       product_id: product.id,
@@ -61,7 +71,7 @@ const Checkout = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     );
@@ -69,86 +79,219 @@ const Checkout = () => {
 
   if (!product) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <p className="text-muted-foreground">Produto não encontrado</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted/30 py-8 px-4">
-      <div className="max-w-md mx-auto">
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-2 mb-6">
-          <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
-            <Zap className="w-4 h-4 text-primary-foreground" />
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
+              <Zap className="w-4 h-4 text-primary-foreground" />
+            </div>
+            <span className="font-bold text-foreground text-sm">EnsinaPay</span>
           </div>
-          <span className="font-bold text-foreground">EnsinaPay</span>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Shield className="w-3.5 h-3.5 text-primary" />
+            Checkout seguro
+          </div>
         </div>
+      </div>
 
-        {/* Product info */}
-        <Card className="mb-4">
-          <CardContent className="pt-6">
-            <h2 className="text-lg font-semibold text-foreground">{product.name}</h2>
-            {product.description && <p className="text-sm text-muted-foreground mt-1">{product.description}</p>}
-            <p className="text-2xl font-bold text-primary mt-3">{product.price.toFixed(2)} MT</p>
-          </CardContent>
-        </Card>
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+          {/* Left column - Form */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Product preview (mobile) */}
+            <div className="lg:hidden">
+              <ProductCard product={product} />
+            </div>
 
-        {/* Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Dados do comprador</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Nome completo *</Label>
-                <Input placeholder="Seu nome" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-              </div>
-              <div className="space-y-2">
-                <Label>Email *</Label>
-                <Input type="email" placeholder="seu@email.com" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required />
-              </div>
-              <div className="space-y-2">
-                <Label>WhatsApp (opcional)</Label>
-                <Input placeholder="+258 84 xxx xxxx" value={form.whatsapp} onChange={(e) => setForm({ ...form, whatsapp: e.target.value })} />
-              </div>
+            {/* Customer info */}
+            <Card className="border-border/50">
+              <CardContent className="pt-6">
+                <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
+                  <User className="w-4 h-4 text-primary" />
+                  Seus dados
+                </h2>
+                <div className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Nome completo *</Label>
+                    <Input
+                      placeholder="Digite seu nome completo"
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      required
+                      className="bg-background/50"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Mail className="w-3 h-3" /> Email *
+                    </Label>
+                    <Input
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      required
+                      className="bg-background/50"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Phone className="w-3 h-3" /> WhatsApp (opcional)
+                    </Label>
+                    <Input
+                      placeholder="+258 84 xxx xxxx"
+                      value={form.whatsapp}
+                      onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+                      className="bg-background/50"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-              <div className="space-y-3">
-                <Label>Método de pagamento *</Label>
-                <RadioGroup value={form.payment_method} onValueChange={(v) => setForm({ ...form, payment_method: v })}>
-                  <div className="flex items-center space-x-3 border border-border rounded-lg p-3 cursor-pointer hover:bg-accent/50">
+            {/* Payment method */}
+            <Card className="border-border/50">
+              <CardContent className="pt-6">
+                <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
+                  <Smartphone className="w-4 h-4 text-primary" />
+                  Método de pagamento
+                </h2>
+                <RadioGroup
+                  value={form.payment_method}
+                  onValueChange={(v) => setForm({ ...form, payment_method: v })}
+                  className="space-y-3"
+                >
+                  <label
+                    htmlFor="mpesa"
+                    className={`flex items-center gap-4 border rounded-xl p-4 cursor-pointer transition-all ${
+                      form.payment_method === "mpesa"
+                        ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                        : "border-border hover:border-primary/40"
+                    }`}
+                  >
                     <RadioGroupItem value="mpesa" id="mpesa" />
-                    <Label htmlFor="mpesa" className="flex items-center gap-2 cursor-pointer flex-1">
-                      <Smartphone className="w-4 h-4 text-primary" />
-                      M-Pesa
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-3 border border-border rounded-lg p-3 cursor-pointer hover:bg-accent/50">
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
+                        <span className="text-red-500 font-bold text-sm">M</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground text-sm">M-Pesa</p>
+                        <p className="text-xs text-muted-foreground">Vodacom Moçambique</p>
+                      </div>
+                    </div>
+                  </label>
+                  <label
+                    htmlFor="emola"
+                    className={`flex items-center gap-4 border rounded-xl p-4 cursor-pointer transition-all ${
+                      form.payment_method === "emola"
+                        ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                        : "border-border hover:border-primary/40"
+                    }`}
+                  >
                     <RadioGroupItem value="emola" id="emola" />
-                    <Label htmlFor="emola" className="flex items-center gap-2 cursor-pointer flex-1">
-                      <Smartphone className="w-4 h-4 text-primary" />
-                      E-Mola
-                    </Label>
-                  </div>
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                        <span className="text-blue-500 font-bold text-sm">E</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-foreground text-sm">E-Mola</p>
+                        <p className="text-xs text-muted-foreground">Movitel Moçambique</p>
+                      </div>
+                    </div>
+                  </label>
                 </RadioGroup>
-              </div>
+              </CardContent>
+            </Card>
 
-              <Button type="submit" className="w-full" disabled={submitting}>
+            {/* Submit button (mobile) */}
+            <div className="lg:hidden">
+              <Button
+                onClick={handleSubmit}
+                className="w-full h-12 text-base font-semibold"
+                disabled={submitting || !form.name || !form.email}
+              >
                 {submitting ? "Processando..." : `Pagar ${product.price.toFixed(2)} MT`}
               </Button>
-            </form>
-          </CardContent>
-        </Card>
+            </div>
+          </div>
 
-        <div className="flex items-center justify-center gap-2 mt-4 text-xs text-muted-foreground">
-          <Shield className="w-3 h-3" />
-          Pagamento seguro via EnsinaPay
+          {/* Right column - Order summary */}
+          <div className="hidden lg:block lg:col-span-2">
+            <div className="sticky top-20 space-y-4">
+              <ProductCard product={product} />
+
+              {/* Order summary */}
+              <Card className="border-border/50">
+                <CardContent className="pt-6">
+                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-4">
+                    <ShoppingBag className="w-4 h-4 text-primary" />
+                    Resumo do pedido
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Produto</span>
+                      <span>{product.price.toFixed(2)} MT</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Taxa de serviço</span>
+                      <span className="text-primary">Grátis</span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex justify-between font-bold text-foreground text-base">
+                      <span>Total</span>
+                      <span className="text-primary">{product.price.toFixed(2)} MT</span>
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={handleSubmit}
+                    className="w-full h-12 text-base font-semibold mt-6"
+                    disabled={submitting || !form.name || !form.email}
+                  >
+                    {submitting ? "Processando..." : `Pagar ${product.price.toFixed(2)} MT`}
+                  </Button>
+
+                  <p className="text-[10px] text-muted-foreground text-center mt-3">
+                    Ao clicar em Pagar, você concorda com os nossos Termos de Uso
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 };
+
+const ProductCard = ({ product }: { product: Product }) => (
+  <Card className="border-border/50 overflow-hidden">
+    {product.image_url && (
+      <div className="aspect-video w-full overflow-hidden bg-muted">
+        <img
+          src={product.image_url}
+          alt={product.name}
+          className="w-full h-full object-cover"
+        />
+      </div>
+    )}
+    <CardContent className={product.image_url ? "pt-4" : "pt-6"}>
+      <h2 className="text-lg font-bold text-foreground">{product.name}</h2>
+      {product.description && (
+        <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{product.description}</p>
+      )}
+      <p className="text-2xl font-bold text-primary mt-3">{product.price.toFixed(2)} MT</p>
+    </CardContent>
+  </Card>
+);
 
 export default Checkout;
