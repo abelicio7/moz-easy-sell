@@ -65,6 +65,7 @@ export type Database = {
           delivery_type: string
           description: string | null
           id: string
+          image_url: string | null
           name: string
           price: number
           updated_at: string
@@ -76,6 +77,7 @@ export type Database = {
           delivery_type?: string
           description?: string | null
           id?: string
+          image_url?: string | null
           name: string
           price?: number
           updated_at?: string
@@ -87,6 +89,7 @@ export type Database = {
           delivery_type?: string
           description?: string | null
           id?: string
+          image_url?: string | null
           name?: string
           price?: number
           updated_at?: string
