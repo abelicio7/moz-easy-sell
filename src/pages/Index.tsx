@@ -1,33 +1,52 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import LandingNav from "@/components/LandingNav";
-import { Zap, Package, CreditCard, Send, ArrowRight, CheckCircle2 } from "lucide-react";
+import {
+  Zap, ArrowRight, XCircle, CheckCircle2, Package, Link2, CreditCard, Send,
+  Rocket, Smartphone, Mail, BarChart3, Shield, Globe, Users, BookOpen, Briefcase, GraduationCap
+} from "lucide-react";
 
-const features = [
-  {
-    icon: Package,
-    title: "Crie seu produto",
-    desc: "Cadastre seu produto digital em segundos — ebook, curso, template ou qualquer arquivo.",
-  },
-  {
-    icon: CreditCard,
-    title: "Receba pagamentos",
-    desc: "Aceite M-Pesa e E-Mola. Sem complicações, sem integrações difíceis.",
-  },
-  {
-    icon: Send,
-    title: "Entrega automática",
-    desc: "Seu cliente recebe o produto automaticamente após confirmação do pagamento.",
-  },
+const problems = [
+  "Não existem plataformas adaptadas ao nosso mercado",
+  "Receber pagamentos é confuso",
+  "Você perde vendas por falta de confiança",
+  "Tudo precisa ser feito manualmente",
+];
+
+const solutions = [
+  "Criar páginas de checkout profissionais",
+  "Receber via M-Pesa e E-Mola",
+  "Entregar automaticamente seus produtos",
+  "Gerir tudo em um único lugar",
+];
+
+const steps = [
+  { icon: Package, title: "Crie seu produto", desc: "Adicione nome, preço e o que será entregue." },
+  { icon: Link2, title: "Gere seu link de checkout", desc: "Compartilhe com seus clientes." },
+  { icon: CreditCard, title: "Receba pagamentos", desc: "Via M-Pesa ou E-Mola." },
+  { icon: Send, title: "Entregue automaticamente", desc: "Seu cliente recebe tudo sem esforço." },
 ];
 
 const benefits = [
-  "Sem taxas de setup",
-  "Checkout otimizado para mobile",
-  "Pagamentos via M-Pesa e E-Mola",
-  "Entrega automática de produtos",
-  "Dashboard de vendas em tempo real",
-  "Suporte via WhatsApp",
+  { icon: Rocket, text: "Checkout rápido e profissional" },
+  { icon: Smartphone, text: "Pagamentos locais integrados" },
+  { icon: Mail, text: "Entrega automática por email" },
+  { icon: BarChart3, text: "Controle total das suas vendas" },
+  { icon: Shield, text: "Plataforma segura e confiável" },
+];
+
+const diferenciais = [
+  "Suporte a M-Pesa",
+  "Suporte a E-Mola",
+  "Simples, leve e rápida",
+  "Sem complicações técnicas",
+];
+
+const audiencias = [
+  { icon: Users, text: "Criadores de conteúdo" },
+  { icon: GraduationCap, text: "Professores" },
+  { icon: Briefcase, text: "Empreendedores digitais" },
+  { icon: BookOpen, text: "Vendedores de ebooks e cursos" },
 ];
 
 const Index = () => {
@@ -35,93 +54,223 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <LandingNav />
 
-      {/* Hero */}
-      <section className="container py-20 md:py-32 text-center">
-        <div className="inline-flex items-center gap-2 bg-accent text-accent-foreground px-4 py-1.5 rounded-full text-sm font-medium mb-6 animate-fade-in">
+      {/* HERO */}
+      <section className="container py-24 md:py-36 text-center">
+        <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-semibold mb-8 animate-fade-in border border-primary/20">
           <Zap className="w-4 h-4" />
           A plataforma nº1 de Moçambique
         </div>
-        <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-foreground max-w-3xl mx-auto leading-tight animate-fade-in" style={{ animationDelay: "0.1s" }}>
-          Venda produtos digitais com{" "}
+        <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight text-foreground max-w-4xl mx-auto leading-[1.1] animate-fade-in" style={{ animationDelay: "0.1s" }}>
+          Venda seus produtos digitais de forma simples com{" "}
           <span className="text-primary">M-Pesa e E-Mola</span>
         </h1>
-        <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-xl mx-auto animate-fade-in" style={{ animationDelay: "0.2s" }}>
-          Crie, venda e entregue seus produtos digitais de forma simples. 
-          Receba pagamentos locais em minutos.
+        <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto animate-fade-in leading-relaxed" style={{ animationDelay: "0.2s" }}>
+          Crie seu checkout em minutos, receba pagamentos locais e entregue automaticamente — sem complicações.
         </p>
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3 animate-fade-in" style={{ animationDelay: "0.3s" }}>
-          <Button size="lg" className="text-base px-8" asChild>
+        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in" style={{ animationDelay: "0.3s" }}>
+          <Button size="lg" className="text-base px-8 h-14 text-lg font-bold" asChild>
             <Link to="/register">
-              Começar grátis
-              <ArrowRight className="w-4 h-4 ml-2" />
+              Começar Agora Gratuitamente
+              <ArrowRight className="w-5 h-5 ml-2" />
             </Link>
           </Button>
-          <Button size="lg" variant="outline" className="text-base px-8" asChild>
-            <Link to="/login">Já tenho conta</Link>
+          <Button size="lg" variant="outline" className="text-base px-8 h-14 text-lg border-border hover:border-primary/40" asChild>
+            <a href="#como-funciona">Ver como funciona</a>
           </Button>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="container pb-20">
-        <div className="grid md:grid-cols-3 gap-6">
-          {features.map((f, i) => (
-            <div
-              key={i}
-              className="border border-border rounded-xl p-6 bg-card hover:shadow-md transition-shadow animate-fade-in"
-              style={{ animationDelay: `${0.1 * i + 0.4}s` }}
-            >
-              <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center mb-4">
-                <f.icon className="w-5 h-5 text-primary" />
+      {/* SEÇÃO 2 — PROBLEMA */}
+      <section className="py-20 md:py-28">
+        <div className="container max-w-3xl text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
+            Vender online em Moçambique ainda é <span className="text-primary">complicado…</span>
+          </h2>
+          <p className="text-muted-foreground text-lg mb-10">
+            Se você já tentou vender um produto digital, sabe como é difícil:
+          </p>
+          <div className="space-y-4 text-left max-w-lg mx-auto">
+            {problems.map((p, i) => (
+              <div key={i} className="flex items-start gap-3 animate-fade-in" style={{ animationDelay: `${0.1 * i}s` }}>
+                <XCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                <span className="text-foreground">{p}</span>
               </div>
-              <h3 className="text-lg font-semibold text-card-foreground mb-2">{f.title}</h3>
-              <p className="text-muted-foreground text-sm leading-relaxed">{f.desc}</p>
-            </div>
-          ))}
+            ))}
+          </div>
+          <p className="mt-10 text-lg text-muted-foreground">
+            👉 Resultado? Você trabalha muito… e <span className="text-primary font-semibold">vende pouco.</span>
+          </p>
         </div>
       </section>
 
-      {/* Benefits */}
-      <section className="bg-muted/50 py-20">
-        <div className="container text-center">
-          <h2 className="text-3xl font-bold text-foreground mb-10">Tudo que você precisa para vender</h2>
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
-            {benefits.map((b, i) => (
-              <div key={i} className="flex items-center gap-2 text-left">
-                <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-                <span className="text-sm text-foreground">{b}</span>
+      {/* SEÇÃO 3 — SOLUÇÃO */}
+      <section className="py-20 md:py-28 bg-card/50">
+        <div className="container max-w-3xl text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            A EnsinaPay <span className="text-primary">resolve isso</span> pra você
+          </h2>
+          <p className="text-muted-foreground text-lg mb-10">
+            Criamos uma plataforma simples, pensada para a realidade de Moçambique.
+          </p>
+          <div className="space-y-4 text-left max-w-lg mx-auto">
+            {solutions.map((s, i) => (
+              <div key={i} className="flex items-start gap-3 animate-fade-in" style={{ animationDelay: `${0.1 * i}s` }}>
+                <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                <span className="text-foreground">{s}</span>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="container py-20 text-center">
-        <h2 className="text-3xl font-bold text-foreground mb-4">
-          Pronto para começar a vender?
-        </h2>
-        <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-          Crie sua conta gratuitamente e comece a vender seus produtos digitais hoje mesmo.
-        </p>
-        <Button size="lg" className="text-base px-8" asChild>
-          <Link to="/register">
-            Criar minha conta
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Link>
-        </Button>
+      {/* SEÇÃO 4 — COMO FUNCIONA */}
+      <section id="como-funciona" className="py-20 md:py-28">
+        <div className="container">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground text-center mb-14">
+            Comece em <span className="text-primary">4 passos</span> simples
+          </h2>
+          <div className="grid md:grid-cols-4 gap-6 max-w-5xl mx-auto">
+            {steps.map((step, i) => (
+              <div
+                key={i}
+                className="relative border border-border rounded-xl p-6 bg-card hover:border-primary/40 transition-colors animate-fade-in"
+                style={{ animationDelay: `${0.1 * i + 0.1}s` }}
+              >
+                <div className="text-primary font-black text-5xl opacity-10 absolute top-3 right-4">
+                  {i + 1}
+                </div>
+                <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                  <step.icon className="w-6 h-6 text-primary" />
+                </div>
+                <h3 className="text-lg font-bold text-card-foreground mb-2">{step.title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{step.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border py-8">
-        <div className="container flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
-              <Zap className="w-3 h-3 text-primary-foreground" />
-            </div>
-            <span className="font-semibold text-foreground">EnsinaPay</span>
+      {/* SEÇÃO 5 — BENEFÍCIOS */}
+      <section className="py-20 md:py-28 bg-card/50">
+        <div className="container text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-14">
+            Tudo que você precisa para <span className="text-primary">vender online</span>
+          </h2>
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 max-w-5xl mx-auto">
+            {benefits.map((b, i) => (
+              <div
+                key={i}
+                className="flex flex-col items-center gap-3 p-6 rounded-xl border border-border bg-card hover:border-primary/40 transition-colors animate-fade-in"
+                style={{ animationDelay: `${0.08 * i}s` }}
+              >
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <b.icon className="w-6 h-6 text-primary" />
+                </div>
+                <span className="text-sm font-medium text-foreground text-center">{b.text}</span>
+              </div>
+            ))}
           </div>
-          <p>© 2026 EnsinaPay. Todos os direitos reservados.</p>
+        </div>
+      </section>
+
+      {/* SEÇÃO 6 — DIFERENCIAL */}
+      <section className="py-20 md:py-28">
+        <div className="container max-w-3xl text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            Feita para Moçambique 🇲🇿
+          </h2>
+          <p className="text-muted-foreground text-lg mb-10">
+            Enquanto outras plataformas ignoram o nosso mercado… a EnsinaPay foi criada especificamente para você.
+          </p>
+          <div className="grid sm:grid-cols-2 gap-4 max-w-md mx-auto">
+            {diferenciais.map((d, i) => (
+              <div key={i} className="flex items-center gap-2 text-left">
+                <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                <span className="text-foreground text-sm">{d}</span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-10 text-muted-foreground">
+            👉 Aqui, você não precisa adaptar — <span className="text-primary font-semibold">a plataforma já é sua realidade.</span>
+          </p>
+        </div>
+      </section>
+
+      {/* SEÇÃO 7 — MONETIZAÇÃO */}
+      <section className="py-20 md:py-28 bg-card/50">
+        <div className="container max-w-2xl text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            Comece <span className="text-primary">sem risco</span>
+          </h2>
+          <p className="text-lg text-muted-foreground">
+            Você pode começar gratuitamente e só pagar quando vender.
+          </p>
+          <p className="mt-2 text-lg text-primary font-semibold">
+            👉 Simples assim.
+          </p>
+        </div>
+      </section>
+
+      {/* SEÇÃO 8 — PROVA / CONFIANÇA */}
+      <section className="py-20 md:py-28">
+        <div className="container text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            Construída para quem quer <span className="text-primary">crescer de verdade</span>
+          </h2>
+          <p className="text-muted-foreground text-lg mb-10">A EnsinaPay é ideal para:</p>
+          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
+            {audiencias.map((a, i) => (
+              <div
+                key={i}
+                className="flex flex-col items-center gap-3 p-6 rounded-xl border border-border bg-card hover:border-primary/40 transition-colors"
+              >
+                <a.icon className="w-8 h-8 text-primary" />
+                <span className="text-sm font-medium text-foreground">{a.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SEÇÃO 9 — CTA FINAL */}
+      <section className="py-24 md:py-32 bg-gradient-to-b from-card/50 to-background">
+        <div className="container text-center max-w-2xl">
+          <h2 className="text-3xl md:text-5xl font-black text-foreground mb-6">
+            Comece a vender <span className="text-primary">hoje mesmo</span>
+          </h2>
+          <p className="text-lg text-muted-foreground mb-10">
+            Você não precisa de uma estrutura complicada.<br />
+            Você só precisa <span className="text-primary font-semibold">começar.</span>
+          </p>
+          <Button size="lg" className="text-lg px-10 h-14 font-bold" asChild>
+            <Link to="/register">
+              Criar minha conta grátis
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Link>
+          </Button>
+        </div>
+      </section>
+
+      {/* RODAPÉ */}
+      <footer className="border-t border-border py-10">
+        <div className="container">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded bg-primary flex items-center justify-center">
+                <Zap className="w-4 h-4 text-primary-foreground" />
+              </div>
+              <span className="font-bold text-foreground">EnsinaPay</span>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
+              <a href="#" className="hover:text-foreground transition-colors">Termos de uso</a>
+              <a href="#" className="hover:text-foreground transition-colors">Política de privacidade</a>
+              <a href="#" className="hover:text-foreground transition-colors">Contato</a>
+              <a href="#" className="hover:text-foreground transition-colors">Suporte</a>
+            </div>
+          </div>
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            © 2026 EnsinaPay. Todos os direitos reservados.
+          </p>
         </div>
       </footer>
     </div>
