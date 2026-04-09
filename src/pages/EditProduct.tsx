@@ -76,16 +76,14 @@ const EditProduct = () => {
       imageUrl = null; // image was removed
     }
 
-    const updateData: Record<string, unknown> = {
+    const updateData = {
       name: form.name,
       description: form.description,
       price: parseFloat(form.price),
       delivery_type: form.delivery_type,
       delivery_content: form.delivery_content,
+      ...(imageUrl !== undefined ? { image_url: imageUrl } : {}),
     };
-    if (imageUrl !== undefined) {
-      updateData.image_url = imageUrl;
-    }
 
     const { error } = await supabase.from("products").update(updateData).eq("id", id!);
     setLoading(false);
