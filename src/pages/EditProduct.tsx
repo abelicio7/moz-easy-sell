@@ -9,15 +9,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Upload, X } from "lucide-react";
 
 const EditProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [form, setForm] = useState({ name: "", description: "", price: "", delivery_type: "link", delivery_content: "" });
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchProduct = async () => {
       const { data } = await supabase.from("products").select("*").eq("id", id).single();
       if (data) {
         setForm({
@@ -27,21 +30,62 @@ const EditProduct = () => {
           delivery_type: data.delivery_type,
           delivery_content: data.delivery_content,
         });
+        if (data.image_url) setImagePreview(data.image_url);
       }
     };
-    fetch();
+    fetchProduct();
   }, [id]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("A imagem deve ter no máximo 5MB");
+      return;
+    }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+  };
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!imageFile || !id) return null;
+    const ext = imageFile.name.split(".").pop();
+    const path = `${id}.${ext}`;
+    const { error } = await supabase.storage.from("product-images").upload(path, imageFile, { upsert: true });
+    if (error) {
+      console.error("Upload error:", error);
+      return null;
+    }
+    const { data } = supabase.storage.from("product-images").getPublicUrl(path);
+    return data.publicUrl;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.from("products").update({
+
+    let imageUrl: string | null | undefined = undefined;
+    if (imageFile) {
+      imageUrl = await uploadImage();
+    } else if (!imagePreview) {
+      imageUrl = null; // image was removed
+    }
+
+    const updateData = {
       name: form.name,
       description: form.description,
       price: parseFloat(form.price),
       delivery_type: form.delivery_type,
       delivery_content: form.delivery_content,
-    }).eq("id", id!);
+      ...(imageUrl !== undefined ? { image_url: imageUrl } : {}),
+    };
+
+    const { error } = await supabase.from("products").update(updateData).eq("id", id!);
     setLoading(false);
     if (error) {
       toast.error("Erro ao atualizar");
@@ -57,6 +101,30 @@ const EditProduct = () => {
         <CardHeader><CardTitle>Editar Produto</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Image upload */}
+            <div className="space-y-2">
+              <Label>Imagem do produto</Label>
+              {imagePreview ? (
+                <div className="relative aspect-video rounded-lg overflow-hidden border border-border">
+                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={removeImage}
+                    className="absolute top-2 right-2 bg-background/80 rounded-full p-1 hover:bg-background"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center gap-2 aspect-video rounded-lg border-2 border-dashed border-border hover:border-primary/50 cursor-pointer transition-colors">
+                  <Upload className="w-6 h-6 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Clique para adicionar imagem</span>
+                  <span className="text-xs text-muted-foreground">PNG, JPG até 5MB</span>
+                  <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                </label>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label>Nome *</Label>
               <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
