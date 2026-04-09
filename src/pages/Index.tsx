@@ -262,10 +262,10 @@ const Index = () => {
               <span className="font-bold text-foreground">EnsinaPay</span>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
-              <a href="#" className="hover:text-foreground transition-colors">Termos de uso</a>
-              <a href="#" className="hover:text-foreground transition-colors">Política de privacidade</a>
-              <a href="#" className="hover:text-foreground transition-colors">Contato</a>
-              <a href="#" className="hover:text-foreground transition-colors">Suporte</a>
+              <Link to="/terms" className="hover:text-foreground transition-colors">Termos de uso</Link>
+              <Link to="/privacy" className="hover:text-foreground transition-colors">Política de privacidade</Link>
+              <Link to="/contact" className="hover:text-foreground transition-colors">Contato</Link>
+              <Link to="/contact" className="hover:text-foreground transition-colors">Suporte</Link>
             </div>
           </div>
           <p className="text-center text-sm text-muted-foreground mt-6">
