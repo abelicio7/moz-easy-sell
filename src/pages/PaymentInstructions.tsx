@@ -1,13 +1,57 @@
-import { useSearchParams } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Zap, Smartphone, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Zap, Smartphone, CheckCircle, XCircle, Loader2 } from "lucide-react";
 
 const PaymentInstructions = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const method = searchParams.get("method") || "mpesa";
   const amount = searchParams.get("amount") || "0";
+  const orderId = searchParams.get("order_id");
+  const debitoReference = searchParams.get("debito_reference");
+  const [status, setStatus] = useState<string>("PENDING");
+  const [checking, setChecking] = useState(false);
 
   const isMpesa = method === "mpesa";
+
+  const checkStatus = useCallback(async () => {
+    if (!debitoReference || !orderId) return;
+    setChecking(true);
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/check-payment-status?debito_reference=${debitoReference}&order_id=${orderId}`,
+        {
+          headers: {
+            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+        }
+      );
+      const data = await res.json();
+      setStatus(data.status || "PENDING");
+      if (data.order_status === "paid") {
+        navigate("/thank-you");
+      }
+    } catch {
+      // silently retry
+    } finally {
+      setChecking(false);
+    }
+  }, [debitoReference, orderId, navigate]);
+
+  // Auto-poll every 5 seconds
+  useEffect(() => {
+    if (!debitoReference) return;
+    const interval = setInterval(checkStatus, 5000);
+    checkStatus(); // initial check
+    return () => clearInterval(interval);
+  }, [checkStatus, debitoReference]);
+
+  const isPending = status === "PENDING" || status === "PROCESSING";
+  const isFailed = status === "FAILED" || status === "CANCELLED";
+  const isCompleted = status === "COMPLETED" || status === "SUCCESS";
 
   return (
     <div className="min-h-screen bg-muted/30 py-8 px-4">
@@ -22,39 +66,64 @@ const PaymentInstructions = () => {
         <Card>
           <CardContent className="pt-6 text-center">
             <div className="w-14 h-14 rounded-full bg-accent flex items-center justify-center mx-auto mb-4">
-              <Smartphone className="w-7 h-7 text-primary" />
-            </div>
-            <h2 className="text-xl font-bold text-foreground mb-2">Instruções de Pagamento</h2>
-            <p className="text-muted-foreground text-sm mb-6">
-              Siga os passos abaixo para completar o pagamento via <strong>{isMpesa ? "M-Pesa" : "E-Mola"}</strong>
-            </p>
-
-            <div className="bg-muted rounded-lg p-4 text-left space-y-3 mb-6">
-              {isMpesa ? (
-                <>
-                  <p className="text-sm text-foreground"><strong>1.</strong> Abra o menu M-Pesa no seu celular</p>
-                  <p className="text-sm text-foreground"><strong>2.</strong> Selecione "Transferir Dinheiro"</p>
-                  <p className="text-sm text-foreground"><strong>3.</strong> Digite o número: <strong className="text-primary">84 XXX XXXX</strong></p>
-                  <p className="text-sm text-foreground"><strong>4.</strong> Valor: <strong className="text-primary">{parseFloat(amount).toFixed(2)} MT</strong></p>
-                  <p className="text-sm text-foreground"><strong>5.</strong> Confirme com seu PIN</p>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm text-foreground"><strong>1.</strong> Abra o menu E-Mola no seu celular</p>
-                  <p className="text-sm text-foreground"><strong>2.</strong> Selecione "Enviar Dinheiro"</p>
-                  <p className="text-sm text-foreground"><strong>3.</strong> Digite o número: <strong className="text-primary">86 XXX XXXX</strong></p>
-                  <p className="text-sm text-foreground"><strong>4.</strong> Valor: <strong className="text-primary">{parseFloat(amount).toFixed(2)} MT</strong></p>
-                  <p className="text-sm text-foreground"><strong>5.</strong> Confirme com seu PIN</p>
-                </>
-              )}
+              {isPending && <Loader2 className="w-7 h-7 text-primary animate-spin" />}
+              {isCompleted && <CheckCircle className="w-7 h-7 text-green-500" />}
+              {isFailed && <XCircle className="w-7 h-7 text-destructive" />}
             </div>
 
-            <div className="flex items-center gap-2 bg-accent/50 rounded-lg p-3">
-              <Clock className="w-5 h-5 text-warning shrink-0" />
-              <p className="text-xs text-muted-foreground text-left">
-                Após o pagamento, o vendedor confirmará e você receberá o produto por email automaticamente.
+            <h2 className="text-xl font-bold text-foreground mb-2">
+              {isPending && "Aguardando Pagamento"}
+              {isCompleted && "Pagamento Confirmado!"}
+              {isFailed && "Pagamento Falhou"}
+            </h2>
+
+            {isPending && (
+              <>
+                <p className="text-muted-foreground text-sm mb-4">
+                  Você receberá uma notificação no seu celular via <strong>{isMpesa ? "M-Pesa" : "E-Mola"}</strong> para confirmar o pagamento de <strong>{parseFloat(amount).toFixed(2)} MT</strong>.
+                </p>
+
+                <div className="bg-muted rounded-lg p-4 text-left space-y-3 mb-6">
+                  <p className="text-sm font-semibold text-foreground">Como confirmar:</p>
+                  <p className="text-sm text-foreground"><strong>1.</strong> Verifique a notificação no seu celular</p>
+                  <p className="text-sm text-foreground"><strong>2.</strong> Confirme o pagamento com seu PIN {isMpesa ? "M-Pesa" : "E-Mola"}</p>
+                  <p className="text-sm text-foreground"><strong>3.</strong> O sistema confirmará automaticamente</p>
+                </div>
+
+                <div className="flex items-center gap-2 bg-primary/5 rounded-lg p-3 mb-4">
+                  <Loader2 className="w-4 h-4 text-primary animate-spin shrink-0" />
+                  <p className="text-xs text-muted-foreground text-left">
+                    Verificando pagamento automaticamente...
+                  </p>
+                </div>
+
+                <Button
+                  variant="outline"
+                  onClick={checkStatus}
+                  disabled={checking}
+                  className="w-full"
+                >
+                  {checking ? "Verificando..." : "Verificar pagamento agora"}
+                </Button>
+              </>
+            )}
+
+            {isCompleted && (
+              <p className="text-muted-foreground text-sm mb-4">
+                Seu pagamento foi confirmado com sucesso! Você receberá o produto por email.
               </p>
-            </div>
+            )}
+
+            {isFailed && (
+              <>
+                <p className="text-muted-foreground text-sm mb-4">
+                  O pagamento não foi completado. Por favor, tente novamente.
+                </p>
+                <Button onClick={() => navigate(-1)} className="w-full">
+                  Tentar novamente
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
