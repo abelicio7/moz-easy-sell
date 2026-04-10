@@ -47,25 +47,66 @@ const Checkout = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!product) return;
-    if (!form.name || !form.email) {
-      toast.error("Preencha os campos obrigatórios");
+    if (!form.name || !form.email || !form.whatsapp) {
+      toast.error("Preencha todos os campos obrigatórios, incluindo o número de telefone");
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.from("orders").insert({
-      product_id: product.id,
-      customer_name: form.name,
-      customer_email: form.email,
-      customer_whatsapp: form.whatsapp || null,
-      payment_method: form.payment_method,
-      price: product.price,
-      status: "pending",
-    });
-    setSubmitting(false);
-    if (error) {
-      toast.error("Erro ao processar pedido");
-    } else {
-      navigate(`/checkout/${productId}/payment?method=${form.payment_method}&amount=${product.price}`);
+
+    try {
+      // 1. Create order
+      const { data: order, error } = await supabase.from("orders").insert({
+        product_id: product.id,
+        customer_name: form.name,
+        customer_email: form.email,
+        customer_whatsapp: form.whatsapp || null,
+        payment_method: form.payment_method,
+        price: product.price,
+        status: "pending",
+      }).select("id").single();
+
+      if (error || !order) {
+        toast.error("Erro ao criar pedido");
+        setSubmitting(false);
+        return;
+      }
+
+      // 2. Call payment edge function
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const paymentResponse = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/process-payment`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({
+            order_id: order.id,
+            payment_method: form.payment_method,
+            amount: product.price,
+            phone: form.whatsapp,
+            product_name: product.name,
+          }),
+        }
+      );
+
+      const paymentData = await paymentResponse.json();
+
+      if (!paymentResponse.ok) {
+        toast.error(paymentData.error || "Erro ao processar pagamento");
+        setSubmitting(false);
+        return;
+      }
+
+      // 3. Navigate to payment status page
+      navigate(
+        `/checkout/${productId}/payment?order_id=${order.id}&debito_reference=${paymentData.debito_reference}&method=${form.payment_method}&amount=${product.price}`
+      );
+    } catch (err) {
+      toast.error("Erro de conexão. Tente novamente.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -87,7 +128,6 @@ const Checkout = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -105,14 +145,11 @@ const Checkout = () => {
 
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          {/* Left column - Form */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Product preview (mobile) */}
             <div className="lg:hidden">
               <ProductCard product={product} />
             </div>
 
-            {/* Customer info */}
             <Card className="border-border/50">
               <CardContent className="pt-6">
                 <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
@@ -145,20 +182,23 @@ const Checkout = () => {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Phone className="w-3 h-3" /> WhatsApp (opcional)
+                      <Phone className="w-3 h-3" /> Número de telefone (M-Pesa/E-Mola) *
                     </Label>
                     <Input
-                      placeholder="+258 84 xxx xxxx"
+                      placeholder="84xxxxxxx ou 86xxxxxxx"
                       value={form.whatsapp}
                       onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+                      required
                       className="bg-background/50"
                     />
+                    <p className="text-[10px] text-muted-foreground">
+                      O pagamento será enviado para este número via {form.payment_method === "mpesa" ? "M-Pesa" : "E-Mola"}
+                    </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Payment method */}
             <Card className="border-border/50">
               <CardContent className="pt-6">
                 <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
@@ -212,24 +252,20 @@ const Checkout = () => {
               </CardContent>
             </Card>
 
-            {/* Submit button (mobile) */}
             <div className="lg:hidden">
               <Button
                 onClick={handleSubmit}
                 className="w-full h-12 text-base font-semibold"
-                disabled={submitting || !form.name || !form.email}
+                disabled={submitting || !form.name || !form.email || !form.whatsapp}
               >
-                {submitting ? "Processando..." : `Pagar ${product.price.toFixed(2)} MT`}
+                {submitting ? "Processando pagamento..." : `Pagar ${product.price.toFixed(2)} MT`}
               </Button>
             </div>
           </div>
 
-          {/* Right column - Order summary */}
           <div className="hidden lg:block lg:col-span-2">
             <div className="sticky top-20 space-y-4">
               <ProductCard product={product} />
-
-              {/* Order summary */}
               <Card className="border-border/50">
                 <CardContent className="pt-6">
                   <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-4">
@@ -255,9 +291,9 @@ const Checkout = () => {
                   <Button
                     onClick={handleSubmit}
                     className="w-full h-12 text-base font-semibold mt-6"
-                    disabled={submitting || !form.name || !form.email}
+                    disabled={submitting || !form.name || !form.email || !form.whatsapp}
                   >
-                    {submitting ? "Processando..." : `Pagar ${product.price.toFixed(2)} MT`}
+                    {submitting ? "Processando pagamento..." : `Pagar ${product.price.toFixed(2)} MT`}
                   </Button>
 
                   <p className="text-[10px] text-muted-foreground text-center mt-3">
