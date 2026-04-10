@@ -20,6 +20,7 @@ export type Database = {
           customer_email: string
           customer_name: string
           customer_whatsapp: string | null
+          debito_reference: string | null
           id: string
           payment_method: string
           price: number
@@ -31,6 +32,7 @@ export type Database = {
           customer_email: string
           customer_name: string
           customer_whatsapp?: string | null
+          debito_reference?: string | null
           id?: string
           payment_method: string
           price?: number
@@ -42,6 +44,7 @@ export type Database = {
           customer_email?: string
           customer_name?: string
           customer_whatsapp?: string | null
+          debito_reference?: string | null
           id?: string
           payment_method?: string
           price?: number
