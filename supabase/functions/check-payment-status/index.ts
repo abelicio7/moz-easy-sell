@@ -1,5 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 const DEBITO_BASE_URL = "https://my.debito.co.mz/api/v1";
 
@@ -38,7 +42,6 @@ Deno.serve(async (req) => {
     const statusData = await statusResponse.json();
     console.log("Status check:", JSON.stringify(statusData));
 
-    // Update order status based on Débito response
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!

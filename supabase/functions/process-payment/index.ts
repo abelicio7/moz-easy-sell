@@ -1,5 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 const DEBITO_BASE_URL = "https://my.debito.co.mz/api/v1";
 const WALLET_IDS: Record<string, number> = {
@@ -35,7 +39,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Clean phone number - extract digits, ensure format like 84xxxxxxx
     const cleanPhone = phone.replace(/\D/g, "").replace(/^258/, "").replace(/^\+258/, "");
     if (cleanPhone.length < 9) {
       return new Response(
@@ -68,15 +71,14 @@ Deno.serve(async (req) => {
 
     if (!debitoResponse.ok) {
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           error: debitoData.message || "Erro ao processar pagamento",
-          details: debitoData.errors || null 
+          details: debitoData.errors || null,
         }),
         { status: debitoResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Update order with debito_reference
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -84,9 +86,9 @@ Deno.serve(async (req) => {
 
     await supabase
       .from("orders")
-      .update({ 
+      .update({
         debito_reference: debitoData.debito_reference,
-        status: "processing" 
+        status: "processing",
       })
       .eq("id", order_id);
 
