@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Zap, Smartphone, CheckCircle, XCircle, Loader2 } from "lucide-react";
 
 const PaymentInstructions = () => {
   const [searchParams] = useSearchParams();
+  const { productId } = useParams();
   const navigate = useNavigate();
   const method = searchParams.get("method") || "mpesa";
   const amount = searchParams.get("amount") || "0";
@@ -32,7 +33,7 @@ const PaymentInstructions = () => {
       const data = await res.json();
       setStatus(data.status || "PENDING");
       if (data.order_status === "paid") {
-        navigate("/thank-you");
+        navigate(`/thank-you?order_id=${orderId}`);
       }
     } catch {
       // silently retry
@@ -41,11 +42,10 @@ const PaymentInstructions = () => {
     }
   }, [debitoReference, orderId, navigate]);
 
-  // Auto-poll every 5 seconds
   useEffect(() => {
     if (!debitoReference) return;
     const interval = setInterval(checkStatus, 5000);
-    checkStatus(); // initial check
+    checkStatus();
     return () => clearInterval(interval);
   }, [checkStatus, debitoReference]);
 
@@ -110,7 +110,7 @@ const PaymentInstructions = () => {
 
             {isCompleted && (
               <p className="text-muted-foreground text-sm mb-4">
-                Seu pagamento foi confirmado com sucesso! Você receberá o produto por email.
+                Seu pagamento foi confirmado com sucesso! Redirecionando...
               </p>
             )}
 
