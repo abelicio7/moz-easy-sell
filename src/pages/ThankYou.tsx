@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Zap, CheckCircle2, Download, ExternalLink, Loader2, Package } from "lucide-react";
+import { CheckCircle2, Download, ExternalLink, Loader2, Package } from "lucide-react";
+import Logo from "@/components/Logo";
 
 interface DeliveryData {
   order_id: string;

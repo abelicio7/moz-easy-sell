@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Zap, Mail, Phone, MapPin, Send } from "lucide-react";
+import { Mail, Phone, MapPin, Send } from "lucide-react";
+import Logo from "@/components/Logo";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -107,10 +108,7 @@ const Contact = () => {
       <footer className="border-t border-border py-8">
         <div className="container flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
-              <Zap className="w-3 h-3 text-primary-foreground" />
-            </div>
-            <span className="font-semibold text-foreground">EnsinaPay</span>
+            <Logo size="sm" />
           </div>
           <p>© 2026 EnsinaPay. Todos os direitos reservados.</p>
         </div>

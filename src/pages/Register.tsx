@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Zap } from "lucide-react";
+import Logo from "@/components/Logo";
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -41,10 +41,7 @@ const Register = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <Link to="/" className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Zap className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold text-foreground">EnsinaPay</span>
+            <Logo />
           </Link>
           <CardTitle>Criar conta</CardTitle>
           <CardDescription>Comece a vender seus produtos digitais</CardDescription>

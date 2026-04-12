@@ -8,7 +8,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Zap, Shield, Smartphone, ShoppingBag, User, Mail, Phone } from "lucide-react";
+import { Shield, Smartphone, ShoppingBag, User, Mail, Phone } from "lucide-react";
+import Logo from "@/components/Logo";
 
 interface Product {
   id: string;
@@ -131,10 +132,7 @@ const Checkout = () => {
       <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
-              <Zap className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-foreground text-sm">EnsinaPay</span>
+            <Logo size="sm" />
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Shield className="w-3.5 h-3.5 text-primary" />

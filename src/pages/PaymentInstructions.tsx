@@ -2,7 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Zap, Smartphone, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { Smartphone, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import Logo from "@/components/Logo";
 
 const PaymentInstructions = () => {
   const [searchParams] = useSearchParams();

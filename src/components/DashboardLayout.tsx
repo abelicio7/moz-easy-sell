@@ -1,6 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Zap, Package, ShoppingCart, LogOut, Menu, X } from "lucide-react";
+import Logo from "@/components/Logo";
+import { Package, ShoppingCart, LogOut, Menu, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 
@@ -29,10 +30,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
             <Link to="/dashboard" className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
-                <Zap className="w-4 h-4 text-primary-foreground" />
-              </div>
-              <span className="font-bold text-foreground">EnsinaPay</span>
+              <Logo size="sm" />
             </Link>
           </div>
           <div className="hidden md:flex items-center gap-1">
