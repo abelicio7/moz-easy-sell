@@ -21,7 +21,7 @@ const Logo = ({ size = "md", showText = true }: LogoProps) => (
   <div className="flex items-center gap-2">
     <img src={logo} alt="EnsinaPay" className={sizes[size]} />
     {showText && (
-      <span className={`font-bold text-foreground ${textSizes[size]}`}>EnsinaPay</span>
+      <span className={`font-bold text-foreground font-display ${textSizes[size]}`}>EnsinaPay</span>
     )}
   </div>
 );
