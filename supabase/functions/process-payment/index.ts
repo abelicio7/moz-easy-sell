@@ -66,8 +66,18 @@ Deno.serve(async (req) => {
       }),
     });
 
-    const debitoData = await debitoResponse.json();
-    console.log("Débito response:", JSON.stringify(debitoData));
+    const responseText = await debitoResponse.text();
+    console.log("Débito raw response:", debitoResponse.status, responseText.substring(0, 500));
+
+    let debitoData: any;
+    try {
+      debitoData = JSON.parse(responseText);
+    } catch {
+      return new Response(
+        JSON.stringify({ error: `API retornou resposta inválida (status ${debitoResponse.status})` }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!debitoResponse.ok) {
       return new Response(
