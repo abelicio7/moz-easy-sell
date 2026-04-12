@@ -11,6 +11,34 @@ const WALLET_IDS: Record<string, number> = {
   emola: 226725,
 };
 
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 25000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function callDebitoWithRetry(url: string, options: RequestInit, retries = 2): Promise<{ response: Response; text: string }> {
+  let lastError: Error | null = null;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      console.log(`Débito attempt ${i + 1}/${retries + 1}`);
+      const response = await fetchWithTimeout(url, options);
+      const text = await response.text();
+      return { response, text };
+    } catch (err) {
+      lastError = err as Error;
+      console.warn(`Attempt ${i + 1} failed:`, err.message);
+      if (i < retries) await new Promise(r => setTimeout(r, 2000));
+    }
+  }
+  throw lastError!;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -52,21 +80,33 @@ Deno.serve(async (req) => {
 
     console.log(`Initiating ${payment_method} payment: ${debitoUrl}`);
 
-    const debitoResponse = await fetch(debitoUrl, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${PAYMENT_API_TOKEN}`,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      },
-      body: JSON.stringify({
-        msisdn: cleanPhone,
-        amount: Number(amount),
-        reference_description: `EnsinaPay - ${product_name || "Produto"}`.substring(0, 32),
-      }),
-    });
+    let responseText: string;
+    let debitoResponse: Response;
 
-    const responseText = await debitoResponse.text();
+    try {
+      const result = await callDebitoWithRetry(debitoUrl, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${PAYMENT_API_TOKEN}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify({
+          msisdn: cleanPhone,
+          amount: Number(amount),
+          reference_description: `EnsinaPay - ${product_name || "Produto"}`.substring(0, 32),
+        }),
+      });
+      debitoResponse = result.response;
+      responseText = result.text;
+    } catch (err) {
+      console.error("All retry attempts failed:", err.message);
+      return new Response(
+        JSON.stringify({ error: "Serviço de pagamento indisponível. Tente novamente em alguns minutos." }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     console.log("Débito raw response:", debitoResponse.status, responseText.substring(0, 500));
 
     let debitoData: any;
@@ -74,7 +114,7 @@ Deno.serve(async (req) => {
       debitoData = JSON.parse(responseText);
     } catch {
       return new Response(
-        JSON.stringify({ error: `API retornou resposta inválida (status ${debitoResponse.status})` }),
+        JSON.stringify({ error: "Serviço de pagamento retornou resposta inválida. Tente novamente." }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
