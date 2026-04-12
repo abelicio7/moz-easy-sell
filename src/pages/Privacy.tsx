@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import LandingNav from "@/components/LandingNav";
-import { Zap } from "lucide-react";
+import Logo from "@/components/Logo";
 
 const Privacy = () => {
   return (
@@ -64,10 +64,7 @@ const Privacy = () => {
       <footer className="border-t border-border py-8">
         <div className="container flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
-              <Zap className="w-3 h-3 text-primary-foreground" />
-            </div>
-            <span className="font-semibold text-foreground">EnsinaPay</span>
+            <Logo size="sm" />
           </div>
           <p>© 2026 EnsinaPay. Todos os direitos reservados.</p>
         </div>

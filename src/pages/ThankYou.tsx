@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Zap, CheckCircle2, Download, ExternalLink, Loader2, Package } from "lucide-react";
+import { CheckCircle2, Download, ExternalLink, Loader2, Package } from "lucide-react";
+import Logo from "@/components/Logo";
 
 interface DeliveryData {
   order_id: string;
@@ -66,10 +67,7 @@ const ThankYou = () => {
     <div className="min-h-screen bg-muted/30 py-8 px-4 flex items-center justify-center">
       <div className="max-w-md w-full space-y-4">
         <div className="flex items-center justify-center gap-2 mb-6">
-          <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
-            <Zap className="w-4 h-4 text-primary-foreground" />
-          </div>
-          <span className="font-bold text-foreground">EnsinaPay</span>
+          <Logo size="sm" />
         </div>
 
         <Card>

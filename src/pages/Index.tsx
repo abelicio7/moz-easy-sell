@@ -5,6 +5,7 @@ import {
   Zap, ArrowRight, XCircle, CheckCircle2, Package, Link2, CreditCard, Send,
   Rocket, Smartphone, Mail, BarChart3, Shield, Globe, Users, BookOpen, Briefcase, GraduationCap
 } from "lucide-react";
+import Logo from "@/components/Logo";
 
 const problems = [
   "Não existem plataformas adaptadas ao nosso mercado",
@@ -256,10 +257,7 @@ const Index = () => {
         <div className="container">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded bg-primary flex items-center justify-center">
-                <Zap className="w-4 h-4 text-primary-foreground" />
-              </div>
-              <span className="font-bold text-foreground">EnsinaPay</span>
+              <Logo size="sm" />
             </div>
             <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
               <Link to="/terms" className="hover:text-foreground transition-colors">Termos de uso</Link>
