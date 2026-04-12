@@ -2,47 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&display=swap');
 
 @layer base {
   :root {
-    --background: 224 35% 8%;
-    --foreground: 40 20% 92%;
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
 
-    --card: 224 30% 12%;
-    --card-foreground: 40 20% 92%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
 
-    --popover: 224 30% 12%;
-    --popover-foreground: 40 20% 92%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
 
     --primary: 43 80% 49%;
-    --primary-foreground: 224 35% 8%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 224 25% 16%;
-    --secondary-foreground: 40 20% 88%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 11%;
 
-    --muted: 224 20% 14%;
-    --muted-foreground: 220 10% 55%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
 
-    --accent: 177 67% 9%;
-    --accent-foreground: 43 80% 60%;
+    --accent: 220 14% 96%;
+    --accent-foreground: 222 47% 11%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 224 20% 18%;
-    --input: 224 20% 18%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
     --ring: 43 80% 49%;
 
     --radius: 0.625rem;
 
-    --sidebar-background: 224 30% 10%;
-    --sidebar-foreground: 40 20% 88%;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 222 47% 11%;
     --sidebar-primary: 43 80% 49%;
-    --sidebar-primary-foreground: 224 35% 8%;
-    --sidebar-accent: 177 67% 12%;
-    --sidebar-accent-foreground: 43 80% 60%;
-    --sidebar-border: 224 20% 18%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 220 13% 91%;
     --sidebar-ring: 43 80% 49%;
 
     --success: 152 58% 38%;
