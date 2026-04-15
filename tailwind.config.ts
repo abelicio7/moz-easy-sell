@@ -14,7 +14,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Manrope", "system-ui", "sans-serif"],
+        sans: ["Satoshi", "system-ui", "sans-serif"],
         display: ["Satoshi", "system-ui", "sans-serif"],
       },
       colors: {
