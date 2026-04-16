@@ -18,6 +18,12 @@ export default {
         display: ["Satoshi", "system-ui", "sans-serif"],
       },
       colors: {
+        brand: {
+          blue: "#315E77",
+          purple: "#422B81",
+          rose: "#B7647C",
+          teal: "#36818B"
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
