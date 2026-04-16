@@ -56,7 +56,7 @@ const Index = () => {
       <LandingNav />
 
       {/* HERO */}
-      <section className="container py-24 md:py-36 text-center">
+      <section className="container py-16 md:py-32 text-center">
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight text-foreground max-w-4xl mx-auto leading-[1.1] animate-fade-in" style={{ animationDelay: "0.1s" }}>
           Venda seus produtos digitais de forma simples com{" "}
           <span className="text-primary">M-Pesa e E-Mola</span>
@@ -64,22 +64,22 @@ const Index = () => {
         <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto animate-fade-in leading-relaxed" style={{ animationDelay: "0.2s" }}>
           Crie seu checkout em minutos, receba pagamentos locais e entregue automaticamente — sem complicações.
         </p>
-        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in" style={{ animationDelay: "0.3s" }}>
-          <Button size="lg" className="text-base px-8 h-14 text-lg font-bold" asChild>
+        <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in w-full max-w-xs mx-auto sm:max-w-none" style={{ animationDelay: "0.3s" }}>
+          <Button size="lg" className="w-full sm:w-auto text-base px-8 h-14 md:text-lg font-bold" asChild>
             <Link to="/register">
-              Começar Agora Gratuitamente
+              Começar Grátis
               <ArrowRight className="w-5 h-5 ml-2" />
             </Link>
           </Button>
-          <Button size="lg" variant="outline" className="text-base px-8 h-14 text-lg border-border hover:border-primary/40" asChild>
+          <Button size="lg" variant="outline" className="w-full sm:w-auto text-base px-8 h-14 md:text-lg border-border hover:border-primary/40" asChild>
             <a href="#como-funciona">Ver como funciona</a>
           </Button>
         </div>
       </section>
 
       {/* SEÇÃO 2 — PROBLEMA */}
-      <section className="py-20 md:py-28">
-        <div className="container max-w-3xl text-center">
+      <section className="py-16 md:py-28 overflow-hidden">
+        <div className="container max-w-3xl text-center px-4 md:px-8">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
             Vender online em Moçambique ainda é <span className="text-primary">complicado…</span>
           </h2>
@@ -148,22 +148,22 @@ const Index = () => {
       </section>
 
       {/* SEÇÃO 5 — BENEFÍCIOS */}
-      <section className="py-20 md:py-28 bg-card/50">
+      <section className="py-16 md:py-28 bg-card/50">
         <div className="container text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-14">
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-10 md:mb-14">
             Tudo que você precisa para <span className="text-primary">vender online</span>
           </h2>
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 max-w-5xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6 max-w-5xl mx-auto">
             {benefits.map((b, i) => (
               <div
                 key={i}
-                className="flex flex-col items-center gap-3 p-6 rounded-xl border border-border bg-card hover:border-primary/40 transition-colors animate-fade-in"
+                className="flex flex-col items-center justify-center gap-3 p-4 md:p-6 rounded-xl border border-border bg-card hover:border-primary/40 transition-colors animate-fade-in h-full"
                 style={{ animationDelay: `${0.08 * i}s` }}
               >
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <b.icon className="w-6 h-6 text-primary" />
+                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <b.icon className="w-5 h-5 md:w-6 md:h-6 text-primary" />
                 </div>
-                <span className="text-sm font-medium text-foreground text-center">{b.text}</span>
+                <span className="text-xs md:text-sm font-medium text-foreground text-center leading-tight">{b.text}</span>
               </div>
             ))}
           </div>
@@ -209,20 +209,20 @@ const Index = () => {
       </section>
 
       {/* SEÇÃO 8 — PROVA / CONFIANÇA */}
-      <section className="py-20 md:py-28">
+      <section className="py-16 md:py-28">
         <div className="container text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Construída para quem quer <span className="text-primary">crescer de verdade</span>
           </h2>
           <p className="text-muted-foreground text-lg mb-10">A EnsinaPay é ideal para:</p>
-          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 max-w-3xl mx-auto">
             {audiencias.map((a, i) => (
               <div
                 key={i}
-                className="flex flex-col items-center gap-3 p-6 rounded-xl border border-border bg-card hover:border-primary/40 transition-colors"
+                className="flex flex-col items-center justify-center gap-3 p-4 md:p-6 rounded-xl border border-border bg-card hover:border-primary/40 transition-colors text-center h-full"
               >
-                <a.icon className="w-8 h-8 text-primary" />
-                <span className="text-sm font-medium text-foreground">{a.text}</span>
+                <a.icon className="w-6 h-6 md:w-8 md:h-8 text-primary" />
+                <span className="text-xs md:text-sm font-medium text-foreground leading-tight">{a.text}</span>
               </div>
             ))}
           </div>
@@ -230,16 +230,16 @@ const Index = () => {
       </section>
 
       {/* SEÇÃO 9 — CTA FINAL */}
-      <section className="py-24 md:py-32 bg-gradient-to-b from-card/50 to-background">
-        <div className="container text-center max-w-2xl">
-          <h2 className="text-3xl md:text-5xl font-black text-foreground mb-6">
-            Comece a vender <span className="text-primary">hoje mesmo</span>
+      <section className="py-20 md:py-32 bg-gradient-to-b from-card/50 to-background overflow-hidden px-4">
+        <div className="container text-center max-w-2xl px-0">
+          <h2 className="text-3xl md:text-5xl font-black text-foreground mb-6 leading-tight">
+            Comece a vender <span className="text-primary block sm:inline">hoje mesmo</span>
           </h2>
           <p className="text-lg text-muted-foreground mb-10">
-            Você não precisa de uma estrutura complicada.<br />
+            Você não precisa de uma estrutura complicada.<br className="hidden sm:block" />
             Você só precisa <span className="text-primary font-semibold">começar.</span>
           </p>
-          <Button size="lg" className="text-lg px-10 h-14 font-bold" asChild>
+          <Button size="lg" className="w-full sm:w-auto text-lg px-6 md:px-10 h-14 font-bold" asChild>
             <Link to="/register">
               Criar minha conta grátis
               <ArrowRight className="w-5 h-5 ml-2" />

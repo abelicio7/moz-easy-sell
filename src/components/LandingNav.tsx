@@ -9,12 +9,12 @@ const LandingNav = () => {
         <Link to="/" className="flex items-center gap-2">
           <Logo />
         </Link>
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" asChild>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Button variant="ghost" className="px-3 sm:px-4 text-xs sm:text-sm font-medium" asChild>
             <Link to="/login">Entrar</Link>
           </Button>
-          <Button asChild>
-            <Link to="/register">Começar grátis</Link>
+          <Button className="px-3 sm:px-4 text-xs sm:text-sm" asChild>
+            <Link to="/register"><span className="hidden sm:inline">Começar grátis</span><span className="sm:hidden">Começar</span></Link>
           </Button>
         </div>
       </div>
