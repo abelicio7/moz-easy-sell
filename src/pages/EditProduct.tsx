@@ -17,7 +17,7 @@ const EditProduct = () => {
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", price: "", delivery_type: "link", delivery_content: "" });
+  const [form, setForm] = useState({ name: "", description: "", price: "", delivery_type: "link", delivery_content: "", support_whatsapp: "" });
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -29,6 +29,7 @@ const EditProduct = () => {
           price: String(data.price),
           delivery_type: data.delivery_type,
           delivery_content: data.delivery_content,
+          support_whatsapp: data.support_whatsapp || "",
         });
         if (data.image_url) setImagePreview(data.image_url);
       }
@@ -82,6 +83,7 @@ const EditProduct = () => {
       price: parseFloat(form.price),
       delivery_type: form.delivery_type,
       delivery_content: form.delivery_content,
+      support_whatsapp: form.support_whatsapp,
       ...(imageUrl !== undefined ? { image_url: imageUrl } : {}),
     };
 
@@ -132,6 +134,10 @@ const EditProduct = () => {
             <div className="space-y-2">
               <Label>Descrição</Label>
               <Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>WhatsApp para Suporte *</Label>
+              <Input type="tel" placeholder="Ex: 840000000" value={form.support_whatsapp} onChange={(e) => setForm({ ...form, support_whatsapp: e.target.value })} required />
             </div>
             <div className="space-y-2">
               <Label>Preço (MT) *</Label>

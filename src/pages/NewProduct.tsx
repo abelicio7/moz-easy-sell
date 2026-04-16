@@ -24,6 +24,7 @@ const NewProduct = () => {
     price: "",
     delivery_type: "link",
     delivery_content: "",
+    support_whatsapp: "",
   });
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -58,7 +59,7 @@ const NewProduct = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (!form.name || !form.price || !form.delivery_content) {
+    if (!form.name || !form.price || !form.delivery_content || !form.support_whatsapp) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -71,6 +72,7 @@ const NewProduct = () => {
       price: parseFloat(form.price),
       delivery_type: form.delivery_type,
       delivery_content: form.delivery_content,
+      support_whatsapp: form.support_whatsapp,
     }).select("id").single();
 
     if (error || !data) {
@@ -130,6 +132,10 @@ const NewProduct = () => {
             <div className="space-y-2">
               <Label>Descrição</Label>
               <Textarea placeholder="Descreva seu produto..." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            </div>
+            <div className="space-y-2">
+              <Label>WhatsApp para Suporte *</Label>
+              <Input type="tel" placeholder="Ex: 840000000" value={form.support_whatsapp} onChange={(e) => setForm({ ...form, support_whatsapp: e.target.value })} required />
             </div>
             <div className="space-y-2">
               <Label>Preço (MT) *</Label>

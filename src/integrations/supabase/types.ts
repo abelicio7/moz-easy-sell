@@ -71,6 +71,7 @@ export type Database = {
           image_url: string | null
           name: string
           price: number
+          support_whatsapp: string | null
           updated_at: string
           user_id: string
         }
@@ -83,6 +84,7 @@ export type Database = {
           image_url?: string | null
           name: string
           price?: number
+          support_whatsapp?: string | null
           updated_at?: string
           user_id: string
         }
@@ -95,6 +97,7 @@ export type Database = {
           image_url?: string | null
           name?: string
           price?: number
+          support_whatsapp?: string | null
           updated_at?: string
           user_id?: string
         }

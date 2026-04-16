@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     // Fetch order with product info
     const { data: order, error } = await supabase
       .from("orders")
-      .select("id, status, product_id, customer_name, customer_email, products(name, description, delivery_type, delivery_content, image_url)")
+      .select("id, status, product_id, customer_name, customer_email, products(name, description, delivery_type, delivery_content, image_url, support_whatsapp)")
       .eq("id", orderId)
       .single();
 
@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
         product_image: product?.image_url,
         delivery_type: product?.delivery_type || "link",
         delivery_content: product?.delivery_content,
+        support_whatsapp: product?.support_whatsapp,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Download, ExternalLink, Loader2, Package } from "lucide-react";
+import { CheckCircle2, ExternalLink, Loader2, Package, MessageCircle } from "lucide-react";
 import Logo from "@/components/Logo";
 
 interface DeliveryData {
@@ -13,6 +13,7 @@ interface DeliveryData {
   product_image: string | null;
   delivery_type: string;
   delivery_content: string;
+  support_whatsapp: string | null;
 }
 
 const ThankYou = () => {
@@ -125,6 +126,24 @@ const ThankYou = () => {
                   </div>
                 )}
               </div>
+
+              {delivery.support_whatsapp && (
+                <div className="mt-6 border-t border-border pt-6">
+                  <h4 className="text-sm font-semibold text-foreground mb-3">
+                    Problemas com a sua compra?
+                  </h4>
+                  <Button variant="outline" className="w-full text-[#25D366] hover:text-[#25D366] hover:bg-[#25D366]/10 border-[#25D366]/50 bg-[#25D366]/5" asChild>
+                    <a 
+                      href={`https://wa.me/${delivery.support_whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá! Gostaria de falar sobre a minha compra do produto "${delivery.product_name}" (ID do Pedido: ${delivery.order_id}).`)}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                    >
+                      <MessageCircle className="w-5 h-5 mr-2" />
+                      Falar com Vendedor no WhatsApp
+                    </a>
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
