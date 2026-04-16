@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import LandingNav from "@/components/LandingNav";
 import {
-  Zap, ArrowRight, XCircle, CheckCircle2, Package, Link2, CreditCard, Send,
+  ArrowRight, XCircle, CheckCircle2, Package, Link2, CreditCard, Send,
   Rocket, Smartphone, Mail, BarChart3, Shield, Globe, Users, BookOpen, Briefcase, GraduationCap
 } from "lucide-react";
 import Logo from "@/components/Logo";
@@ -57,10 +57,6 @@ const Index = () => {
 
       {/* HERO */}
       <section className="container py-24 md:py-36 text-center">
-        <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-semibold mb-8 animate-fade-in border border-primary/20">
-          <Zap className="w-4 h-4" />
-          A plataforma nº1 de Moçambique
-        </div>
         <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight text-foreground max-w-4xl mx-auto leading-[1.1] animate-fade-in" style={{ animationDelay: "0.1s" }}>
           Venda seus produtos digitais de forma simples com{" "}
           <span className="text-primary">M-Pesa e E-Mola</span>
