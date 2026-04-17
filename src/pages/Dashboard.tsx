@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Copy, Package, DollarSign, Clock } from "lucide-react";
+import { Plus, Copy, Package, DollarSign, Clock, Smartphone, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
 interface Product {
@@ -17,17 +17,25 @@ interface Product {
   created_at: string;
 }
 
+interface MethodStats {
+  totalOrders: number;
+  paidOrders: number;
+  revenue: number;
+  conversion: number;
+}
+
 interface OrderStats {
   total: number;
   pending: number;
   paid: number;
   revenue: number;
+  methodStats: Record<string, MethodStats>;
 }
 
 const Dashboard = () => {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
-  const [stats, setStats] = useState<OrderStats>({ total: 0, pending: 0, paid: 0, revenue: 0 });
+  const [stats, setStats] = useState<OrderStats>({ total: 0, pending: 0, paid: 0, revenue: 0, methodStats: {} });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,11 +47,30 @@ const Dashboard = () => {
       ]);
       setProducts(prods || []);
       const allOrders = orders || [];
+      
+      const methodStats = allOrders.reduce((acc: any, order: any) => {
+        const method = order.payment_method || 'Outro';
+        if (!acc[method]) acc[method] = { totalOrders: 0, paidOrders: 0, revenue: 0, conversion: 0 };
+        acc[method].totalOrders++;
+        if (order.status === "paid") {
+          acc[method].paidOrders++;
+          acc[method].revenue += (order.price || 0);
+        }
+        return acc;
+      }, {});
+
+      Object.keys(methodStats).forEach(key => {
+        methodStats[key].conversion = methodStats[key].totalOrders > 0 
+          ? (methodStats[key].paidOrders / methodStats[key].totalOrders) * 100 
+          : 0;
+      });
+
       setStats({
         total: allOrders.length,
         pending: allOrders.filter((o: any) => o.status === "pending").length,
         paid: allOrders.filter((o: any) => o.status === "paid").length,
         revenue: allOrders.filter((o: any) => o.status === "paid").reduce((sum: number, o: any) => sum + (o.price || 0), 0),
+        methodStats
       });
       setLoading(false);
     };
@@ -94,7 +121,7 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{stats.pending}</p>
-                <p className="text-xs text-muted-foreground">Pendentes</p>
+                <p className="text-xs text-muted-foreground">Vendas não concluídas</p>
               </div>
             </div>
           </CardContent>
@@ -107,12 +134,46 @@ const Dashboard = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{stats.paid}</p>
-                <p className="text-xs text-muted-foreground">Pagos</p>
+                <p className="text-xs text-muted-foreground">Produtos Vendidos</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Payment Methods Stats */}
+      {Object.keys(stats.methodStats).length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-foreground mb-4">Métricas de Pagamento</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {Object.entries(stats.methodStats).map(([method, data]) => (
+              <Card key={method} className="border-border/50 hover:border-primary/30 transition-all">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${method.toLowerCase() === 'mpesa' ? 'bg-red-500/10 text-red-500' : method.toLowerCase() === 'emola' ? 'bg-blue-500/10 text-blue-500' : 'bg-primary/10 text-primary'}`}>
+                      <Smartphone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-foreground capitalize text-lg">{method}</p>
+                      <p className="text-xs text-muted-foreground">{data.totalOrders} tentativas de checkout</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 bg-muted/40 p-3 rounded-lg border border-border/50">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 font-semibold flex items-center gap-1"><DollarSign className="w-3 h-3"/> Receita Gerada</p>
+                      <p className="font-bold text-foreground text-sm">{data.revenue.toFixed(2)} MT</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 font-semibold flex items-center gap-1"><TrendingUp className="w-3 h-3"/> Conversão</p>
+                      <span className="font-bold text-primary text-sm">{data.conversion.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Products */}
       <div className="flex items-center justify-between mb-4">
