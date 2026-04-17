@@ -150,7 +150,7 @@ const Dashboard = () => {
               <Card key={method} className="border-border/50 hover:border-primary/30 transition-all">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${method.toLowerCase() === 'mpesa' ? 'bg-red-500/10 text-red-500' : method.toLowerCase() === 'emola' ? 'bg-blue-500/10 text-blue-500' : 'bg-primary/10 text-primary'}`}>
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${method.toLowerCase() === 'mpesa' ? 'bg-[#DD0512]/10 text-[#DD0512]' : method.toLowerCase() === 'emola' ? 'bg-[#EC7028]/10 text-[#EC7028]' : 'bg-primary/10 text-primary'}`}>
                       <Smartphone className="w-5 h-5" />
                     </div>
                     <div>

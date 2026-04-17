@@ -226,8 +226,8 @@ const Checkout = () => {
                   >
                     <RadioGroupItem value="mpesa" id="mpesa" />
                     <div className="flex items-center gap-3 flex-1">
-                      <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
-                        <span className="text-red-500 font-bold text-sm">M</span>
+                      <div className="w-10 h-10 rounded-lg bg-[#DD0512]/10 flex items-center justify-center">
+                        <span className="text-[#DD0512] font-bold text-sm">M</span>
                       </div>
                       <div>
                         <p className="font-medium text-foreground text-sm">M-Pesa</p>
@@ -245,8 +245,8 @@ const Checkout = () => {
                   >
                     <RadioGroupItem value="emola" id="emola" />
                     <div className="flex items-center gap-3 flex-1">
-                      <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                        <span className="text-blue-500 font-bold text-sm">E</span>
+                      <div className="w-10 h-10 rounded-lg bg-[#EC7028]/10 flex items-center justify-center">
+                        <span className="text-[#EC7028] font-bold text-sm">E</span>
                       </div>
                       <div>
                         <p className="font-medium text-foreground text-sm">E-Mola</p>

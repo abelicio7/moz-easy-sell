@@ -131,8 +131,8 @@ const Sales = () => {
                     <p className="text-xl font-bold text-foreground">{mpesaRevenue.toFixed(2)} MT</p>
                     <p className="text-xs text-muted-foreground mt-1">{mpesaOrders.length} transações</p>
                   </div>
-                  <div className="w-10 h-10 rounded-full bg-[#E51B24]/10 flex items-center justify-center">
-                    <Smartphone className="w-5 h-5 text-[#E51B24]" />
+                  <div className="w-10 h-10 rounded-full bg-[#DD0512]/10 flex items-center justify-center">
+                    <Smartphone className="w-5 h-5 text-[#DD0512]" />
                   </div>
                 </div>
               </CardContent>
@@ -146,8 +146,8 @@ const Sales = () => {
                     <p className="text-xl font-bold text-foreground">{emolaRevenue.toFixed(2)} MT</p>
                     <p className="text-xs text-muted-foreground mt-1">{emolaOrders.length} transações</p>
                   </div>
-                  <div className="w-10 h-10 rounded-full bg-[#00A1E0]/10 flex items-center justify-center">
-                    <Smartphone className="w-5 h-5 text-[#00A1E0]" />
+                  <div className="w-10 h-10 rounded-full bg-[#EC7028]/10 flex items-center justify-center">
+                    <Smartphone className="w-5 h-5 text-[#EC7028]" />
                   </div>
                 </div>
               </CardContent>
