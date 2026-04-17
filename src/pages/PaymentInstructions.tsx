@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Smartphone, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import Logo from "@/components/Logo";
+import { supabase } from "@/integrations/supabase/client";
 
 const PaymentInstructions = () => {
   const [searchParams] = useSearchParams();
@@ -22,16 +23,15 @@ const PaymentInstructions = () => {
     if (!debitoReference || !orderId) return;
     setChecking(true);
     try {
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const res = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/check-payment-status?debito_reference=${debitoReference}&order_id=${orderId}`,
-        {
-          headers: {
-            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-        }
+      const { data, error } = await supabase.functions.invoke(
+        `check-payment-status?debito_reference=${debitoReference}&order_id=${orderId}`,
+        { method: 'GET' }
       );
-      const data = await res.json();
+
+      if (error || !data) {
+         throw new Error("Failed to check status");
+      }
+
       setStatus(data.status || "PENDING");
       if (data.order_status === "paid") {
         navigate(`/thank-you?order_id=${orderId}`);

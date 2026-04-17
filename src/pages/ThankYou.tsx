@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, ExternalLink, Loader2, Package, MessageCircle } from "lucide-react";
 import Logo from "@/components/Logo";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DeliveryData {
   order_id: string;
@@ -31,20 +32,15 @@ const ThankYou = () => {
 
     const fetchDelivery = async () => {
       try {
-        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-        const res = await fetch(
-          `https://${projectId}.supabase.co/functions/v1/deliver-product?order_id=${orderId}`,
-          {
-            headers: {
-              "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
-          }
+        const { data, error } = await supabase.functions.invoke(
+          `deliver-product?order_id=${orderId}`,
+          { method: 'GET' }
         );
-        if (res.ok) {
-          const data = await res.json();
-          setDelivery(data);
-        } else {
+
+        if (error || !data) {
           setError(true);
+        } else {
+          setDelivery(data);
         }
       } catch {
         setError(true);

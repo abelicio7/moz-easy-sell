@@ -73,39 +73,35 @@ const Checkout = () => {
       }
 
       // 2. Call payment edge function
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const paymentResponse = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/process-payment`,
+      const { data: paymentData, error: paymentError } = await supabase.functions.invoke(
+        "process-payment",
         {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
+          body: {
             order_id: order.id,
             payment_method: form.payment_method,
             amount: product.price,
             phone: form.whatsapp,
             product_name: product.name,
-          }),
+          }
         }
       );
 
-      const paymentData = await paymentResponse.json();
+      if (paymentError || !paymentData) {
+        throw new Error(paymentError?.message || paymentData?.error || "Erro ao processar pagamento");
+      }
 
-      if (!paymentResponse.ok) {
-        toast.error(paymentData.error || "Erro ao processar pagamento");
-        setSubmitting(false);
-        return;
+      if (paymentData.error) {
+         toast.error(paymentData.error);
+         setSubmitting(false);
+         return;
       }
 
       // 3. Navigate to payment status page
       navigate(
         `/checkout/${productId}/payment?order_id=${order.id}&debito_reference=${paymentData.debito_reference}&method=${form.payment_method}&amount=${product.price}`
       );
-    } catch (err) {
-      toast.error("Erro de conexão. Tente novamente.");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro de conexão com o servidor de pagamento. Tente novamente.");
     } finally {
       setSubmitting(false);
     }
