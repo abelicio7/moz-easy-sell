@@ -77,22 +77,29 @@ const Checkout = () => {
       
       const order = { id: orderId };
 
-      // 2. Call payment edge function
-      const { data: paymentData, error: paymentError } = await supabase.functions.invoke(
-        "process-payment",
-        {
-          body: {
-            order_id: order.id,
-            payment_method: form.payment_method,
-            amount: product.price,
-            phone: form.whatsapp,
-            product_name: product.name,
-          }
-        }
-      );
+      // 2. Call payment edge function via direct fetch to reveal true operator error codes
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      
+      const paymentResponse = await fetch(`${supabaseUrl}/functions/v1/process-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`
+        },
+        body: JSON.stringify({
+          order_id: order.id,
+          payment_method: form.payment_method,
+          amount: product.price,
+          phone: form.whatsapp,
+          product_name: product.name,
+        })
+      });
 
-      if (paymentError || !paymentData) {
-        throw new Error(paymentError?.message || paymentData?.error || "Erro ao processar pagamento");
+      const paymentData = await paymentResponse.json();
+
+      if (!paymentResponse.ok || paymentData.error) {
+        throw new Error(paymentData.error || paymentData.message || "Erro ao processar pagamento com a operadora");
       }
 
       if (paymentData.error) {
