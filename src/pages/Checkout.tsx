@@ -55,8 +55,11 @@ const Checkout = () => {
     setSubmitting(true);
 
     try {
-      // 1. Create order
-      const { data: order, error } = await supabase.from("orders").insert({
+      // 1. Create order ID locally to bypass RLS SELECT restriction for anonymous buyers
+      const orderId = crypto.randomUUID();
+
+      const { error } = await supabase.from("orders").insert({
+        id: orderId,
         product_id: product.id,
         customer_name: form.name,
         customer_email: form.email,
@@ -64,13 +67,15 @@ const Checkout = () => {
         payment_method: form.payment_method,
         price: product.price,
         status: "pending",
-      }).select("id").single();
+      }); // Do not use .select() here, as anonymous users only have INSERT permission, not SELECT.
 
-      if (error || !order) {
+      if (error) {
         toast.error("Erro ao criar pedido");
         setSubmitting(false);
         return;
       }
+      
+      const order = { id: orderId };
 
       // 2. Call payment edge function
       const { data: paymentData, error: paymentError } = await supabase.functions.invoke(
