@@ -70,7 +70,7 @@ const Checkout = () => {
       }); // Do not use .select() here, as anonymous users only have INSERT permission, not SELECT.
 
       if (error) {
-        toast.error("Erro ao criar pedido");
+        toast.error(error.message || "Erro ao criar pedido");
         setSubmitting(false);
         return;
       }
