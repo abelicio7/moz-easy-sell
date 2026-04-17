@@ -31,8 +31,8 @@ const Register = () => {
     if (error) {
       toast.error(error.message);
     } else {
-      toast.success("Conta criada! Verifique seu email para confirmar.");
-      navigate("/login");
+      toast.success("Conta criada com sucesso! Bem-vindo(a) à EnsinaPay.");
+      navigate("/dashboard");
     }
   };
 
