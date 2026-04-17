@@ -28,16 +28,22 @@ const PaymentInstructions = () => {
         { method: 'GET' }
       );
 
-      if (error || !data) {
-         throw new Error("Failed to check status");
+      if (error) {
+         console.error("ERRO SUPABASE:", error);
+         console.error("Conteudo do ERRO:", await error.context?.json?.().catch(() => null));
+         // Don't throw just yet, let it retry, but alert the system
       }
+      
+      if (!data) return;
+      
+      console.log("PAYMENT DATA CATCHED:", data);
 
       setStatus(data.status || "PENDING");
       if (data.order_status === "paid") {
         navigate(`/thank-you?order_id=${orderId}`);
       }
-    } catch {
-      // silently retry
+    } catch (e) {
+      console.error("CRITICAL POLLING ERROR:", e);
     } finally {
       setChecking(false);
     }
