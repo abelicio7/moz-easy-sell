@@ -220,8 +220,8 @@ const Checkout = () => {
                     htmlFor="mpesa"
                     className={`flex items-center gap-4 border rounded-xl p-4 cursor-pointer transition-all ${
                       form.payment_method === "mpesa"
-                        ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                        : "border-border hover:border-primary/40"
+                        ? "border-[#DD0512] bg-[#DD0512]/5 ring-1 ring-[#DD0512]/30"
+                        : "border-border hover:border-[#DD0512]/40"
                     }`}
                   >
                     <RadioGroupItem value="mpesa" id="mpesa" />
@@ -239,8 +239,8 @@ const Checkout = () => {
                     htmlFor="emola"
                     className={`flex items-center gap-4 border rounded-xl p-4 cursor-pointer transition-all ${
                       form.payment_method === "emola"
-                        ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                        : "border-border hover:border-primary/40"
+                        ? "border-[#EC7028] bg-[#EC7028]/5 ring-1 ring-[#EC7028]/30"
+                        : "border-border hover:border-[#EC7028]/40"
                     }`}
                   >
                     <RadioGroupItem value="emola" id="emola" />

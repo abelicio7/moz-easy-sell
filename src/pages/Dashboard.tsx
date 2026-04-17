@@ -147,7 +147,7 @@ const Dashboard = () => {
           <h2 className="text-xl font-semibold text-foreground mb-4">Métricas de Pagamento</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {Object.entries(stats.methodStats).map(([method, data]) => (
-              <Card key={method} className="border-border/50 hover:border-primary/30 transition-all">
+              <Card key={method} className={`border-border/50 transition-all ${method.toLowerCase() === 'mpesa' ? 'hover:border-[#DD0512]/40 bg-gradient-to-br hover:from-[#DD0512]/5' : method.toLowerCase() === 'emola' ? 'hover:border-[#EC7028]/40 bg-gradient-to-br hover:from-[#EC7028]/5' : 'hover:border-primary/40'}`}>
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3 mb-4">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${method.toLowerCase() === 'mpesa' ? 'bg-[#DD0512]/10 text-[#DD0512]' : method.toLowerCase() === 'emola' ? 'bg-[#EC7028]/10 text-[#EC7028]' : 'bg-primary/10 text-primary'}`}>
