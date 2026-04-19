@@ -216,70 +216,56 @@ const Checkout = () => {
                   onValueChange={(v) => setForm({ ...form, payment_method: v })}
                   className="space-y-3"
                 >
-                    className={`relative overflow-hidden flex items-center gap-4 border rounded-xl p-4 cursor-pointer transition-all ${
+                  <label
+                    htmlFor="mpesa"
+                    className={`relative overflow-hidden flex items-center gap-4 rounded-xl p-4 cursor-pointer transition-all bg-gradient-to-br from-[#E51B24] to-[#8A0A12] text-white hover:scale-[1.02] ${
                       form.payment_method === "mpesa"
-                        ? "border-0 shadow-lg bg-gradient-to-br from-[#E51B24] to-[#8A0A12] text-white ring-2 ring-[#E51B24]/50 hover:scale-[1.02]"
-                        : "border-border bg-transparent hover:border-[#E51B24]/40"
+                        ? "border-0 shadow-2xl ring-4 ring-white/30 opacity-100"
+                        : "border-0 shadow-md opacity-70 hover:opacity-100"
                     }`}
                   >
-                    {form.payment_method === "mpesa" && (
-                      <>
-                        <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full border border-white/20 opacity-50"></div>
-                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-32 h-32 rounded-full border border-white/10 opacity-50"></div>
-                      </>
-                    )}
+                    <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full border border-white/20 opacity-50"></div>
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-32 h-32 rounded-full border border-white/10 opacity-50"></div>
                     <div className="relative z-10 flex items-center gap-4 w-full">
                       <RadioGroupItem 
                         value="mpesa" 
                         id="mpesa" 
-                        className={form.payment_method === "mpesa" ? "border-white text-white fill-white" : ""}
+                        className={form.payment_method === "mpesa" ? "border-white text-[#DD0512] bg-white fill-[#DD0512]" : "border-white/50 text-white fill-white"}
                       />
                       <div className="flex items-center gap-3 flex-1">
-                        <div className={`w-12 h-12 rounded-full flex flex-col items-center justify-center shadow-sm ${
-                          form.payment_method === "mpesa" 
-                            ? "bg-white text-[#DD0512]" 
-                            : "bg-[#DD0512]/10 text-[#DD0512]"
-                        }`}>
+                        <div className="w-12 h-12 rounded-full flex flex-col items-center justify-center shadow-sm bg-white text-[#DD0512]">
                           <span className="font-black text-sm uppercase">M</span>
                         </div>
                         <div>
-                          <p className={`font-bold ${form.payment_method === "mpesa" ? "text-white" : "text-foreground"}`}>M-Pesa</p>
-                          <p className={`text-xs ${form.payment_method === "mpesa" ? "text-white/80" : "text-muted-foreground"}`}>Vodacom Moçambique</p>
+                          <p className="font-bold text-white">M-Pesa</p>
+                          <p className="text-xs text-white/80">Vodacom Moçambique</p>
                         </div>
                       </div>
                     </div>
                   </label>
                   <label
                     htmlFor="emola"
-                    className={`relative overflow-hidden flex items-center gap-4 border rounded-xl p-4 cursor-pointer transition-all ${
+                    className={`relative overflow-hidden flex items-center gap-4 rounded-xl p-4 cursor-pointer transition-all bg-gradient-to-br from-[#F57C00] to-[#b34700] text-white hover:scale-[1.02] ${
                       form.payment_method === "emola"
-                        ? "border-0 shadow-lg bg-gradient-to-br from-[#F57C00] to-[#b34700] text-white ring-2 ring-[#F57C00]/50 hover:scale-[1.02]"
-                        : "border-border bg-transparent hover:border-[#F57C00]/40"
+                        ? "border-0 shadow-2xl ring-4 ring-white/30 opacity-100"
+                        : "border-0 shadow-md opacity-70 hover:opacity-100"
                     }`}
                   >
-                    {form.payment_method === "emola" && (
-                      <>
-                        <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full border border-white/20 opacity-50"></div>
-                        <div className="absolute right-0 top-1/2 -translate-y-1/2 w-32 h-32 rounded-full border border-white/10 opacity-50"></div>
-                      </>
-                    )}
+                    <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full border border-white/20 opacity-50"></div>
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-32 h-32 rounded-full border border-white/10 opacity-50"></div>
                     <div className="relative z-10 flex items-center gap-4 w-full">
                       <RadioGroupItem 
                         value="emola" 
                         id="emola" 
-                        className={form.payment_method === "emola" ? "border-white text-white fill-white" : ""}
+                        className={form.payment_method === "emola" ? "border-white text-[#EC7028] bg-white fill-[#EC7028]" : "border-white/50 text-white fill-white"}
                       />
                       <div className="flex items-center gap-3 flex-1">
-                        <div className={`w-12 h-12 rounded-full flex flex-col items-center justify-center shadow-sm ${
-                          form.payment_method === "emola" 
-                            ? "bg-white text-[#EC7028]" 
-                            : "bg-[#EC7028]/10 text-[#EC7028]"
-                        }`}>
+                        <div className="w-12 h-12 rounded-full flex flex-col items-center justify-center shadow-sm bg-white text-[#EC7028]">
                           <span className="font-black text-sm uppercase">E</span>
                         </div>
                         <div>
-                          <p className={`font-bold ${form.payment_method === "emola" ? "text-white" : "text-foreground"}`}>E-Mola</p>
-                          <p className={`text-xs ${form.payment_method === "emola" ? "text-white/80" : "text-muted-foreground"}`}>Movitel Moçambique</p>
+                          <p className="font-bold text-white">E-Mola</p>
+                          <p className="text-xs text-white/80">Movitel Moçambique</p>
                         </div>
                       </div>
                     </div>
