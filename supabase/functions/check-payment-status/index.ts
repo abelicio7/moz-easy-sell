@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     // Fetch up-to-date order status and details to avoid duplicate emails
     const { data: order } = await supabase
       .from("orders")
-      .select("status, customer_email, customer_name, products(name, delivery_type, delivery_content)")
+      .select("status, customer_email, customer_name, price, products(name, delivery_type, delivery_content, user_id)")
       .eq("id", orderId)
       .single();
 
@@ -95,6 +95,41 @@ Deno.serve(async (req) => {
             senderName: "Equipa EnsinaPay"
           }
         });
+      }
+
+      // 2. Trigger webhook se existir
+      if (orderStatus === "paid" && order?.products) {
+        const product = order.products as any;
+        if (product?.user_id) {
+          try {
+            const { data: webhooks } = await supabase
+              .from("seller_integrations")
+              .select("config")
+              .eq("user_id", product.user_id)
+              .eq("integration_type", "webhook")
+              .eq("is_active", true);
+
+            if (webhooks && webhooks.length > 0 && webhooks[0].config?.url) {
+              console.log("Triggering webhook to:", webhooks[0].config.url);
+              // Faz o disparo do webhook de forma assíncrona (não espera a resposta)
+              fetch(webhooks[0].config.url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  event: "payment_approved",
+                  order_id: orderId,
+                  customer_email: order.customer_email,
+                  customer_name: order.customer_name,
+                  price: order.price,
+                  product_name: product.name,
+                  timestamp: new Date().toISOString()
+                })
+              }).catch(err => console.error("Webhook trigger failed", err));
+            }
+          } catch (whErr) {
+            console.error("Failed to process webhook:", whErr);
+          }
+        }
       }
     }
 
