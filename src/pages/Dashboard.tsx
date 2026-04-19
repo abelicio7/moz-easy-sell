@@ -85,6 +85,13 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-foreground tracking-tight">
+          Olá, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || "Empreendedor"}! 👋
+        </h1>
+        <p className="text-muted-foreground mt-1 text-lg">Aqui está o resumo das suas vendas de hoje.</p>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <Card>
