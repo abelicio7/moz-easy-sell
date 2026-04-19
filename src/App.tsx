@@ -13,6 +13,7 @@ import EditProduct from "./pages/EditProduct";
 import Orders from "./pages/Orders";
 import Sales from "./pages/Sales";
 import Integrations from "./pages/Integrations";
+import Finance from "./pages/Finance";
 import QuizDashboard from "./pages/quizzes/QuizDashboard";
 import EditQuiz from "./pages/quizzes/EditQuiz";
 import TakeQuiz from "./pages/quizzes/TakeQuiz";
@@ -42,6 +43,7 @@ const App = () => (
           <Route path="/dashboard/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
           <Route path="/dashboard/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
           <Route path="/dashboard/integrations" element={<ProtectedRoute><Integrations /></ProtectedRoute>} />
+          <Route path="/dashboard/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
           <Route path="/dashboard/quizzes" element={<ProtectedRoute><QuizDashboard /></ProtectedRoute>} />
           <Route path="/dashboard/quizzes/:id/edit" element={<ProtectedRoute><EditQuiz /></ProtectedRoute>} />
           <Route path="/quiz/:slug" element={<TakeQuiz />} />

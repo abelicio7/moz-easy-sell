@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Copy, Package, DollarSign, Clock, Smartphone, TrendingUp } from "lucide-react";
+import { Plus, Copy, Package, DollarSign, Clock, Smartphone, TrendingUp, Wallet } from "lucide-react";
 import { toast } from "sonner";
 
 interface Product {
@@ -29,6 +29,7 @@ interface OrderStats {
   pending: number;
   paid: number;
   revenue: number;
+  availableBalance: number;
   methodStats: Record<string, MethodStats>;
 }
 
@@ -41,12 +42,14 @@ const Dashboard = () => {
   useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
-      const [{ data: prods }, { data: orders }] = await Promise.all([
+      const [{ data: prods }, { data: orders }, { data: withdrawals }] = await Promise.all([
         supabase.from("products").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("orders").select("*, products!inner(user_id)").eq("products.user_id", user.id),
+        supabase.from("withdrawals").select("amount, status").eq("user_id", user.id),
       ]);
       setProducts(prods || []);
       const allOrders = orders || [];
+      const allWithdrawals = withdrawals || [];
       
       const methodStats = allOrders.reduce((acc: any, order: any) => {
         const method = order.payment_method || 'Outro';
@@ -65,11 +68,17 @@ const Dashboard = () => {
           : 0;
       });
 
+      const revenue = allOrders.filter((o: any) => o.status === "paid").reduce((sum: number, o: any) => sum + (o.price || 0), 0);
+      const totalWithdrawnAndPending = allWithdrawals
+        .filter((w: any) => w.status === "completed" || w.status === "pending")
+        .reduce((sum: number, w: any) => sum + Number(w.amount), 0);
+        
       setStats({
         total: allOrders.length,
         pending: allOrders.filter((o: any) => o.status === "pending").length,
         paid: allOrders.filter((o: any) => o.status === "paid").length,
-        revenue: allOrders.filter((o: any) => o.status === "paid").reduce((sum: number, o: any) => sum + (o.price || 0), 0),
+        revenue,
+        availableBalance: revenue - totalWithdrawnAndPending,
         methodStats
       });
       setLoading(false);
@@ -111,11 +120,11 @@ const Dashboard = () => {
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-primary" />
+                <Wallet className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{stats.revenue.toFixed(0)} MT</p>
-                <p className="text-xs text-muted-foreground">Receita</p>
+                <p className="text-2xl font-bold text-foreground">{stats.availableBalance.toFixed(0)} MT</p>
+                <p className="text-xs text-muted-foreground">Saldo Disponível</p>
               </div>
             </div>
           </CardContent>

@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
-import { Package, ShoppingCart, LogOut, Menu, X, BarChart3, LayoutTemplate, Puzzle } from "lucide-react";
+import { Package, ShoppingCart, LogOut, Menu, X, BarChart3, LayoutTemplate, Puzzle, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 
@@ -20,6 +20,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     { to: "/dashboard/orders", label: "Pedidos", icon: ShoppingCart },
     { to: "/dashboard/sales", label: "Minhas Vendas", icon: BarChart3 },
     { to: "/dashboard/quizzes", label: "Quizzes", icon: LayoutTemplate },
+    { to: "/dashboard/finance", label: "Financeiro", icon: Wallet },
     { to: "/dashboard/integrations", label: "Integrações", icon: Puzzle },
   ];
 
