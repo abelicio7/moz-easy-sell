@@ -147,25 +147,48 @@ const Dashboard = () => {
           <h2 className="text-xl font-semibold text-foreground mb-4">Métricas de Pagamento</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {Object.entries(stats.methodStats).map(([method, data]) => (
-              <Card key={method} className={`border-border/50 transition-all ${method.toLowerCase() === 'mpesa' ? 'hover:border-[#DD0512]/40 bg-gradient-to-br hover:from-[#DD0512]/5' : method.toLowerCase() === 'emola' ? 'hover:border-[#EC7028]/40 bg-gradient-to-br hover:from-[#EC7028]/5' : 'hover:border-primary/40'}`}>
-                <CardContent className="pt-6">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${method.toLowerCase() === 'mpesa' ? 'bg-[#DD0512]/10 text-[#DD0512]' : method.toLowerCase() === 'emola' ? 'bg-[#EC7028]/10 text-[#EC7028]' : 'bg-primary/10 text-primary'}`}>
-                      <Smartphone className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-foreground capitalize text-lg">{method}</p>
-                      <p className="text-xs text-muted-foreground">{data.totalOrders} tentativas de checkout</p>
+              <Card 
+                key={method} 
+                className={`relative overflow-hidden border-0 shadow-lg transition-all hover:scale-[1.02] ${
+                  method.toLowerCase() === 'mpesa' 
+                    ? 'bg-gradient-to-br from-[#E51B24] to-[#8A0A12]' 
+                    : method.toLowerCase() === 'emola' 
+                      ? 'bg-gradient-to-br from-[#F57C00] to-[#b34700]' 
+                      : 'bg-gradient-to-br from-primary to-primary/80'
+                }`}
+              >
+                {/* Decorative circles */}
+                <div className="absolute -right-8 -top-8 w-40 h-40 rounded-full border border-white/20 opacity-50"></div>
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-56 h-56 rounded-full border border-white/10 opacity-50"></div>
+                
+                <CardContent className="p-6 relative z-10 flex items-center justify-between">
+                  {/* Left: Logo/Icon */}
+                  <div className="flex flex-col items-center justify-center">
+                    <div className={`w-20 h-20 rounded-full bg-white flex flex-col items-center justify-center shadow-lg ${
+                      method.toLowerCase() === 'mpesa' 
+                        ? 'text-[#DD0512]' 
+                        : method.toLowerCase() === 'emola' 
+                          ? 'text-[#EC7028]' 
+                          : 'text-primary'
+                    }`}>
+                      <Smartphone className="w-7 h-7 mb-1" />
+                      <span className="text-[11px] font-black tracking-tight uppercase leading-none">{method}</span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3 bg-muted/40 p-3 rounded-lg border border-border/50">
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 font-semibold flex items-center gap-1"><DollarSign className="w-3 h-3"/> Receita Gerada</p>
-                      <p className="font-bold text-foreground text-sm">{data.revenue.toFixed(2)} MT</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 font-semibold flex items-center gap-1"><TrendingUp className="w-3 h-3"/> Conversão</p>
-                      <span className="font-bold text-primary text-sm">{data.conversion.toFixed(1)}%</span>
+                  
+                  {/* Right: Stats */}
+                  <div className="text-right text-white">
+                    <p className="text-3xl md:text-4xl font-black tracking-tight mb-1">
+                      {data.revenue.toFixed(2)} <span className="text-white/90 text-2xl">MZN</span>
+                    </p>
+                    <p className="text-sm md:text-base font-medium text-white/90 mb-3">
+                      Total Coletado: {data.revenue.toFixed(2)} MZN
+                    </p>
+                    
+                    <div className="flex items-center justify-end gap-3 text-xs md:text-sm text-white/75 bg-black/10 px-3 py-1.5 rounded-full inline-flex">
+                      <span className="font-semibold">{data.totalOrders} tentativas</span>
+                      <span className="opacity-50">•</span>
+                      <span className="font-semibold text-white">{data.conversion.toFixed(1)}% conversão</span>
                     </div>
                   </div>
                 </CardContent>
