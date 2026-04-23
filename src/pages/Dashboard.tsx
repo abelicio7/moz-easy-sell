@@ -96,7 +96,7 @@ const Dashboard = () => {
     <DashboardLayout>
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-foreground tracking-tight">
-          Olá, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || "Empreendedor"}! 👋
+          Olá, {user?.user_metadata?.name?.split(' ')[0] || user?.user_metadata?.full_name?.split(' ')[0] || "Empreendedor"}! 👋
         </h1>
         <p className="text-muted-foreground mt-1 text-lg">Aqui está o resumo das suas vendas de hoje.</p>
       </div>
