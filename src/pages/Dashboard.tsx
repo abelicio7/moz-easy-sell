@@ -36,7 +36,7 @@ interface OrderStats {
 const Dashboard = () => {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
-  const [stats, setStats] = useState<OrderStats>({ total: 0, pending: 0, paid: 0, revenue: 0, methodStats: {} });
+  const [stats, setStats] = useState<OrderStats>({ total: 0, pending: 0, paid: 0, revenue: 0, availableBalance: 0, methodStats: {} });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
