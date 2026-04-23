@@ -14,17 +14,13 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const checkAdmin = async () => {
-      console.error(">>> INICIANDO CHECK ADMIN <<<");
       const { data: { user } } = await supabase.auth.getUser();
-      console.error(">>> USER ENCONTRADO:", user?.id, user?.email);
       if (!user) return;
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", user.id)
         .maybeSingle();
-      
-      console.error(">>> ROLE FETECHED:", data?.role, "ERROR:", error);
       
       if (data?.role === "admin") {
         setIsAdmin(true);
