@@ -37,11 +37,28 @@ const Checkout = () => {
     const fetchProductAndPixel = async () => {
       const { data: productData } = await supabase
         .from("products")
-        .select("id, name, description, price, image_url, user_id")
+        .select(`
+          id, 
+          name, 
+          description, 
+          price, 
+          image_url, 
+          user_id,
+          status,
+          profiles:user_id (status)
+        `)
         .eq("id", productId)
-        .single();
+        .maybeSingle();
       
-      setProduct(productData);
+      // Bloquear se o produto não estiver aprovado ou se o vendedor não estiver aprovado
+      const sellerProfile = productData?.profiles as any;
+      if (!productData || productData.status !== "approved" || sellerProfile?.status !== "approved") {
+        setProduct(null);
+        setLoading(false);
+        return;
+      }
+
+      setProduct(productData as any);
 
       if (productData?.user_id) {
         try {

@@ -251,6 +251,8 @@ const Dashboard = () => {
                     <Badge variant="secondary" className="text-xs">
                       {product.delivery_type === "link" ? "Link" : product.delivery_type === "file" ? "Arquivo" : "Mensagem"}
                     </Badge>
+                    {(product as any).status === 'pending' && <Badge className="bg-orange-500/10 text-orange-600 border-0 text-xs">Pendente</Badge>}
+                    {(product as any).status === 'rejected' && <Badge variant="destructive" className="bg-red-500/10 text-red-600 border-0 text-xs">Rejeitado</Badge>}
                   </div>
                 </div>
                 <div className="flex gap-2">

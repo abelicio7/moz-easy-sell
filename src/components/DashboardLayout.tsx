@@ -1,14 +1,32 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
-import { Package, ShoppingCart, LogOut, Menu, X, BarChart3, LayoutTemplate, Puzzle, Wallet } from "lucide-react";
+import { Package, ShoppingCart, LogOut, Menu, X, BarChart3, LayoutTemplate, Puzzle, Wallet, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (data?.role === "admin") {
+        setIsAdmin(true);
+      }
+    };
+    checkAdmin();
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -23,13 +41,17 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     { to: "/dashboard/finance", label: "Financeiro", icon: Wallet },
     { to: "/dashboard/integrations", label: "Integrações", icon: Puzzle },
   ];
+  
+  if (isAdmin) {
+    links.push({ to: "/admin", label: "Admin", icon: ShieldAlert });
+  }
 
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Top bar */}
       <header className="border-b border-border bg-background sticky top-0 z-50">
         <div className="container flex items-center justify-between h-14">
-          <div className="flex items-center gap-4">
+           <div className="flex items-center gap-4">
             <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -37,15 +59,15 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               <Logo size="sm" />
             </Link>
           </div>
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden md:flex items-center gap-1 overflow-x-auto">
             {links.map((link) => (
               <Button
                 key={link.to}
-                variant={location.pathname === link.to ? "secondary" : "ghost"}
+                variant={location.pathname.startsWith(link.to) && link.to !== '/dashboard' || (location.pathname === '/dashboard' && link.to === '/dashboard') ? "secondary" : "ghost"}
                 size="sm"
                 asChild
               >
-                <Link to={link.to} className="flex items-center gap-2">
+                <Link to={link.to} className="flex items-center gap-2 whitespace-nowrap">
                   <link.icon className="w-4 h-4" />
                   {link.label}
                 </Link>

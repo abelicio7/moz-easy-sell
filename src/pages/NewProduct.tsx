@@ -89,7 +89,7 @@ const NewProduct = () => {
     }
 
     setLoading(false);
-    toast.success("Produto criado com sucesso!");
+    toast.success("Produto criado e enviado para aprovação!");
     navigate("/dashboard");
   };
 
