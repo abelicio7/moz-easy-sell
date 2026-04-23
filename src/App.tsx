@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
+import Products from "./pages/Products";
 import NewProduct from "./pages/NewProduct";
 import EditProduct from "./pages/EditProduct";
 import Orders from "./pages/Orders";
@@ -51,6 +52,7 @@ const App = () => (
           <Route path="/admin/withdrawals" element={<AdminRoute><AdminWithdrawals /></AdminRoute>} />
 
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/dashboard/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
           <Route path="/dashboard/products/new" element={<ProtectedRoute><NewProduct /></ProtectedRoute>} />
           <Route path="/dashboard/products/:id/edit" element={<ProtectedRoute><EditProduct /></ProtectedRoute>} />
           <Route path="/dashboard/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />

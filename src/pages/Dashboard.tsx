@@ -214,60 +214,6 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Products */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-foreground">Meus Produtos</h2>
-        <Button asChild>
-          <Link to="/dashboard/products/new">
-            <Plus className="w-4 h-4 mr-1" /> Novo Produto
-          </Link>
-        </Button>
-      </div>
-
-      {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Carregando...</div>
-      ) : products.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold text-foreground mb-2">Nenhum produto ainda</h3>
-            <p className="text-sm text-muted-foreground mb-4">Crie seu primeiro produto e comece a vender!</p>
-            <Button asChild>
-              <Link to="/dashboard/products/new">
-                <Plus className="w-4 h-4 mr-1" /> Criar Produto
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4">
-          {products.map((product) => (
-            <Card key={product.id}>
-              <CardContent className="py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
-                <div>
-                  <h3 className="font-semibold text-foreground">{product.name}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-sm font-medium text-primary">{product.price.toFixed(2)} MT</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {product.delivery_type === "link" ? "Link" : product.delivery_type === "file" ? "Arquivo" : "Mensagem"}
-                    </Badge>
-                    {(product as any).status === 'pending' && <Badge className="bg-orange-500/10 text-orange-600 border-0 text-xs">Pendente</Badge>}
-                    {(product as any).status === 'rejected' && <Badge variant="destructive" className="bg-red-500/10 text-red-600 border-0 text-xs">Rejeitado</Badge>}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => copyCheckoutLink(product.id)}>
-                    <Copy className="w-3 h-3 mr-1" /> Copiar link
-                  </Button>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link to={`/dashboard/products/${product.id}/edit`}>Editar</Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
     </DashboardLayout>
   );
 };
