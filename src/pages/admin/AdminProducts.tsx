@@ -38,14 +38,26 @@ const AdminProducts = () => {
 
   const fetchProducts = async () => {
     setLoading(true);
-    let query = supabase.from("products").select("*, profiles(full_name)").order("created_at", { ascending: false });
+    let query = supabase.from("products").select("*").order("created_at", { ascending: false });
     
     if (filter !== "all") {
       query = query.eq("status", filter);
     }
     
     const { data, error } = await query;
-    if (data) setProducts(data as any as Product[]);
+    if (data && data.length > 0) {
+      // Fetch profiles separately
+      const userIds = [...new Set(data.map((p: any) => p.user_id))].filter(Boolean);
+      const { data: profilesData } = await supabase.from("profiles").select("id, full_name").in("id", userIds);
+      
+      const productsWithProfiles = data.map((p: any) => ({
+        ...p,
+        profiles: profilesData?.find((prof: any) => prof.id === p.user_id) || { full_name: "Desconhecido" }
+      }));
+      setProducts(productsWithProfiles as any as Product[]);
+    } else {
+      setProducts([]);
+    }
     setLoading(false);
   };
 

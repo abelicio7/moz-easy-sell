@@ -35,14 +35,25 @@ const AdminWithdrawals = () => {
 
   const fetchWithdrawals = async () => {
     setLoading(true);
-    let query = supabase.from("withdrawals").select("*, profiles(full_name, email)").order("created_at", { ascending: false });
+    let query = supabase.from("withdrawals").select("*").order("created_at", { ascending: false });
     
     if (filter !== "all") {
       query = query.eq("status", filter);
     }
     
     const { data, error } = await query;
-    if (data) setWithdrawals(data as any as Withdrawal[]);
+    if (data && data.length > 0) {
+      const userIds = [...new Set(data.map((w: any) => w.user_id))].filter(Boolean);
+      const { data: profilesData } = await supabase.from("profiles").select("id, full_name, email").in("id", userIds);
+      
+      const withdrawalsWithProfiles = data.map((w: any) => ({
+        ...w,
+        profiles: profilesData?.find((prof: any) => prof.id === w.user_id) || { full_name: "Desconhecido", email: "" }
+      }));
+      setWithdrawals(withdrawalsWithProfiles as any as Withdrawal[]);
+    } else {
+      setWithdrawals([]);
+    }
     setLoading(false);
   };
 

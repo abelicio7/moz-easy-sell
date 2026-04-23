@@ -35,7 +35,7 @@ const Checkout = () => {
 
   useEffect(() => {
     const fetchProductAndPixel = async () => {
-      const { data: productData } = await supabase
+      const { data: productData, error: productError } = await supabase
         .from("products")
         .select(`
           id, 
@@ -44,15 +44,27 @@ const Checkout = () => {
           price, 
           image_url, 
           user_id,
-          status,
-          profiles:user_id (status)
+          status
         `)
         .eq("id", productId)
         .maybeSingle();
       
-      // Bloquear se o produto não estiver aprovado ou se o vendedor não estiver aprovado
-      const sellerProfile = productData?.profiles as any;
-      if (!productData || productData.status !== "approved" || sellerProfile?.status !== "approved") {
+      if (productError || !productData || productData.status !== "approved") {
+        console.error("Product error or not approved:", productError, productData);
+        setProduct(null);
+        setLoading(false);
+        return;
+      }
+
+      // Check if seller is approved
+      const { data: sellerProfile, error: profileError } = await supabase
+        .from("profiles")
+        .select("status")
+        .eq("id", productData.user_id)
+        .maybeSingle();
+
+      if (profileError || sellerProfile?.status !== "approved") {
+        console.error("Seller not approved:", profileError, sellerProfile);
         setProduct(null);
         setLoading(false);
         return;
