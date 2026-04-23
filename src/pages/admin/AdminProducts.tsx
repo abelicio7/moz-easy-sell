@@ -45,10 +45,18 @@ const AdminProducts = () => {
     }
     
     const { data, error } = await query;
+    console.error(">>> ADMIN PRODUCTS FETCH:", { data, error, filter });
+    
     if (data && data.length > 0) {
       // Fetch profiles separately
       const userIds = [...new Set(data.map((p: any) => p.user_id))].filter(Boolean);
-      const { data: profilesData } = await supabase.from("profiles").select("id, full_name").in("id", userIds);
+      let profilesData: any[] | null = null;
+      
+      if (userIds.length > 0) {
+        const { data: pData, error: pErr } = await supabase.from("profiles").select("id, full_name").in("id", userIds);
+        console.error(">>> PROFILES FETCH:", { pData, pErr });
+        profilesData = pData;
+      }
       
       const productsWithProfiles = data.map((p: any) => ({
         ...p,

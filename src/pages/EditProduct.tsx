@@ -93,7 +93,7 @@ const EditProduct = () => {
       toast.error("Erro ao atualizar");
     } else {
       toast.success("Produto atualizado!");
-      navigate("/dashboard");
+      navigate("/dashboard/products");
     }
   };
 
