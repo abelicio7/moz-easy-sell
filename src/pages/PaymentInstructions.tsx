@@ -40,7 +40,7 @@ const PaymentInstructions = () => {
 
       setStatus(data.status || "PENDING");
       if (data.order_status === "paid") {
-        navigate(`/thank-you?order_id=${orderId}`);
+        navigate(`/thank-you?order_id=${orderId}&amount=${amount}&product_id=${productId}`);
       }
     } catch (e) {
       console.error("CRITICAL POLLING ERROR:", e);

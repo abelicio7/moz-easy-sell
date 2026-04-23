@@ -17,6 +17,7 @@ interface Product {
   description: string | null;
   price: number;
   image_url: string | null;
+  user_id?: string;
 }
 
 const Checkout = () => {
@@ -33,16 +34,53 @@ const Checkout = () => {
   });
 
   useEffect(() => {
-    const fetchProduct = async () => {
-      const { data } = await supabase
+    const fetchProductAndPixel = async () => {
+      const { data: productData } = await supabase
         .from("products")
-        .select("id, name, description, price, image_url")
+        .select("id, name, description, price, image_url, user_id")
         .eq("id", productId)
         .single();
-      setProduct(data);
+      
+      setProduct(productData);
+
+      if (productData?.user_id) {
+        try {
+          const { data: pixelData } = await supabase
+            .from("seller_integrations")
+            .select("config")
+            .eq("user_id", productData.user_id)
+            .eq("integration_type", "facebook_pixel")
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (pixelData?.config?.pixelId) {
+            const pixelId = pixelData.config.pixelId;
+            const win = window as any;
+            if (!win.fbq) {
+              !function(f:any,b:any,e:any,v:any,n?:any,t?:any,s?:any)
+              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+              n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+              if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+              n.queue=[];t=b.createElement(e);t.async=!0;
+              t.src=v;s=b.getElementsByTagName(e)[0];
+              s.parentNode.insertBefore(t,s)}(win, document,'script',
+              'https://connect.facebook.net/en_US/fbevents.js');
+            }
+            win.fbq('init', pixelId);
+            win.fbq('track', 'PageView');
+            win.fbq('track', 'InitiateCheckout', {
+              content_name: productData.name,
+              value: productData.price,
+              currency: 'MZN'
+            });
+          }
+        } catch (e) {
+          console.error("Erro ao carregar pixel:", e);
+        }
+      }
       setLoading(false);
     };
-    fetchProduct();
+    fetchProductAndPixel();
   }, [productId]);
 
   const handleSubmit = async (e: React.FormEvent) => {

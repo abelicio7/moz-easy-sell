@@ -22,7 +22,57 @@ const ThankYou = () => {
   const orderId = searchParams.get("order_id");
   const [delivery, setDelivery] = useState<DeliveryData | null>(null);
   const [loading, setLoading] = useState(true);
+  const amount = searchParams.get("amount");
+  const productId = searchParams.get("product_id");
   const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (productId && amount) {
+      const trackPurchase = async () => {
+        try {
+          const { data: productData } = await supabase
+            .from("products")
+            .select("user_id, name")
+            .eq("id", productId)
+            .single();
+            
+          if (productData?.user_id) {
+            const { data: pixelData } = await supabase
+              .from("seller_integrations")
+              .select("config")
+              .eq("user_id", productData.user_id)
+              .eq("integration_type", "facebook_pixel")
+              .eq("is_active", true)
+              .maybeSingle();
+
+            if (pixelData?.config?.pixelId) {
+              const pixelId = pixelData.config.pixelId;
+              const win = window as any;
+              if (!win.fbq) {
+                !function(f:any,b:any,e:any,v:any,n?:any,t?:any,s?:any)
+                {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+                n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+                if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+                n.queue=[];t=b.createElement(e);t.async=!0;
+                t.src=v;s=b.getElementsByTagName(e)[0];
+                s.parentNode.insertBefore(t,s)}(win, document,'script',
+                'https://connect.facebook.net/en_US/fbevents.js');
+              }
+              win.fbq('init', pixelId);
+              win.fbq('track', 'Purchase', {
+                content_name: productData.name,
+                value: Number(amount),
+                currency: 'MZN'
+              });
+            }
+          }
+        } catch (e) {
+          console.error("Erro ao rastrear Purchase:", e);
+        }
+      };
+      trackPurchase();
+    }
+  }, [productId, amount]);
 
   useEffect(() => {
     if (!orderId) {

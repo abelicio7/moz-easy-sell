@@ -28,6 +28,11 @@ const Integrations = () => {
   const [savingWebhook, setSavingWebhook] = useState(false);
   const [webhookModalOpen, setWebhookModalOpen] = useState(false);
 
+  // Facebook Pixel form state
+  const [pixelId, setPixelId] = useState("");
+  const [savingPixel, setSavingPixel] = useState(false);
+  const [pixelModalOpen, setPixelModalOpen] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     
@@ -46,6 +51,9 @@ const Integrations = () => {
         
         if (mapped["webhook"] && mapped["webhook"].config?.url) {
           setWebhookUrl(mapped["webhook"].config.url);
+        }
+        if (mapped["facebook_pixel"] && mapped["facebook_pixel"].config?.pixelId) {
+          setPixelId(mapped["facebook_pixel"].config.pixelId);
         }
       }
       setLoading(false);
@@ -110,6 +118,56 @@ const Integrations = () => {
       toast.error(error.message || "Erro ao salvar webhook.");
     } finally {
       setSavingWebhook(false);
+    }
+  };
+
+  const handleSavePixel = async () => {
+    if (!user) return;
+    
+    try {
+      setSavingPixel(true);
+      
+      const pixelIdStr = pixelId.trim();
+      const is_active = pixelIdStr.length > 0;
+      
+      const existing = integrations["facebook_pixel"];
+      
+      if (existing) {
+        if (!pixelIdStr) {
+           await supabase.from("seller_integrations").delete().eq("id", existing.id);
+           setIntegrations(prev => { const n = {...prev}; delete n["facebook_pixel"]; return n; });
+        } else {
+           const { data, error } = await supabase.from("seller_integrations")
+             .update({ config: { pixelId: pixelIdStr }, is_active })
+             .eq("id", existing.id)
+             .select()
+             .single();
+             
+           if (error) throw error;
+           if (data) setIntegrations(prev => ({ ...prev, facebook_pixel: data }));
+        }
+      } else if (pixelIdStr) {
+        const { data, error } = await supabase.from("seller_integrations")
+          .insert({
+            user_id: user.id,
+            integration_type: "facebook_pixel",
+            config: { pixelId: pixelIdStr },
+            is_active: true
+          })
+          .select()
+          .single();
+          
+        if (error) throw error;
+        if (data) setIntegrations(prev => ({ ...prev, facebook_pixel: data }));
+      }
+      
+      toast.success("Pixel do Facebook salvo com sucesso!");
+      setPixelModalOpen(false);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Erro ao salvar Pixel.");
+    } finally {
+      setSavingPixel(false);
     }
   };
 
@@ -182,14 +240,18 @@ const Integrations = () => {
             </CardFooter>
           </Card>
 
-          {/* FACEBOOK PIXEL - BREVEMENTE */}
-          <Card className="border-border/50 opacity-75">
+          {/* FACEBOOK PIXEL - ATIVO */}
+          <Card className={`border-border/50 transition-all ${integrations["facebook_pixel"]?.is_active ? 'border-primary/50 shadow-md ring-1 ring-primary/20' : 'hover:border-foreground/20'}`}>
             <CardHeader>
               <div className="flex items-center justify-between mb-2">
                 <div className="w-12 h-12 rounded-lg bg-[#1877F2]/10 flex items-center justify-center text-[#1877F2]">
                   <Facebook className="w-6 h-6" />
                 </div>
-                <Badge variant="secondary" className="text-[10px]">Em breve</Badge>
+                {integrations["facebook_pixel"]?.is_active && (
+                  <Badge variant="default" className="bg-primary hover:bg-primary text-xs">
+                    <CheckCircle2 className="w-3 h-3 mr-1" /> Ativo
+                  </Badge>
+                )}
               </div>
               <CardTitle>Facebook / Meta Pixel</CardTitle>
               <CardDescription>
@@ -197,9 +259,41 @@ const Integrations = () => {
               </CardDescription>
             </CardHeader>
             <CardFooter>
-              <Button variant="outline" className="w-full" disabled>
-                Cooming Soon
-              </Button>
+              <Dialog open={pixelModalOpen} onOpenChange={setPixelModalOpen}>
+                <DialogTrigger asChild>
+                  <Button variant={integrations["facebook_pixel"]?.is_active ? "outline" : "default"} className="w-full">
+                    {integrations["facebook_pixel"]?.is_active ? "Configurar" : "Ativar Pixel"}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Configurar Facebook Pixel</DialogTitle>
+                    <DialogDescription>
+                      Insira o ID do seu Pixel para começar a rastrear eventos na sua página de checkout e de obrigado.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="pixelId">Pixel ID</Label>
+                      <Input 
+                        id="pixelId"
+                        placeholder="Ex: 123456789012345" 
+                        value={pixelId}
+                        onChange={(e) => setPixelId(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Deixe em branco para desativar esta integração.
+                      </p>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setPixelModalOpen(false)}>Cancelar</Button>
+                    <Button onClick={handleSavePixel} disabled={savingPixel}>
+                      {savingPixel ? "Salvando..." : "Salvar Configuração"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardFooter>
           </Card>
 
