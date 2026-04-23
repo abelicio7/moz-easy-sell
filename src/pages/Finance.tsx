@@ -240,6 +240,33 @@ const Finance = () => {
             </Card>
           </div>
 
+          {/* Withdrawal Information */}
+          <Card className="bg-muted/30 border-muted">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                <Banknote className="w-4 h-4 text-primary" />
+                Informações sobre Saques
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground space-y-4">
+              <ul className="list-disc list-inside space-y-1">
+                <li><strong className="text-foreground/80">Processamento:</strong> 1-2 dias úteis, das 7:30h até 17:30h</li>
+                <li><strong className="text-foreground/80">Taxa de Saque M-Pesa:</strong> 7%</li>
+                <li><strong className="text-foreground/80">Taxa de Saque e-Mola:</strong> 7%</li>
+              </ul>
+              <div className="space-y-1 pt-2 border-t border-border/50">
+                <p className="flex items-start gap-2">
+                  <XCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                  <span>Não nos responsabilizamos por informações incorretas fornecidas pelo usuário.</span>
+                </p>
+                <p className="flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                  <span>É responsabilidade do usuário manter seus dados atualizados e verificar todas as informações antes de confirmar transações.</span>
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Withdrawals History */}
           <Card>
             <CardHeader>
