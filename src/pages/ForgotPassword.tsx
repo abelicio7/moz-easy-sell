@@ -25,7 +25,8 @@ const ForgotPassword = () => {
     setLoading(false);
     
     if (error) {
-      toast.error(error.message);
+      console.error("Erro na recuperação:", error);
+      toast.error(error.message || "Erro de conexão com o servidor de e-mail. Verifique as configurações de SMTP no Supabase.");
     } else {
       setSuccess(true);
       toast.success("E-mail de recuperação enviado!");
