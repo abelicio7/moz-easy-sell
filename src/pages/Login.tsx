@@ -22,7 +22,7 @@ const Login = () => {
     if (error) {
       toast.error(error.message);
     } else {
-      navigate("/dashboard");
+      navigate("/verify-2fa");
     }
   };
 
@@ -72,7 +72,7 @@ const Login = () => {
             onClick={async () => {
               const { error } = await supabase.auth.signInWithOAuth({
                 provider: "google",
-                options: { redirectTo: `${window.location.origin}/dashboard` },
+                options: { redirectTo: `${window.location.origin}/verify-2fa` },
               });
               if (error) toast.error(error.message);
             }}

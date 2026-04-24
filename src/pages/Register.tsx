@@ -32,7 +32,7 @@ const Register = () => {
       toast.error(error.message);
     } else {
       toast.success("Conta criada com sucesso! Bem-vindo(a) à EnsinaPay.");
-      navigate("/dashboard");
+      navigate("/verify-2fa");
     }
   };
 
@@ -81,7 +81,7 @@ const Register = () => {
             onClick={async () => {
               const { error } = await supabase.auth.signInWithOAuth({
                 provider: "google",
-                options: { redirectTo: `${window.location.origin}/dashboard` },
+                options: { redirectTo: `${window.location.origin}/verify-2fa` },
               });
               if (error) toast.error(error.message);
             }}

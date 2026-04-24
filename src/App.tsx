@@ -7,6 +7,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Verify2FA from "./pages/Verify2FA";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
 import NewProduct from "./pages/NewProduct";
@@ -65,6 +66,7 @@ const App = () => {
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/verify-2fa" element={<Verify2FA />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           

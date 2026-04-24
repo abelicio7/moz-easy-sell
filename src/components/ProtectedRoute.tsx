@@ -1,8 +1,9 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -13,6 +14,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!user) return <Navigate to="/login" replace />;
+
+  const deviceToken = localStorage.getItem("ensina_device_token");
+  if (!deviceToken) {
+    return <Navigate to="/verify-2fa" state={{ from: location }} replace />;
+  }
 
   return <>{children}</>;
 };

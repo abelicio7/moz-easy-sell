@@ -45,7 +45,7 @@ const ResetPassword = () => {
       toast.error(error.message);
     } else {
       toast.success("Senha atualizada com sucesso!");
-      navigate("/dashboard");
+      navigate("/verify-2fa");
     }
   };
 
