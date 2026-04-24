@@ -10,12 +10,11 @@ import Register from "./pages/Register";
 import Verify2FA from "./pages/Verify2FA";
 import Dashboard from "./pages/Dashboard";
 import Products from "./pages/Products";
-import DashboardQuizzes from "./pages/DashboardQuizzes";
-import CreateQuiz from "./pages/CreateQuiz";
+
 import NewProduct from "./pages/NewProduct";
 import EditProduct from "./pages/EditProduct";
 import FlowBuilder from "./pages/FlowBuilder";
-import DashboardLeads from "./pages/DashboardLeads";
+
 import Orders from "./pages/Orders";
 import Sales from "./pages/Sales";
 import Integrations from "./pages/Integrations";
@@ -93,10 +92,10 @@ const App = () => {
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/dashboard/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
           <Route path="/dashboard/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
-          <Route path="/dashboard/quizzes" element={<ProtectedRoute><DashboardQuizzes /></ProtectedRoute>} />
-          <Route path="/dashboard/quizzes/new" element={<ProtectedRoute><CreateQuiz /></ProtectedRoute>} />
+          <Route path="/dashboard/quizzes" element={<ProtectedRoute><QuizDashboard /></ProtectedRoute>} />
+          <Route path="/dashboard/quizzes/new" element={<ProtectedRoute><EditQuiz /></ProtectedRoute>} />
           <Route path="/dashboard/quizzes/:id" element={<ProtectedRoute><EditQuiz /></ProtectedRoute>} />
-          <Route path="/dashboard/quizzes/:id/leads" element={<ProtectedRoute><DashboardLeads /></ProtectedRoute>} />
+          <Route path="/dashboard/quizzes/:id/leads" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
           <Route path="/dashboard/flows/builder" element={<ProtectedRoute><FlowBuilder /></ProtectedRoute>} />
           <Route path="/dashboard/products/new" element={<ProtectedRoute><NewProduct /></ProtectedRoute>} />
           <Route path="/dashboard/products/:id/edit" element={<ProtectedRoute><EditProduct /></ProtectedRoute>} />
@@ -104,8 +103,7 @@ const App = () => {
           <Route path="/dashboard/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
           <Route path="/dashboard/integrations" element={<ProtectedRoute><Integrations /></ProtectedRoute>} />
           <Route path="/dashboard/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
-          <Route path="/dashboard/quizzes" element={<ProtectedRoute><QuizDashboard /></ProtectedRoute>} />
-          <Route path="/dashboard/quizzes/:id/edit" element={<ProtectedRoute><EditQuiz /></ProtectedRoute>} />
+
           <Route path="/quiz/:slug" element={<TakeQuiz />} />
           <Route path="/checkout/:productId" element={<Checkout />} />
           <Route path="/checkout/:productId/payment" element={<PaymentInstructions />} />
