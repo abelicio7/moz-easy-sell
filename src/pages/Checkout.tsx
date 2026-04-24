@@ -213,15 +213,8 @@ const Checkout = () => {
 
   if (!product) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 text-center">
-        <p className="text-muted-foreground text-3xl font-black text-red-600 mb-2">PRODUTO NÃO ENCONTRADO - CÓDIGO NOVO</p>
-        {debugError ? (
-          <p className="text-xs text-red-500 bg-red-50 p-2 rounded-md border border-red-100 max-w-md break-all">
-            Debug Info: {debugError}
-          </p>
-        ) : (
-          <p className="text-xs text-orange-500">Nenhum erro de debug capturado.</p>
-        )}
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Produto não encontrado</p>
       </div>
     );
   }
