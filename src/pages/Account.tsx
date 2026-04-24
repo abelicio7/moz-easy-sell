@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { Clock, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, AlertCircle, Moon, Sun } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -36,6 +36,31 @@ const Account = () => {
   const [fullName, setFullName] = useState("");
   const [cpf, setCpf] = useState("");
   const [email, setEmail] = useState("");
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  useEffect(() => {
+    // Check initial theme
+    const theme = localStorage.getItem("theme");
+    const isDark = theme === "dark" || (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    setIsDarkMode(isDark);
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    if (newMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -185,6 +210,22 @@ const Account = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border/50">
+                <div className="space-y-0.5">
+                  <Label className="text-base">Tema do Painel</Label>
+                  <p className="text-xs text-muted-foreground">Alternar entre modo claro e escuro</p>
+                </div>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={toggleTheme}
+                  className="rounded-full w-10 h-10 transition-all hover:scale-110 active:scale-95"
+                >
+                  {isDarkMode ? <Sun className="h-5 w-5 text-yellow-500" /> : <Moon className="h-5 w-5 text-primary" />}
+                </Button>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="fullName">Nome Completo</Label>
                 <Input 
