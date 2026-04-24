@@ -53,7 +53,7 @@ const AdminProducts = () => {
       let profilesData: any[] | null = null;
       
       if (userIds.length > 0) {
-        const { data: pData, error: pErr } = await supabase.from("profiles").select("id, full_name").in("id", userIds);
+        const { data: pData, error: pErr } = await supabase.from("profiles").select("id, full_name, email").in("id", userIds);
         console.error(">>> PROFILES FETCH:", { pData, pErr });
         profilesData = pData;
       }
@@ -101,6 +101,54 @@ const AdminProducts = () => {
         target_id: selectedProduct.id,
         details: { reason, previous_status: selectedProduct.status }
       });
+
+      // Send email notification
+      if (selectedProduct.profiles?.email) {
+        const subject = action === "approve" 
+          ? `Produto Aprovado: ${selectedProduct.name}`
+          : `Produto Rejeitado: ${selectedProduct.name}`;
+        
+        const htmlContent = action === "approve"
+          ? `
+            <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; padding: 20px;">
+              <h2 style="color: #10b981;">Boas notícias!</h2>
+              <p>Olá, <strong>${selectedProduct.profiles.full_name}</strong>.</p>
+              <p>O seu produto <strong>"${selectedProduct.name}"</strong> foi analisado e aprovado pela nossa equipa.</p>
+              <p>Ele já está disponível para venda e você já pode partilhar o link de checkout com os seus clientes.</p>
+              <div style="margin: 30px 0; text-align: center;">
+                <a href="https://www.ensinapay.com/checkout/${selectedProduct.id}" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ver Checkout</a>
+              </div>
+              <p style="font-size: 12px; color: #666;">Atenciosamente,<br>Equipa Moz Easy Sell</p>
+            </div>
+          `
+          : `
+            <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; padding: 20px;">
+              <h2 style="color: #ef4444;">Atualização sobre o seu produto</h2>
+              <p>Olá, <strong>${selectedProduct.profiles.full_name}</strong>.</p>
+              <p>Infelizmente, o seu produto <strong>"${selectedProduct.name}"</strong> não foi aprovado para venda na nossa plataforma neste momento.</p>
+              <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0;">
+                <p style="margin: 0; font-weight: bold; color: #991b1b;">Motivo da rejeição:</p>
+                <p style="margin: 10px 0 0 0; color: #b91c1c;">${reason}</p>
+              </div>
+              <p>Pode ajustar o produto no seu painel e submetê-lo novamente para análise.</p>
+              <p style="font-size: 12px; color: #666;">Atenciosamente,<br>Equipa Moz Easy Sell</p>
+            </div>
+          `;
+
+        try {
+          await supabase.functions.invoke("send-email-notification", {
+            body: {
+              to: selectedProduct.profiles.email,
+              subject: subject,
+              htmlContent: htmlContent
+            }
+          });
+          console.log("Notificação enviada por email com sucesso.");
+        } catch (emailErr) {
+          console.error("Falha ao enviar email:", emailErr);
+          // Don't stop the flow if email fails, but log it
+        }
+      }
 
       toast.success(`Produto ${action === "approve" ? 'aprovado' : 'rejeitado'} com sucesso.`);
       setSelectedProduct(null);

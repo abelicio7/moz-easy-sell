@@ -37,7 +37,7 @@ const AdminProfileRequests = () => {
         .from("profile_update_requests")
         .select(`
           *,
-          profiles:user_id(full_name, cpf)
+          profiles:user_id(full_name, cpf, email)
         `)
         .order("created_at", { ascending: false });
 
@@ -81,6 +81,32 @@ const AdminProfileRequests = () => {
         target_id: request.id,
         details: { user_id: request.user_id }
       });
+      
+      // Send email notification
+      const userEmail = request.requested_data.email || (request.profiles as any)?.email;
+      if (userEmail) {
+        const subject = "Perfil Aprovado - Moz Easy Sell";
+        const htmlContent = `
+          <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; padding: 20px;">
+            <h2 style="color: #10b981;">Perfil Aprovado!</h2>
+            <p>Olá, <strong>${request.requested_data.full_name || request.profiles?.full_name}</strong>.</p>
+            <p>Temos o prazer de informar que a sua solicitação de alteração/ativação de perfil foi <strong>aprovada</strong>.</p>
+            <p>Agora você tem acesso total às funcionalidades de vendedor na nossa plataforma.</p>
+            <div style="margin: 30px 0; text-align: center;">
+              <a href="https://www.ensinapay.com/dashboard" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ir para o Dashboard</a>
+            </div>
+            <p style="font-size: 12px; color: #666;">Atenciosamente,<br>Equipa Moz Easy Sell</p>
+          </div>
+        `;
+
+        try {
+          await supabase.functions.invoke("send-email-notification", {
+            body: { to: userEmail, subject, htmlContent }
+          });
+        } catch (emailErr) {
+          console.error("Erro ao enviar email de aprovação:", emailErr);
+        }
+      }
 
       toast.success("Solicitação aprovada com sucesso!");
       fetchRequests();
@@ -113,6 +139,33 @@ const AdminProfileRequests = () => {
         target_id: request.id,
         details: { user_id: request.user_id, reason }
       });
+
+      // Send email notification
+      const userEmail = (request.profiles as any)?.email || request.requested_data.email;
+      if (userEmail) {
+        const subject = "Solicitação de Perfil Rejeitada - Moz Easy Sell";
+        const htmlContent = `
+          <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; padding: 20px;">
+            <h2 style="color: #ef4444;">Atualização sobre o seu perfil</h2>
+            <p>Olá, <strong>${request.profiles?.full_name || "Vendedor"}</strong>.</p>
+            <p>A sua solicitação de alteração de perfil foi <strong>rejeitada</strong> pela nossa equipa de moderação.</p>
+            <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0;">
+              <p style="margin: 0; font-weight: bold; color: #991b1b;">Motivo da rejeição:</p>
+              <p style="margin: 10px 0 0 0; color: #b91c1c;">${reason}</p>
+            </div>
+            <p>Por favor, corrija os dados solicitados e submeta uma nova solicitação no seu painel.</p>
+            <p style="font-size: 12px; color: #666;">Atenciosamente,<br>Equipa Moz Easy Sell</p>
+          </div>
+        `;
+
+        try {
+          await supabase.functions.invoke("send-email-notification", {
+            body: { to: userEmail, subject, htmlContent }
+          });
+        } catch (emailErr) {
+          console.error("Erro ao enviar email de rejeição:", emailErr);
+        }
+      }
 
       toast.success("Solicitação rejeitada com sucesso!");
       fetchRequests();
