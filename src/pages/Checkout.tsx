@@ -25,6 +25,7 @@ const Checkout = () => {
   const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [debugError, setDebugError] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -49,8 +50,21 @@ const Checkout = () => {
         .eq("id", productId)
         .maybeSingle();
       
-      if (productError || !productData || productData.status !== "approved") {
-        console.error("Product error or not approved:", productError, productData);
+      if (productError) {
+        console.error("Product error:", productError);
+        setDebugError(`Erro BD: ${productError.message}`);
+        setProduct(null);
+        setLoading(false);
+        return;
+      }
+      if (!productData) {
+        setDebugError(`Produto com ID ${productId} não existe no BD.`);
+        setProduct(null);
+        setLoading(false);
+        return;
+      }
+      if (productData.status !== "approved") {
+        setDebugError(`Produto não está aprovado (Status: ${productData.status}).`);
         setProduct(null);
         setLoading(false);
         return;
@@ -199,8 +213,13 @@ const Checkout = () => {
 
   if (!product) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-muted-foreground">Produto não encontrado</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 text-center">
+        <p className="text-muted-foreground text-lg mb-2">Produto não encontrado</p>
+        {debugError && (
+          <p className="text-xs text-red-500 bg-red-50 p-2 rounded-md border border-red-100 max-w-md break-all">
+            Debug Info: {debugError}
+          </p>
+        )}
       </div>
     );
   }
