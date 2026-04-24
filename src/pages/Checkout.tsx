@@ -63,13 +63,6 @@ const Checkout = () => {
         setLoading(false);
         return;
       }
-      if (productData.status !== "approved") {
-        setDebugError(`Produto não está aprovado (Status: ${productData.status}).`);
-        setProduct(null);
-        setLoading(false);
-        return;
-      }
-
       setProduct(productData as any);
 
       if (productData?.user_id) {
