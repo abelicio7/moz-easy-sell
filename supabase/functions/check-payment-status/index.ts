@@ -55,9 +55,11 @@ Deno.serve(async (req) => {
       .single();
 
     let orderStatus = "processing";
-    if (statusData.status === "COMPLETED" || statusData.status === "SUCCESS") {
+    const debitoStatus = (statusData.status || statusData.transaction?.status || statusData.data?.status || "").toUpperCase();
+    
+    if (debitoStatus === "COMPLETED" || debitoStatus === "SUCCESS" || debitoStatus === "PAID" || debitoStatus === "SUCCESSFUL") {
       orderStatus = "paid";
-    } else if (statusData.status === "FAILED" || statusData.status === "CANCELLED") {
+    } else if (debitoStatus === "FAILED" || debitoStatus === "CANCELLED" || debitoStatus === "REJECTED") {
       orderStatus = "failed";
     }
 
@@ -135,7 +137,7 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        status: statusData.status || "PENDING",
+        status: debitoStatus || "PENDING",
         order_status: orderStatus,
         provider_reference: statusData.provider_reference || null,
       }),
