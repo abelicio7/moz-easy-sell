@@ -20,9 +20,10 @@ import { Badge } from '@/components/ui/badge';
 interface SidebarProps {
   selectedNode: any | null;
   setNodes: React.Dispatch<React.SetStateAction<any[]>>;
+  isMobileVisible?: boolean;
 }
 
-const Sidebar = ({ selectedNode, setNodes }: SidebarProps) => {
+const Sidebar = ({ selectedNode, setNodes, isMobileVisible }: SidebarProps) => {
   const onDragStart = (event: React.DragEvent, nodeType: string) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
@@ -54,10 +55,12 @@ const Sidebar = ({ selectedNode, setNodes }: SidebarProps) => {
     const nodeType = selectedNode.type || 'default';
     
     return (
-      <aside className="w-80 bg-card border-l flex flex-col h-full z-10 animate-in slide-in-from-right duration-300">
-        <div className="p-4 border-b flex items-center gap-2 bg-muted/30">
-          <Settings2 className="w-4 h-4 text-primary" />
-          <h3 className="font-bold text-sm uppercase tracking-wider">Configurações</h3>
+      <aside className={`w-full md:w-80 bg-card border-l flex flex-col h-full z-10 animate-in slide-in-from-right duration-300 absolute inset-y-0 right-0 md:relative shadow-2xl md:shadow-none ${isMobileVisible ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}`}>
+        <div className="p-4 border-b flex items-center justify-between bg-muted/30">
+          <div className="flex items-center gap-2">
+            <Settings2 className="w-4 h-4 text-primary" />
+            <h3 className="font-bold text-xs uppercase tracking-wider">Configurações</h3>
+          </div>
         </div>
 
         <div className="p-6 flex-1 overflow-y-auto space-y-6">
@@ -79,11 +82,11 @@ const Sidebar = ({ selectedNode, setNodes }: SidebarProps) => {
           {/* Specific Node Type Settings */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 mb-2">
-              <Badge variant="outline" className="rounded-sm">TIPO: {selectedNode.data.type || 'Interação'}</Badge>
+              <Badge variant="outline" className="rounded-sm">TIPO: {selectedNode.type?.toUpperCase() || 'INTERAÇÃO'}</Badge>
             </div>
 
             {/* Message Node Settings */}
-            {(selectedNode.data.label.toLowerCase().includes('mensagem') || selectedNode.type === 'message') && (
+            {(selectedNode.type === 'message') && (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Conteúdo da Mensagem</Label>
@@ -99,7 +102,7 @@ const Sidebar = ({ selectedNode, setNodes }: SidebarProps) => {
             )}
 
             {/* Question Node Settings */}
-            {(selectedNode.data.label.toLowerCase().includes('pergunta') || selectedNode.type === 'question') && (
+            {(selectedNode.type === 'question') && (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Pergunta</Label>
@@ -158,7 +161,7 @@ const Sidebar = ({ selectedNode, setNodes }: SidebarProps) => {
             )}
 
             {/* Condition Node Settings */}
-            {(selectedNode.data.label.toLowerCase().includes('condição') || selectedNode.type === 'condition') && (
+            {(selectedNode.type === 'condition') && (
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Variável a Comparar</Label>
@@ -194,7 +197,7 @@ const Sidebar = ({ selectedNode, setNodes }: SidebarProps) => {
             )}
 
             {/* Lead Capture Node */}
-            {(selectedNode.data.label.toLowerCase().includes('lead') || selectedNode.type === 'input') && (
+            {(selectedNode.type === 'input') && (
               <div className="space-y-4">
                 <div className="p-3 rounded-lg bg-primary/5 border border-primary/10 flex gap-3">
                    <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
@@ -237,7 +240,7 @@ const Sidebar = ({ selectedNode, setNodes }: SidebarProps) => {
 
   // Default Palette View
   return (
-    <aside className="w-64 bg-card border-l flex flex-col h-full z-10 overflow-hidden">
+    <aside className={`w-full md:w-64 bg-card border-l flex flex-col h-full z-10 overflow-hidden absolute inset-y-0 right-0 md:relative transition-transform md:shadow-none shadow-2xl ${isMobileVisible ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}`}>
       <div className="p-4 border-b bg-muted/30">
         <h3 className="font-bold text-xs uppercase tracking-[2px] text-muted-foreground">Biblioteca</h3>
       </div>
@@ -324,7 +327,7 @@ const Sidebar = ({ selectedNode, setNodes }: SidebarProps) => {
       </div>
       <div className="p-4 border-t bg-muted/30">
         <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
-          Arraste os blocos para o canvas para construir o seu fluxo.
+          Arraste os blocos para o canvas.
         </p>
       </div>
     </aside>

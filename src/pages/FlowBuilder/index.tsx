@@ -40,9 +40,9 @@ const nodeTypes: NodeTypes = {
 
 const initialNodes = [
   {
-    id: 'start-node',
+    id: uuidv4(),
     type: 'start',
-    position: { x: 250, y: 100 },
+    position: { x: 250, y: 150 },
     data: { label: 'INÍCIO', type: 'start' },
   },
 ];
@@ -203,7 +203,7 @@ const FlowBuilderInstance = () => {
 
       // 2. Insert Nodes
       const nodesToInsert = nodes.map(n => ({
-        id: n.id.includes('node-') || n.id === 'start-node' ? uuidv4() : n.id, // Ensure UUID format
+        id: n.id,
         flow_id: id,
         type: n.type,
         position_x: n.position.x,
@@ -215,9 +215,8 @@ const FlowBuilderInstance = () => {
       if (nodesError) throw nodesError;
 
       // 3. Insert Edges
-      // We need to map the source/target node IDs if they were regenerated
-      // This is a bit complex, for now let's assume IDs are stable UUIDs
       const edgesToInsert = edges.map(e => ({
+        id: e.id.length > 36 ? uuidv4() : e.id, // Ensure edge ID is also valid if needed
         flow_id: id,
         source_node_id: e.source,
         target_node_id: e.target,
@@ -249,36 +248,48 @@ const FlowBuilderInstance = () => {
     );
   }
 
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)]">
+    <div className="flex flex-col h-[calc(100vh-64px)] md:h-[calc(100vh-80px)] overflow-hidden">
       {/* Builder Header */}
-      <div className="flex items-center justify-between px-6 py-3 bg-card border-b">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard/quizzes')}>
-            <ArrowLeft className="w-5 h-5" />
+      <div className="flex items-center justify-between px-4 md:px-6 py-3 bg-card border-b sticky top-0 z-20">
+        <div className="flex items-center gap-2 md:gap-4">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/dashboard/quizzes')}>
+            <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div>
-            <h2 className="text-xl font-bold truncate max-w-[200px]">{flowInfo?.name || 'Meu Funil'}</h2>
-            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
-               ID: {id?.substring(0,8)}... • {flowInfo?.status?.toUpperCase()}
+          <div className="min-w-0">
+            <h2 className="text-sm md:text-xl font-bold truncate max-w-[100px] md:max-w-[300px]">{flowInfo?.name || 'Meu Funil'}</h2>
+            <p className="hidden md:block text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+               {flowInfo?.status?.toUpperCase()} • ID: {id?.substring(0,8)}
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="gap-2 border-primary/20 hover:bg-primary/5 text-primary">
-            <Play className="w-4 h-4" /> Testar
+        <div className="flex gap-1 md:gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="md:hidden gap-1"
+            onClick={() => setShowMobileSidebar(!showMobileSidebar)}
+          >
+            {selectedNode ? <Settings2 className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+            {selectedNode ? 'Config' : 'Blocos'}
           </Button>
-          <Button onClick={handleSave} disabled={saving} className="gap-2 shadow-lg shadow-primary/20">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {saving ? 'A Guardar...' : 'Guardar Fluxo'}
+          
+          <Button variant="outline" size="sm" className="gap-2 border-primary/20 hover:bg-primary/5 text-primary hidden sm:flex">
+            <Play className="w-3 h-3 md:w-4 md:h-4" /> <span className="hidden md:inline">Testar</span>
+          </Button>
+          <Button onClick={handleSave} disabled={saving} size="sm" className="gap-2 shadow-lg shadow-primary/20 px-3 md:px-4">
+            {saving ? <Loader2 className="w-3 h-3 md:w-4 md:h-4 animate-spin" /> : <Save className="w-3 h-3 md:w-4 md:h-4" />}
+            <span>{saving ? 'A Guardar...' : 'Guardar'}</span>
           </Button>
         </div>
       </div>
 
       {/* Builder Workspace */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
         {/* React Flow Canvas */}
-        <div className="flex-1 h-full relative" ref={reactFlowWrapper}>
+        <div className="flex-1 h-full relative bg-[#f8fafc] z-0" ref={reactFlowWrapper}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -300,7 +311,11 @@ const FlowBuilderInstance = () => {
         </div>
 
         {/* Sidebar / Properties Panel */}
-        <Sidebar selectedNode={selectedNode} setNodes={setNodes} />
+        <Sidebar 
+          selectedNode={selectedNode} 
+          setNodes={setNodes} 
+          isMobileVisible={showMobileSidebar}
+        />
       </div>
     </div>
   );
