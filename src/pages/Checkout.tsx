@@ -181,11 +181,13 @@ const Checkout = () => {
       const paymentData = await paymentResponse.json();
 
       if (!paymentResponse.ok || paymentData.error) {
-        throw new Error(paymentData.error || paymentData.message || "Erro ao processar pagamento com a operadora");
+        console.error("Payment failed:", paymentData);
+        const detailedError = paymentData.details ? JSON.stringify(paymentData.details) : "";
+        throw new Error(paymentData.error || paymentData.message || `Erro da operadora: ${detailedError}`);
       }
 
       if (paymentData.error) {
-         toast.error(paymentData.error);
+         toast.error(`${paymentData.error} ${paymentData.details ? JSON.stringify(paymentData.details) : ""}`);
          setSubmitting(false);
          return;
       }
