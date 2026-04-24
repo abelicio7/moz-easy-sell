@@ -210,19 +210,22 @@ const Account = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border/50">
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border-2 border-primary/20 mb-6 animate-in fade-in slide-in-from-top-4">
                 <div className="space-y-0.5">
-                  <Label className="text-base">Tema do Painel</Label>
-                  <p className="text-xs text-muted-foreground">Alternar entre modo claro e escuro</p>
+                  <Label className="text-base font-bold flex items-center gap-2">
+                    Tema do Painel 
+                    <Badge variant="outline" className="text-[10px] uppercase py-0 h-4 border-primary/30">Novo</Badge>
+                  </Label>
+                  <p className="text-xs text-muted-foreground">Escolha entre modo claro ou escuro</p>
                 </div>
                 <Button 
                   type="button" 
                   variant="outline" 
                   size="icon" 
                   onClick={toggleTheme}
-                  className="rounded-full w-10 h-10 transition-all hover:scale-110 active:scale-95"
+                  className="rounded-full w-12 h-12 transition-all hover:scale-110 active:scale-95 border-primary/20 bg-background shadow-sm"
                 >
-                  {isDarkMode ? <Sun className="h-5 w-5 text-yellow-500" /> : <Moon className="h-5 w-5 text-primary" />}
+                  {isDarkMode ? <Sun className="h-6 w-6 text-yellow-500" /> : <Moon className="h-6 w-6 text-primary" />}
                 </Button>
               </div>
 
