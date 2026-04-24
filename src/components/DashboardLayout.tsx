@@ -1,9 +1,18 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
-import { Package, ShoppingCart, LogOut, Menu, X, BarChart3, LayoutTemplate, Puzzle, Wallet, ShieldAlert, TrendingUp, UserCircle } from "lucide-react";
+import { Package, ShoppingCart, LogOut, Menu, X, BarChart3, LayoutTemplate, Puzzle, Wallet, ShieldAlert, TrendingUp, UserCircle, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
@@ -34,6 +43,23 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     navigate("/login");
   };
 
+  const handleDeleteAccount = async () => {
+    if (window.confirm("Tem certeza que deseja eliminar sua conta? Esta ação é irreversível e apagará todos os seus dados.")) {
+      try {
+        const { error } = await supabase.rpc('delete_user');
+        if (error) {
+          toast.error("Para eliminar sua conta de forma segura, por favor entre em contato com o suporte.");
+        } else {
+          toast.success("Conta eliminada com sucesso.");
+          await supabase.auth.signOut();
+          navigate("/");
+        }
+      } catch (e) {
+        toast.error("Erro ao tentar eliminar a conta.");
+      }
+    }
+  };
+
   const links = [
     { to: "/dashboard", label: "Dashboard", icon: BarChart3 },
     { to: "/dashboard/products", label: "Produtos", icon: Package },
@@ -42,7 +68,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     { to: "/dashboard/quizzes", label: "Quizzes", icon: LayoutTemplate },
     { to: "/dashboard/finance", label: "Financeiro", icon: Wallet },
     { to: "/dashboard/integrations", label: "Integrações", icon: Puzzle },
-    { to: "/dashboard/account", label: "Minha Conta", icon: UserCircle },
   ];
   
   if (isAdmin) {
@@ -77,10 +102,35 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               </Button>
             ))}
           </div>
-          <Button variant="ghost" size="sm" onClick={handleLogout}>
-            <LogOut className="w-4 h-4 mr-1" />
-            Sair
-          </Button>
+          <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <UserCircle className="w-4 h-4" />
+                  <span className="hidden sm:inline">Minha Conta</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard/account" className="cursor-pointer flex items-center">
+                    <UserCircle className="w-4 h-4 mr-2" />
+                    Gerenciar Perfil
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleDeleteAccount} className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Eliminar Conta
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-muted-foreground focus:text-muted-foreground">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
       </header>
 
@@ -101,6 +151,21 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               </Link>
             </Button>
           ))}
+          <div className="h-px bg-border my-2" />
+          <Button variant="ghost" className="justify-start" asChild onClick={() => setMobileOpen(false)}>
+            <Link to="/dashboard/account" className="flex items-center gap-2">
+              <UserCircle className="w-4 h-4" />
+              Minha Conta
+            </Link>
+          </Button>
+          <Button variant="ghost" className="justify-start text-destructive hover:text-destructive hover:bg-destructive/10" onClick={handleDeleteAccount}>
+            <Trash2 className="w-4 h-4 mr-2" />
+            Eliminar Conta
+          </Button>
+          <Button variant="ghost" className="justify-start text-muted-foreground" onClick={handleLogout}>
+            <LogOut className="w-4 h-4 mr-2" />
+            Sair
+          </Button>
         </div>
       )}
 
