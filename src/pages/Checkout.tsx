@@ -56,20 +56,6 @@ const Checkout = () => {
         return;
       }
 
-      // Check if seller is approved
-      const { data: sellerProfile, error: profileError } = await supabase
-        .from("profiles")
-        .select("status")
-        .eq("id", productData.user_id)
-        .maybeSingle();
-
-      if (profileError || sellerProfile?.status !== "approved") {
-        console.error("Seller not approved:", profileError, sellerProfile);
-        setProduct(null);
-        setLoading(false);
-        return;
-      }
-
       setProduct(productData as any);
 
       if (productData?.user_id) {
