@@ -73,18 +73,30 @@ Deno.serve(async (req) => {
       if (orderStatus === "paid" && order?.customer_email) {
         const product = order.products as any;
         const htmlContent = `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #333;">Pagamento Confirmado! 🎉</h2>
-            <p>Olá ${order.customer_name?.split(" ")[0] || ''},</p>
-            <p>Seu pagamento para o produto <strong>${product?.name}</strong> foi aprovado com sucesso.</p>
-            <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 25px 0; border: 1px solid #eee;">
-              ${product?.delivery_type === "link" 
-                ? `<p style="margin: 0; text-align: center;"><strong>Acesse seu produto clicando no botão abaixo:</strong><br><br>
-                   <a href="${product?.delivery_content}" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">Acessar Produto</a></p>`
-                : `<p style="margin: 0;"><strong>Seu Conteúdo Abaixo:</strong><br><br><span style="white-space: pre-wrap;">${product?.delivery_content}</span></p>`
-              }
+          <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9fafb; padding: 40px 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <img src="https://www.ensinapay.com/logo.png" alt="EnsinaPay" style="max-height: 45px;" />
             </div>
-            <p>Obrigado por comprar conosco!</p>
+            <div style="background-color: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); border: 1px solid #f3f4f6;">
+              <h2 style="color: #111827; margin-top: 0; font-size: 24px; text-align: center;">Pagamento Confirmado! 🎉</h2>
+              <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">Olá <strong>${order.customer_name?.split(" ")[0] || ''}</strong>,</p>
+              <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">Temos uma ótima notícia! O seu pagamento referente ao produto <strong>${product?.name}</strong> foi aprovado com sucesso.</p>
+              
+              <div style="background-color: #f9fafb; padding: 25px; border-radius: 8px; margin: 30px 0; border: 1px solid #e5e7eb; text-align: center;">
+                ${product?.delivery_type === "link" 
+                  ? `<p style="margin: 0 0 15px 0; color: #374151; font-size: 15px;">Clique no botão abaixo para acessar o seu produto agora mesmo:</p>
+                     <a href="${product?.delivery_content}" style="background-color: #000000; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-size: 16px; letter-spacing: 0.5px;">Acessar Meu Produto</a>`
+                  : `<p style="margin: 0 0 10px 0; color: #374151; font-size: 15px; font-weight: bold;">O seu conteúdo exclusivo:</p>
+                     <div style="background-color: #ffffff; padding: 15px; border-radius: 6px; border: 1px dashed #cbd5e1; text-align: left; white-space: pre-wrap; color: #1e293b; font-size: 14px; font-family: monospace;">${product?.delivery_content}</div>`
+                }
+              </div>
+              
+              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;" />
+              <p style="color: #6b7280; font-size: 14px; text-align: center; margin: 0;">
+                Obrigado por escolher a <strong>EnsinaPay</strong>!<br>
+                Qualquer dúvida, estamos à disposição.
+              </p>
+            </div>
           </div>
         `;
 
