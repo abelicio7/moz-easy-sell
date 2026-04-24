@@ -1,53 +1,59 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
-import { Split, ChevronRight } from 'lucide-react';
+import { Split, ChevronRight, Zap } from 'lucide-react';
 
 const ConditionNode = ({ data, selected }: NodeProps) => {
   return (
-    <div className={`px-0 py-0 shadow-xl rounded-2xl bg-white border-2 transition-all min-w-[220px] overflow-hidden ${selected ? 'border-primary ring-4 ring-primary/10' : 'border-border'}`}>
-      <Handle type="target" position={Position.Left} className="w-3 h-3 bg-primary border-2 border-white" />
+    <div className={`
+      relative min-w-[240px] bg-white rounded-3xl border transition-all duration-300
+      ${selected ? 'border-purple-500 ring-8 ring-purple-500/5 shadow-2xl scale-[1.02]' : 'border-slate-200 shadow-xl shadow-slate-200/50 hover:shadow-2xl'}
+    `}>
+      <Handle type="target" position={Position.Left} className="!w-4 !h-4 !bg-purple-500 border-[3px] border-white !-left-2" />
       
-      {/* Header */}
-      <div className="bg-purple-500/5 p-4 border-b border-purple-500/10 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0">
-          <Split className="w-6 h-6 text-purple-500" />
+      {/* Header Strip */}
+      <div className="h-2 bg-purple-500 rounded-t-3xl w-full" />
+      
+      <div className="p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600 shadow-sm border border-purple-100">
+              <Split className="w-5 h-5" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[2px] leading-none mb-1">Lógica</span>
+              <span className="text-sm font-black text-slate-800">{data.label}</span>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col overflow-hidden">
-          <span className="text-[10px] font-black text-purple-600 uppercase tracking-widest leading-none mb-1">Lógica</span>
-          <span className="text-sm font-black text-foreground truncate">{data.label}</span>
-        </div>
-      </div>
 
-      {/* Logic Content */}
-      <div className="p-4 space-y-4">
         <div className="space-y-3">
            {/* TRUE Path */}
            <div className="relative group">
-              <div className="flex items-center justify-between text-xs bg-green-50/50 p-3 rounded-xl border border-green-100 transition-colors">
-                <span className="font-bold text-green-700">VERDADEIRO</span>
-                <ChevronRight className="w-4 h-4 text-green-400" />
+              <div className="flex items-center justify-between text-[11px] bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 transition-all font-black text-emerald-700">
+                <span className="tracking-widest uppercase">Verdadeiro</span>
+                <Zap className="w-3 h-3 text-emerald-400" />
               </div>
               <Handle 
                 type="source" 
                 position={Position.Right} 
                 id="true"
-                style={{ top: '50%', right: '-8px' }}
-                className="w-4 h-4 bg-green-500 border-2 border-white" 
+                style={{ top: '50%', right: '-12px' }}
+                className="!w-6 !h-6 !bg-emerald-500 border-[4px] border-white shadow-md hover:scale-110 transition-transform" 
               />
            </div>
 
            {/* FALSE Path */}
            <div className="relative group">
-              <div className="flex items-center justify-between text-xs bg-red-50/50 p-3 rounded-xl border border-red-100 transition-colors">
-                <span className="font-bold text-red-700">FALSO</span>
-                <ChevronRight className="w-4 h-4 text-red-400" />
+              <div className="flex items-center justify-between text-[11px] bg-rose-50/50 p-4 rounded-2xl border border-rose-100 transition-all font-black text-rose-700">
+                <span className="tracking-widest uppercase">Falso</span>
+                <ChevronRight className="w-3 h-3 text-rose-400" />
               </div>
               <Handle 
                 type="source" 
                 position={Position.Right} 
                 id="false"
-                style={{ top: '50%', right: '-8px' }}
-                className="w-4 h-4 bg-red-500 border-2 border-white" 
+                style={{ top: '50%', right: '-12px' }}
+                className="!w-6 !h-6 !bg-rose-500 border-[4px] border-white shadow-md hover:scale-110 transition-transform" 
               />
            </div>
         </div>
