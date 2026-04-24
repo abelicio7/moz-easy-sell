@@ -113,20 +113,82 @@ const Sidebar = ({ selectedNode, setNodes }: SidebarProps) => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Label className="text-xs font-bold">Opções de Resposta</Label>
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-primary">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="h-7 px-2 text-primary"
+                      onClick={() => {
+                        const newOption = { id: `opt-${Date.now()}`, label: 'Nova Opção', value: '', score: 0 };
+                        const currentOptions = selectedNode.data.options || [];
+                        updateNodeData({ options: [...currentOptions, newOption] });
+                      }}
+                    >
                       <Plus className="w-3 h-3 mr-1" /> Add
                     </Button>
                   </div>
                   <div className="space-y-2">
-                    {[1, 2].map((i) => (
-                      <div key={i} className="flex gap-2">
-                        <Input placeholder={`Opção ${i}`} className="h-8 text-sm" />
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                    {(selectedNode.data.options || []).map((opt: any, index: number) => (
+                      <div key={opt.id} className="flex gap-2">
+                        <Input 
+                          placeholder={`Opção ${index + 1}`} 
+                          className="h-8 text-sm" 
+                          value={opt.label}
+                          onChange={(e) => {
+                            const newOptions = [...selectedNode.data.options];
+                            newOptions[index].label = e.target.value;
+                            updateNodeData({ options: newOptions });
+                          }}
+                        />
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-destructive"
+                          onClick={() => {
+                            const newOptions = selectedNode.data.options.filter((o: any) => o.id !== opt.id);
+                            updateNodeData({ options: newOptions });
+                          }}
+                        >
                           <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Condition Node Settings */}
+            {(selectedNode.data.label.toLowerCase().includes('condição') || selectedNode.type === 'condition') && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Variável a Comparar</Label>
+                  <Select defaultValue="score">
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="score">Pontuação (Score)</SelectItem>
+                      <SelectItem value="email">Email Preenchido</SelectItem>
+                      <SelectItem value="tag">Tag do Lead</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Operador</Label>
+                  <Select defaultValue="greater">
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="equals">Igual a</SelectItem>
+                      <SelectItem value="greater">Maior que</SelectItem>
+                      <SelectItem value="less">Menor que</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Valor</Label>
+                  <Input placeholder="Ex: 50" defaultValue="50" />
                 </div>
               </div>
             )}

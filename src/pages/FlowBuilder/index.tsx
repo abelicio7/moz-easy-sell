@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 import MessageNode from './nodes/MessageNode';
 import QuestionNode from './nodes/QuestionNode';
 import LeadNode from './nodes/LeadNode';
+import ConditionNode from './nodes/ConditionNode';
 import { StartNode, ResultNode } from './nodes/BaseNodes';
 
 const nodeTypes: NodeTypes = {
@@ -31,6 +32,7 @@ const nodeTypes: NodeTypes = {
   message: MessageNode,
   question: QuestionNode,
   input: LeadNode,
+  condition: ConditionNode,
   result: ResultNode,
 };
 import { FlowNodeData } from '@/types/flow';
