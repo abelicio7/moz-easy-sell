@@ -1,229 +1,352 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, ArrowRight } from "lucide-react";
+import { Loader2, ArrowRight, CheckCircle2, MessageSquare, HelpCircle, UserPlus, Flag } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import Logo from "@/components/Logo";
-
-type QuizState = 'welcome' | 'questions' | 'lead-form' | 'result';
 
 const TakeQuiz = () => {
   const { slug } = useParams();
   const [loading, setLoading] = useState(true);
   
   // Data
-  const [quiz, setQuiz] = useState<any>(null);
-  const [questions, setQuestions] = useState<any[]>([]);
-  const [results, setResults] = useState<any[]>([]);
+  const [flow, setFlow] = useState<any>(null);
+  const [nodes, setNodes] = useState<any[]>([]);
+  const [edges, setEdges] = useState<any[]>([]);
   
-  // State Machine
-  const [step, setStep] = useState<QuizState>('welcome');
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  
-  // Answers Data
+  // Navigation State
+  const [currentNodeId, setCurrentNodeId] = useState<string | null>(null);
+  const [path, setPath] = useState<string[]>([]);
+  const [answers, setAnswers] = useState<Record<string, any>>({});
   const [score, setScore] = useState(0);
-  const [answers, setAnswers] = useState<any[]>([]);
   
-  // Lead Form
-  const [lead, setLead] = useState({ name: "", email: "", phone: "" });
-  const [submitting, setSubmitting] = useState(false);
-  
-  // Final Result
-  const [finalResult, setFinalResult] = useState<any>(null);
+  // Form State
+  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const fetchQuiz = async () => {
-      const { data: quizData } = await supabase.from('quizzes').select('*').eq('slug', slug).eq('status', 'active').single();
-      if (!quizData) {
+    const fetchFlowData = async () => {
+      try {
+        setLoading(true);
+        // 1. Fetch Flow
+        const { data: flowData, error: flowErr } = await supabase
+          .from('flows')
+          .select('*')
+          .eq('slug', slug)
+          .eq('status', 'active')
+          .single();
+
+        if (flowErr || !flowData) {
+          setLoading(false);
+          return;
+        }
+        setFlow(flowData);
+
+        // 2. Fetch Nodes & Edges
+        const { data: nodesData } = await supabase.from('flow_nodes').select('*').eq('flow_id', flowData.id);
+        const { data: edgesData } = await supabase.from('flow_edges').select('*').eq('flow_id', flowData.id);
+
+        setNodes(nodesData || []);
+        setEdges(edgesData || []);
+
+        // 3. Find Start Node
+        const startNode = nodesData?.find(n => n.type === 'start');
+        if (startNode) {
+          setCurrentNodeId(startNode.id);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
         setLoading(false);
-        return;
       }
-      setQuiz(quizData);
-
-      const { data: qData } = await supabase.from('quiz_questions').select('*, quiz_options(*)').eq('quiz_id', quizData.id).order('order_index', { ascending: true });
-      // sort options too
-      const formattedQ = (qData || []).map(q => {
-        return { ...q, quiz_options: q.quiz_options.sort((a:any, b:any) => a.order_index - b.order_index) }
-      });
-      setQuestions(formattedQ);
-
-      const { data: rData } = await supabase.from('quiz_results').select('*').eq('quiz_id', quizData.id);
-      setResults(rData || []);
-      
-      setLoading(false);
     };
-    fetchQuiz();
+
+    fetchFlowData();
   }, [slug]);
 
-  const handleOptionSelect = (option: any) => {
-    const q = questions[currentQuestionIndex];
-    setAnswers([...answers, { question: q.title, option: option.option_text, score: option.score }]);
-    setScore(score + (option.score || 0));
+  const currentNode = nodes.find(n => n.id === currentNodeId);
 
-    if (currentQuestionIndex + 1 < questions.length) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    } else {
-      setStep('lead-form');
+  const goToNextNode = useCallback((nextNodeId: string, additionalData?: any) => {
+    setPath(prev => [...prev, currentNodeId!]);
+    if (additionalData) {
+      if (additionalData.answer) {
+        setAnswers(prev => ({ ...prev, [currentNodeId!]: additionalData.answer }));
+      }
+      if (additionalData.score) {
+        setScore(prev => prev + additionalData.score);
+      }
+    }
+    setCurrentNodeId(nextNodeId);
+  }, [currentNodeId]);
+
+  const handleNext = () => {
+    const edge = edges.find(e => e.source_node_id === currentNodeId);
+    if (edge) {
+      goToNextNode(edge.target_node_id);
     }
   };
 
-  const submitLead = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!lead.name || !lead.email) return;
-
-    setSubmitting(true);
+  const handleOptionSelect = (option: any) => {
+    // Find edge connected to this specific handle (option.id)
+    const edge = edges.find(e => e.source_node_id === currentNodeId && e.source_handle === option.id);
     
-    // Find matching result
-    const match = results.find(r => score >= (r.min_score || 0) && score <= (r.max_score || 999999)) || results[0];
-    setFinalResult(match);
-
-    await supabase.from('quiz_leads').insert({
-      quiz_id: quiz.id,
-      name: lead.name,
-      email: lead.email,
-      phone: lead.phone,
-      answers_json: answers,
-      total_score: score,
-      result_title: match?.title || "Sem Resultado Mapeado"
-    });
-
-    setStep('result');
-    setSubmitting(false);
+    // If no specific edge, find general edge from this node
+    const fallbackEdge = edges.find(e => e.source_node_id === currentNodeId);
+    
+    const targetId = edge?.target_node_id || fallbackEdge?.target_node_id;
+    
+    if (targetId) {
+      goToNextNode(targetId, { answer: option.label, score: option.score || 0 });
+    }
   };
 
+  const handleLeadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-muted/30"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>;
-  if (!quiz) return <div className="min-h-screen flex flex-col items-center justify-center bg-muted/30 text-center px-4"><Logo size="sm"/><p className="mt-6 text-muted-foreground">Quiz não encontrado ou indisponível.</p></div>;
+    try {
+      // Save lead to database
+      await supabase.from('flow_leads').insert({
+        flow_id: flow.id,
+        contact_data: formData,
+        answers: answers,
+        path: path,
+        score: score
+      });
+
+      // Go to next node
+      handleNext();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+        <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
+        <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Iniciando Experiência...</p>
+      </div>
+    );
+  }
+
+  if (!flow || !currentNode) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-center px-6">
+        <Logo size="sm" />
+        <h1 className="text-2xl font-black text-slate-800 mt-8 mb-2">Funil não encontrado</h1>
+        <p className="text-slate-500 max-w-xs">Este link pode estar expirado ou o funil ainda não foi publicado.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-muted/30 flex flex-col items-center py-10 px-4">
-      <div className="w-full max-w-xl mb-8 flex justify-center">
-        <Logo />
+    <div className="min-h-screen bg-white md:bg-slate-50 flex flex-col items-center overflow-x-hidden">
+      {/* Progress Bar */}
+      <div className="fixed top-0 left-0 w-full h-1.5 bg-slate-100 z-50">
+        <motion.div 
+          className="h-full bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.5)]"
+          initial={{ width: 0 }}
+          animate={{ width: `${(path.length / (nodes.length || 1)) * 100}%` }}
+        />
       </div>
 
-      <div className="w-full justify-center flex">
-        {/* WELCOME */}
-        {step === 'welcome' && (
-          <div className="w-full max-w-xl animate-fade-in text-center space-y-6">
-            <h1 className="text-3xl md:text-5xl font-black text-foreground">{quiz.title}</h1>
-            {quiz.description && <p className="text-lg text-muted-foreground">{quiz.description}</p>}
-            <Button size="lg" className="h-14 px-10 text-lg w-full sm:w-auto" onClick={() => setStep('questions')}>
-              Começar Agora
-            </Button>
-          </div>
-        )}
+      <div className="w-full max-w-2xl flex-1 flex flex-col items-center justify-center py-12 px-6">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentNodeId}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 1.05 }}
+            transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+            className="w-full"
+          >
+            {/* START NODE */}
+            {currentNode.type === 'start' && (
+              <div className="text-center space-y-8 py-10">
+                <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-blue-500/30">
+                  <Logo size="sm" />
+                </div>
+                <div className="space-y-4">
+                  <h1 className="text-4xl md:text-6xl font-black text-slate-900 leading-tight tracking-tighter">
+                    {currentNode.data.label}
+                  </h1>
+                  <p className="text-lg md:text-xl text-slate-500 max-w-md mx-auto leading-relaxed">
+                    Clique no botão abaixo para iniciar a sua jornada personalizada.
+                  </p>
+                </div>
+                <Button 
+                  size="lg" 
+                  className="h-16 px-12 rounded-full text-lg font-black bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-500/20 w-full md:w-auto"
+                  onClick={handleNext}
+                >
+                  Começar Agora <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </div>
+            )}
 
-        {/* QUESTIONS */}
-        {step === 'questions' && (
-          <Card className="w-full max-w-xl animate-fade-in shadow-lg border-border relative overflow-hidden">
-            <div className="absolute top-0 left-0 h-1 bg-muted w-full">
-              <div 
-                className="h-full bg-primary transition-all duration-300" 
-                style={{ width: `${((currentQuestionIndex) / questions.length) * 100}%` }}
-              />
-            </div>
-            <CardContent className="pt-10 pb-8 px-6 sm:px-10">
-              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 block">
-                Pergunta {currentQuestionIndex + 1} de {questions.length}
-              </span>
-              <h2 className="text-2xl font-bold text-foreground mb-2 leading-tight">
-                {questions[currentQuestionIndex].title}
-              </h2>
-              {questions[currentQuestionIndex].description && (
-                <p className="text-muted-foreground mb-6">{questions[currentQuestionIndex].description}</p>
-              )}
-              
-              <div className="mt-8 space-y-3">
-                {questions[currentQuestionIndex].quiz_options.map((opt: any) => (
-                  <button
-                    key={opt.id}
-                    onClick={() => handleOptionSelect(opt)}
-                    className="w-full text-left p-4 rounded-xl border border-border bg-card hover:border-primary hover:bg-primary/5 transition-all outline-none font-medium text-foreground relative overflow-hidden group"
-                  >
-                    {opt.option_text}
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <ArrowRight className="w-4 h-4 text-primary" />
+            {/* MESSAGE NODE */}
+            {currentNode.type === 'message' && (
+              <div className="space-y-8 py-6">
+                <div className="flex items-center gap-4">
+                   <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
+                     <MessageSquare className="w-6 h-6" />
+                   </div>
+                   <span className="text-xs font-black text-blue-600 uppercase tracking-widest">Informação</span>
+                </div>
+                <div className="space-y-6">
+                   <h2 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight tracking-tighter">
+                    {currentNode.data.label}
+                   </h2>
+                   <div className="text-lg md:text-2xl text-slate-600 leading-relaxed text-balance">
+                    {currentNode.data.content}
+                   </div>
+                </div>
+                <Button 
+                  size="lg" 
+                  className="h-16 px-12 rounded-full text-lg font-black bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-500/20 w-full md:w-auto mt-8"
+                  onClick={handleNext}
+                >
+                  Continuar <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </div>
+            )}
+
+            {/* QUESTION NODE */}
+            {currentNode.type === 'question' && (
+              <div className="space-y-8 py-6">
+                <div className="flex items-center gap-4">
+                   <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100">
+                     <HelpCircle className="w-6 h-6" />
+                   </div>
+                   <span className="text-xs font-black text-amber-600 uppercase tracking-widest">Pergunta</span>
+                </div>
+                <h2 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight tracking-tighter">
+                  {currentNode.data.question || currentNode.data.label}
+                </h2>
+                
+                <div className="grid gap-3 pt-4">
+                  {(currentNode.data.options || []).map((opt: any, i: number) => (
+                    <button
+                      key={opt.id || i}
+                      onClick={() => handleOptionSelect(opt)}
+                      className="group flex items-center justify-between p-6 rounded-3xl border-2 border-slate-100 bg-white hover:border-blue-500 hover:bg-blue-50/30 transition-all duration-300 text-left outline-none"
+                    >
+                      <span className="text-lg font-bold text-slate-700 group-hover:text-blue-700 transition-colors">
+                        {opt.label || `Opção ${i+1}`}
+                      </span>
+                      <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-blue-500 group-hover:text-white transition-all">
+                        <ArrowRight className="w-5 h-5" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* INPUT / LEAD NODE */}
+            {currentNode.type === 'input' && (
+              <div className="space-y-8 py-6">
+                <div className="flex items-center gap-4">
+                   <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100">
+                     <UserPlus className="w-6 h-6" />
+                   </div>
+                   <span className="text-xs font-black text-emerald-600 uppercase tracking-widest">Inscrição</span>
+                </div>
+                <div className="space-y-4 text-center md:text-left">
+                  <h2 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight tracking-tighter">
+                    {currentNode.data.title || 'Complete seus dados'}
+                  </h2>
+                  <p className="text-lg text-slate-500">Estamos quase terminando! Deixe seus dados para prosseguir.</p>
+                </div>
+
+                <form onSubmit={handleLeadSubmit} className="space-y-4 pt-4">
+                  <div className="grid gap-4">
+                    <div className="space-y-2">
+                      <Label className="font-bold text-slate-700">Seu Nome</Label>
+                      <Input 
+                        className="h-14 rounded-2xl border-2 focus-visible:ring-blue-500 text-lg px-6" 
+                        placeholder="Como gostaria de ser chamado?" 
+                        required
+                        value={formData.name || ''}
+                        onChange={e => setFormData(p => ({...p, name: e.target.value}))}
+                      />
                     </div>
-                  </button>
-                ))}
+                    <div className="space-y-2">
+                      <Label className="font-bold text-slate-700">E-mail Principal</Label>
+                      <Input 
+                        type="email" 
+                        className="h-14 rounded-2xl border-2 focus-visible:ring-blue-500 text-lg px-6" 
+                        placeholder="seu@email.com" 
+                        required
+                        value={formData.email || ''}
+                        onChange={e => setFormData(p => ({...p, email: e.target.value}))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="font-bold text-slate-700">WhatsApp (com DDD)</Label>
+                      <Input 
+                        type="tel" 
+                        className="h-14 rounded-2xl border-2 focus-visible:ring-blue-500 text-lg px-6" 
+                        placeholder="+258 84 000 0000" 
+                        value={formData.phone || ''}
+                        onChange={e => setFormData(p => ({...p, phone: e.target.value}))}
+                      />
+                    </div>
+                  </div>
+                  <Button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    className="h-16 w-full rounded-full text-lg font-black bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-500/20 mt-4"
+                  >
+                    {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : 'Finalizar e Ver Resultado'}
+                  </Button>
+                </form>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
 
-        {/* LEAD CAPTURE FORM */}
-        {step === 'lead-form' && (
-          <Card className="w-full max-w-xl animate-fade-in shadow-lg border-border">
-            <CardContent className="pt-10 pb-8 px-6 sm:px-10 text-center">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-                <Loader2 className="w-8 h-8 text-primary animate-spin" />
-              </div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Quase lá!</h2>
-              <p className="text-muted-foreground mb-8">
-                Estamos a calcular o seu resultado. Para onde devemos enviar os detalhes?
-              </p>
-              
-              <form onSubmit={submitLead} className="space-y-4 text-left">
-                <div className="space-y-2">
-                  <Label>Seu nome *</Label>
-                  <Input placeholder="Como gostaria de ser chamado?" value={lead.name} onChange={(e) => setLead({...lead, name: e.target.value})} required />
+            {/* RESULT NODE */}
+            {currentNode.type === 'result' && (
+              <div className="text-center space-y-8 py-10">
+                <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto border-4 border-white shadow-xl">
+                  <CheckCircle2 className="w-12 h-12 text-emerald-600" />
                 </div>
-                <div className="space-y-2">
-                  <Label>Seu melhor e-mail *</Label>
-                  <Input type="email" placeholder="email@exemplo.com" value={lead.email} onChange={(e) => setLead({...lead, email: e.target.value})} required />
-                </div>
-                <div className="space-y-2">
-                  <Label>WhatsApp (Opcional)</Label>
-                  <Input type="tel" placeholder="+258 84 000 0000" value={lead.phone} onChange={(e) => setLead({...lead, phone: e.target.value})} />
+                <div className="space-y-4">
+                  <h1 className="text-4xl md:text-6xl font-black text-slate-900 leading-tight tracking-tighter">
+                    {currentNode.data.label}
+                  </h1>
+                  <div className="text-lg md:text-xl text-slate-500 leading-relaxed max-w-lg mx-auto">
+                    {currentNode.data.description || 'Obrigado por completar este funil! Recebemos suas respostas com sucesso.'}
+                  </div>
                 </div>
                 
-                <Button type="submit" size="lg" className="w-full mt-4 h-14" disabled={submitting}>
-                  {submitting ? 'A analisar...' : 'Ver meu Resultado'}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        )}
+                {currentNode.data.buttonUrl && (
+                  <Button 
+                    size="lg" 
+                    className="h-16 px-12 rounded-full text-lg font-black bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-500/20 w-full md:w-auto"
+                    asChild
+                  >
+                    <a href={currentNode.data.buttonUrl} target="_blank" rel="noopener noreferrer">
+                      {currentNode.data.buttonText || 'Acessar Agora'} <ArrowRight className="w-5 h-5 ml-2" />
+                    </a>
+                  </Button>
+                )}
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
-        {/* RESULT */}
-        {step === 'result' && (
-          <Card className="w-full max-w-xl animate-fade-in shadow-lg border-primary/20 bg-card overflow-hidden text-center relative">
-            <div className="absolute top-0 left-0 w-full h-2 bg-primary"></div>
-            <CardContent className="pt-12 pb-10 px-6 sm:px-10">
-              {finalResult ? (
-                <>
-                  <p className="text-sm font-bold text-primary uppercase tracking-widest mb-4">Seu Perfil / Resultado</p>
-                  <h2 className="text-3xl font-black text-foreground mb-4 leading-tight">{finalResult.title}</h2>
-                  {finalResult.description && (
-                    <p className="text-lg text-muted-foreground mb-8 text-balance">{finalResult.description}</p>
-                  )}
-                  
-                  {(finalResult.recommended_product_url || quiz.call_to_action_url) && (
-                    <Button size="lg" className="w-full h-14 text-lg font-bold shadow-lg shadow-primary/20" asChild>
-                      <a href={finalResult.recommended_product_url || quiz.call_to_action_url}>
-                        {finalResult.cta_text || quiz.call_to_action_text || "Acessar Recomendação"}
-                        <ArrowRight className="w-5 h-5 ml-2" />
-                      </a>
-                    </Button>
-                  )}
-                </>
-              ) : (
-                <>
-                  <h2 className="text-2xl font-bold text-foreground mb-4">Obrigado por participar!</h2>
-                  <p className="text-muted-foreground mb-8">Nossas análises foram concluídas e entraremos em contato.</p>
-                  {quiz.call_to_action_url && (
-                    <Button size="lg" className="w-full h-14 font-bold" asChild>
-                      <a href={quiz.call_to_action_url}>{quiz.call_to_action_text || "Acessar site"}</a>
-                    </Button>
-                  )}
-                </>
-              )}
-            </CardContent>
-          </Card>
-        )}
+      {/* Footer Branding */}
+      <div className="py-8 opacity-40 hover:opacity-100 transition-opacity flex items-center gap-2">
+         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Powered by</span>
+         <Logo size="sm" />
       </div>
     </div>
   );

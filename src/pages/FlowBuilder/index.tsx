@@ -35,6 +35,9 @@ import LeadNode from './nodes/LeadNode';
 import ConditionNode from './nodes/ConditionNode';
 import { StartNode, ResultNode } from './nodes/BaseNodes';
 
+// Tab Views
+import LeadsView from './LeadsView';
+
 const nodeTypes: NodeTypes = {
   start: StartNode,
   message: MessageNode,
@@ -238,35 +241,47 @@ const FlowBuilderInstance = () => {
       </div>
 
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Canvas Area */}
-        <div className="flex-1 h-full relative z-0" ref={reactFlowWrapper}>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onInit={setReactFlowInstance}
-            onDrop={onDrop}
-            onDragOver={onDragOver}
-            onNodeClick={onNodeClick}
-            onPaneClick={onPaneClick}
-            nodeTypes={nodeTypes}
-            defaultEdgeOptions={defaultEdgeOptions}
-            fitView
-          >
-            <Background color="#CBD5E1" variant={BackgroundVariant.Dots} gap={24} size={1} />
-            <Controls className="!bg-white !border-slate-200 !shadow-lg !rounded-xl overflow-hidden" />
-            <MiniMap className="!bg-white !border-slate-200 !shadow-lg !rounded-xl" maskColor="rgba(37, 99, 235, 0.05)" />
-          </ReactFlow>
-        </div>
+        {activeTab === 'leads' ? (
+          <div className="flex-1 overflow-y-auto">
+            <LeadsView flowId={id!} />
+          </div>
+        ) : activeTab === 'config' ? (
+          <div className="flex-1 flex items-center justify-center text-slate-400 font-bold uppercase tracking-widest text-xs">
+             Configurações Gerais do Funil (Em breve)
+          </div>
+        ) : (
+          <>
+            {/* Canvas Area */}
+            <div className="flex-1 h-full relative z-0" ref={reactFlowWrapper}>
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onConnect={onConnect}
+                onInit={setReactFlowInstance}
+                onDrop={onDrop}
+                onDragOver={onDragOver}
+                onNodeClick={onNodeClick}
+                onPaneClick={onPaneClick}
+                nodeTypes={nodeTypes}
+                defaultEdgeOptions={defaultEdgeOptions}
+                fitView
+              >
+                <Background color="#CBD5E1" variant={BackgroundVariant.Dots} gap={24} size={1} />
+                <Controls className="!bg-white !border-slate-200 !shadow-lg !rounded-xl overflow-hidden" />
+                <MiniMap className="!bg-white !border-slate-200 !shadow-lg !rounded-xl" maskColor="rgba(37, 99, 235, 0.05)" />
+              </ReactFlow>
+            </div>
 
-        {/* Sidebar Contextual */}
-        <Sidebar 
-          selectedNode={selectedNode} 
-          setNodes={setNodes} 
-          isMobileVisible={showMobileSidebar}
-        />
+            {/* Sidebar Contextual */}
+            <Sidebar 
+              selectedNode={selectedNode} 
+              setNodes={setNodes} 
+              isMobileVisible={showMobileSidebar}
+            />
+          </>
+        )}
       </div>
     </div>
   );
