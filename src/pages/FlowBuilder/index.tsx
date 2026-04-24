@@ -35,11 +35,20 @@ const FlowBuilderInstance = () => {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
+  const [selectedNode, setSelectedNode] = useState<any>(null);
 
   const onConnect = useCallback(
     (params: Connection | Edge) => setEdges((eds) => addEdge(params, eds)),
     [setEdges],
   );
+
+  const onNodeClick = useCallback((_: any, node: any) => {
+    setSelectedNode(node);
+  }, []);
+
+  const onPaneClick = useCallback(() => {
+    setSelectedNode(null);
+  }, []);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -61,21 +70,34 @@ const FlowBuilderInstance = () => {
       });
 
       // Default data based on type
-      let data: any = { label: `${type} node` };
+      let data: any = { label: `${type} node`, type };
       
-      if (type === 'question') data.label = 'Nova Pergunta';
-      if (type === 'message') data.label = 'Nova Mensagem';
-      if (type === 'input') data.label = 'Captura de Lead';
-      if (type === 'result') data.label = 'Resultado';
+      if (type === 'question') {
+        data.label = 'Nova Pergunta';
+        data.question = '';
+        data.options = [];
+      }
+      if (type === 'message') {
+        data.label = 'Nova Mensagem';
+        data.content = '';
+      }
+      if (type === 'input') {
+        data.label = 'Captura de Lead';
+        data.title = 'Deixe os seus dados';
+      }
+      if (type === 'result') {
+        data.label = 'Resultado Final';
+      }
 
       const newNode = {
         id: `node-${uuidv4()}`,
-        type: 'default', // Later we will map to custom node types
+        type: 'default',
         position,
         data,
       };
 
       setNodes((nds) => nds.concat(newNode));
+      setSelectedNode(newNode);
     },
     [reactFlowInstance, setNodes],
   );
@@ -117,6 +139,8 @@ const FlowBuilderInstance = () => {
             onInit={setReactFlowInstance}
             onDrop={onDrop}
             onDragOver={onDragOver}
+            onNodeClick={onNodeClick}
+            onPaneClick={onPaneClick}
             fitView
           >
             <Background color="#ccc" gap={16} />
@@ -125,8 +149,8 @@ const FlowBuilderInstance = () => {
           </ReactFlow>
         </div>
 
-        {/* Sidebar */}
-        <Sidebar />
+        {/* Sidebar / Properties Panel */}
+        <Sidebar selectedNode={selectedNode} setNodes={setNodes} />
       </div>
     </div>
   );
