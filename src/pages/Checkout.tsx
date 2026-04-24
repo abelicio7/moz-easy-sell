@@ -119,6 +119,21 @@ const Checkout = () => {
       toast.error("Preencha todos os campos obrigatórios, incluindo o número de telefone");
       return;
     }
+    
+    // Validate phone prefix based on operator to prevent API errors
+    const cleanPhone = form.whatsapp.replace(/\D/g, "").replace(/^258/, "").replace(/^\+258/, "");
+    const prefix = cleanPhone.substring(0, 2);
+    
+    if (form.payment_method === "mpesa" && !["84", "85"].includes(prefix)) {
+      toast.error("Para pagar com M-Pesa, o número deve começar com 84 ou 85.");
+      return;
+    }
+    
+    if (form.payment_method === "emola" && !["86", "87"].includes(prefix)) {
+      toast.error("Para pagar com E-Mola, o número deve começar com 86 ou 87.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -254,11 +269,15 @@ const Checkout = () => {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Phone className="w-3 h-3" /> Número de telefone (M-Pesa/E-Mola) *
+                    <Label className="text-xs text-muted-foreground flex items-center justify-between">
+                      <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> Número pagante *</span>
+                      <span className="text-[10px] text-primary">
+                        {form.payment_method === 'mpesa' ? 'Deve ser 84/85' : 'Deve ser 86/87'}
+                      </span>
                     </Label>
                     <Input
-                      placeholder="84xxxxxxx ou 86xxxxxxx"
+                      type="tel"
+                      placeholder={form.payment_method === 'mpesa' ? "Ex: 840000000" : "Ex: 860000000"}
                       value={form.whatsapp}
                       onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
                       required
