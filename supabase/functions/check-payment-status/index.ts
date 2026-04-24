@@ -140,6 +140,7 @@ Deno.serve(async (req) => {
         status: debitoStatus || "PENDING",
         order_status: orderStatus,
         provider_reference: statusData.provider_reference || null,
+        raw_debito_data: statusData,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

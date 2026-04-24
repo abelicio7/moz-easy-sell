@@ -16,6 +16,7 @@ const PaymentInstructions = () => {
   const debitoReference = searchParams.get("debito_reference");
   const [status, setStatus] = useState<string>("PENDING");
   const [checking, setChecking] = useState(false);
+  const [rawDebito, setRawDebito] = useState<string>("");
 
   const isMpesa = method === "mpesa";
 
@@ -37,6 +38,7 @@ const PaymentInstructions = () => {
       if (!data) return;
       
       console.log("PAYMENT DATA CATCHED:", data);
+      setRawDebito(JSON.stringify(data.raw_debito_data || {}, null, 2));
 
       setStatus(data.status || "PENDING");
       if (data.order_status === "paid") {
@@ -109,6 +111,12 @@ const PaymentInstructions = () => {
                 >
                   {checking ? "Verificando..." : "Verificar pagamento agora"}
                 </Button>
+                
+                {/* DEBUG INFORMATIVO PARA AVALIAR RESPOSTA DA DEBITO */}
+                <div className="mt-6 bg-black/80 p-3 rounded text-green-400 text-left overflow-hidden">
+                   <p className="text-[10px] font-mono mb-1 text-white">DEBUG DA DÉBITO:</p>
+                   <p className="text-[10px] font-mono whitespace-pre-wrap break-all">{rawDebito}</p>
+                </div>
               </>
             )}
 
