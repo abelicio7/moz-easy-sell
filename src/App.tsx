@@ -34,6 +34,8 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminWithdrawals from "./pages/admin/AdminWithdrawals";
+import AdminProfileRequests from "./pages/admin/AdminProfileRequests";
+import Account from "./pages/Account";
 
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -71,8 +73,10 @@ const App = () => {
           <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
           <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
           <Route path="/admin/withdrawals" element={<AdminRoute><AdminWithdrawals /></AdminRoute>} />
+          <Route path="/admin/requests" element={<AdminRoute><AdminProfileRequests /></AdminRoute>} />
 
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/dashboard/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
           <Route path="/dashboard/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
           <Route path="/dashboard/products/new" element={<ProtectedRoute><NewProduct /></ProtectedRoute>} />
           <Route path="/dashboard/products/:id/edit" element={<ProtectedRoute><EditProduct /></ProtectedRoute>} />

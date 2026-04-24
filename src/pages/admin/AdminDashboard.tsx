@@ -97,7 +97,7 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 bg-card">
+          <Card className="border-border/50 bg-card hover:border-primary/50 transition-all">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
                 Vendedores Aprovados
@@ -107,6 +107,21 @@ const AdminDashboard = () => {
             <CardContent>
               <div className="text-3xl font-black text-foreground">{stats.totalApprovedUsers}</div>
               <p className="text-xs text-muted-foreground mt-2">Vendedores ativos na plataforma</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 bg-card hover:border-primary/50 transition-all">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                Alterações de Perfil
+                <Users className="w-4 h-4 text-purple-500" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-black text-foreground mb-2">-</div>
+              <Button size="sm" variant="outline" className="w-full" asChild>
+                <Link to="/admin/requests">Ver Solicitações</Link>
+              </Button>
             </CardContent>
           </Card>
         </div>
