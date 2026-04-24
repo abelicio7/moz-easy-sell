@@ -33,6 +33,8 @@ interface OrderStats {
   methodStats: Record<string, MethodStats>;
 }
 
+import { SellerProgress } from "@/components/SellerProgress";
+
 const Dashboard = () => {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
@@ -100,6 +102,8 @@ const Dashboard = () => {
         </h1>
         <p className="text-muted-foreground mt-1 text-lg">Aqui está o resumo das suas vendas de hoje.</p>
       </div>
+
+      <SellerProgress revenue={stats.revenue} />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
