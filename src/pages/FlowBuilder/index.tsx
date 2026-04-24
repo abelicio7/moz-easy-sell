@@ -9,7 +9,8 @@ import {
   addEdge,
   Connection,
   Edge,
-  ReactFlowProvider
+  ReactFlowProvider,
+  NodeTypes
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -18,15 +19,29 @@ import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
 import { Save, Play } from 'lucide-react';
 import { toast } from 'sonner';
+
+// Custom Nodes
+import MessageNode from './nodes/MessageNode';
+import QuestionNode from './nodes/QuestionNode';
+import LeadNode from './nodes/LeadNode';
+import { StartNode, ResultNode } from './nodes/BaseNodes';
+
+const nodeTypes: NodeTypes = {
+  start: StartNode,
+  message: MessageNode,
+  question: QuestionNode,
+  input: LeadNode,
+  result: ResultNode,
+};
 import { FlowNodeData } from '@/types/flow';
 
 // Initial nodes for a new flow
 const initialNodes = [
   {
     id: 'start-node',
-    type: 'default',
+    type: 'start',
     position: { x: 250, y: 100 },
-    data: { label: 'Início do Funil' },
+    data: { label: 'INÍCIO' },
   },
 ];
 
@@ -91,7 +106,7 @@ const FlowBuilderInstance = () => {
 
       const newNode = {
         id: `node-${uuidv4()}`,
-        type: 'default',
+        type: type,
         position,
         data,
       };
@@ -141,6 +156,7 @@ const FlowBuilderInstance = () => {
             onDragOver={onDragOver}
             onNodeClick={onNodeClick}
             onPaneClick={onPaneClick}
+            nodeTypes={nodeTypes}
             fitView
           >
             <Background color="#ccc" gap={16} />
