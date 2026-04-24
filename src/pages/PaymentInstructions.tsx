@@ -111,10 +111,10 @@ const PaymentInstructions = () => {
                 >
                   {checking ? "Verificando..." : "Verificar pagamento agora"}
                 </Button>
-                
-                {/* DEBUG INFORMATIVO PARA AVALIAR RESPOSTA DA DEBITO */}
+
+                {/* DEBUG VOLTOU PARA TESTAR M-PESA */}
                 <div className="mt-6 bg-black/80 p-3 rounded text-green-400 text-left overflow-hidden">
-                   <p className="text-[10px] font-mono mb-1 text-white">DEBUG DA DÉBITO:</p>
+                   <p className="text-[10px] font-mono mb-1 text-white">DEBUG M-PESA:</p>
                    <p className="text-[10px] font-mono whitespace-pre-wrap break-all">{rawDebito}</p>
                 </div>
               </>

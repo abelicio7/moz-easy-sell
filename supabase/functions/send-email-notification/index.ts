@@ -27,7 +27,10 @@ serve(async (req) => {
         "api-key": BREVO_API_KEY,
       },
       body: JSON.stringify({
-        sender: { name: senderName, email: "suporte@ensinapay.com" }, // Substitua pelo seu email verificado no Brevo
+        sender: { 
+          name: senderName, 
+          email: Deno.env.get("BREVO_SENDER_EMAIL") || "suporte@ensinapay.com" 
+        },
         to: [{ email: to }],
         subject: subject,
         htmlContent: htmlContent,
