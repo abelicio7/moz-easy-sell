@@ -23,6 +23,7 @@ const TakeQuiz = () => {
   const [path, setPath] = useState<string[]>([]);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [score, setScore] = useState(0);
+  const [leadId, setLeadId] = useState<string | null>(null);
   
   // Form State
   const [formData, setFormData] = useState<Record<string, string>>({});
@@ -32,7 +33,6 @@ const TakeQuiz = () => {
     const fetchFlowData = async () => {
       try {
         setLoading(true);
-        // 1. Fetch Flow
         const { data: flowData, error: flowErr } = await supabase
           .from('flows')
           .select('*')
@@ -46,14 +46,12 @@ const TakeQuiz = () => {
         }
         setFlow(flowData);
 
-        // 2. Fetch Nodes & Edges
         const { data: nodesData } = await supabase.from('flow_nodes').select('*').eq('flow_id', flowData.id);
         const { data: edgesData } = await supabase.from('flow_edges').select('*').eq('flow_id', flowData.id);
 
         setNodes(nodesData || []);
         setEdges(edgesData || []);
 
-        // 3. Find Start Node
         const startNode = nodesData?.find(n => n.type === 'start');
         if (startNode) {
           setCurrentNodeId(startNode.id);
@@ -68,35 +66,66 @@ const TakeQuiz = () => {
     fetchFlowData();
   }, [slug]);
 
-  const currentNode = nodes.find(n => n.id === currentNodeId);
+  // Initial Lead Creation (when the user actually starts)
+  const initializeLead = async (startNodeId: string) => {
+    try {
+      const { data, error } = await supabase.from('flow_leads').insert({
+        flow_id: flow.id,
+        status: 'in_progress',
+        current_node_id: startNodeId,
+        path: [startNodeId]
+      }).select().single();
+      
+      if (data) setLeadId(data.id);
+    } catch (err) {
+      console.error("Failed to init lead tracking", err);
+    }
+  };
+
+  const updateLeadTracking = async (nodeId: string, updatedPath: string[], updatedAnswers: any, updatedScore: number, isFinal = false) => {
+    if (!leadId) return;
+    try {
+      await supabase.from('flow_leads').update({
+        current_node_id: nodeId,
+        path: updatedPath,
+        answers: updatedAnswers,
+        score: updatedScore,
+        status: isFinal ? 'completed' : 'in_progress'
+      }).eq('id', leadId);
+    } catch (err) {
+      console.error("Failed to update lead tracking", err);
+    }
+  };
 
   const goToNextNode = useCallback((nextNodeId: string, additionalData?: any) => {
-    setPath(prev => [...prev, currentNodeId!]);
-    if (additionalData) {
-      if (additionalData.answer) {
-        setAnswers(prev => ({ ...prev, [currentNodeId!]: additionalData.answer }));
-      }
-      if (additionalData.score) {
-        setScore(prev => prev + additionalData.score);
-      }
-    }
+    const newPath = [...path, currentNodeId!];
+    const newAnswers = additionalData?.answer ? { ...answers, [currentNodeId!]: additionalData.answer } : answers;
+    const newScore = score + (additionalData?.score || 0);
+
+    setPath(newPath);
+    setAnswers(newAnswers);
+    setScore(newScore);
     setCurrentNodeId(nextNodeId);
-  }, [currentNodeId]);
+
+    // Track movement
+    const targetNode = nodes.find(n => n.id === nextNodeId);
+    updateLeadTracking(nextNodeId, newPath, newAnswers, newScore, targetNode?.type === 'result');
+  }, [currentNodeId, path, answers, score, leadId, nodes]);
 
   const handleNext = () => {
     const edge = edges.find(e => e.source_node_id === currentNodeId);
     if (edge) {
-      goToNextNode(edge.target_node_id);
+      if (!leadId && currentNode?.type === 'start') {
+        initializeLead(edge.target_node_id).then(() => goToNextNode(edge.target_node_id));
+      } else {
+        goToNextNode(edge.target_node_id);
+      }
     }
   };
 
   const handleOptionSelect = (option: any) => {
-    // Find edge connected to this specific handle (option.id)
     const edge = edges.find(e => e.source_node_id === currentNodeId && e.source_handle === option.id);
-    
-    // If no specific edge, find general edge from this node
     const fallbackEdge = edges.find(e => e.source_node_id === currentNodeId);
-    
     const targetId = edge?.target_node_id || fallbackEdge?.target_node_id;
     
     if (targetId) {
@@ -109,16 +138,12 @@ const TakeQuiz = () => {
     setIsSubmitting(true);
 
     try {
-      // Save lead to database
-      await supabase.from('flow_leads').insert({
-        flow_id: flow.id,
-        contact_data: formData,
-        answers: answers,
-        path: path,
-        score: score
-      });
+      if (leadId) {
+        await supabase.from('flow_leads').update({
+          contact_data: formData,
+        }).eq('id', leadId);
+      }
 
-      // Go to next node
       handleNext();
     } catch (err) {
       console.error(err);
@@ -126,6 +151,8 @@ const TakeQuiz = () => {
       setIsSubmitting(false);
     }
   };
+
+  const currentNode = nodes.find(n => n.id === currentNodeId);
 
   if (loading) {
     return (

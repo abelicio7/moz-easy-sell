@@ -40,6 +40,7 @@ import { StartNode, ResultNode } from './nodes/BaseNodes';
 
 // Tab Views
 import LeadsView from './LeadsView';
+import AnalyticsView from './AnalyticsView';
 
 const nodeTypes: NodeTypes = {
   start: StartNode,
@@ -241,6 +242,9 @@ const FlowBuilderInstance = () => {
             <TabsTrigger value="builder" className="rounded-full px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600">
               <LayoutDashboard className="w-4 h-4 mr-2" /> Construtor
             </TabsTrigger>
+            <TabsTrigger value="analytics" className="rounded-full px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600">
+              <GitBranch className="w-4 h-4 mr-2" /> Analytics
+            </TabsTrigger>
             <TabsTrigger value="leads" className="rounded-full px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600">
               <Users className="w-4 h-4 mr-2" /> Leads
             </TabsTrigger>
@@ -290,6 +294,10 @@ const FlowBuilderInstance = () => {
               setNodes={setNodes} 
               isMobileVisible={showMobileSidebar}
             />
+          </TabsContent>
+
+          <TabsContent value="analytics" className="flex-1 h-full m-0 p-0 overflow-y-auto bg-slate-50">
+            <AnalyticsView flowId={id!} />
           </TabsContent>
 
           <TabsContent value="leads" className="flex-1 h-full m-0 p-0 overflow-y-auto">
