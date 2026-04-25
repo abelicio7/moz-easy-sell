@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Shield, Smartphone, ShoppingBag, User, Mail, Phone } from "lucide-react";
+import { Shield, Smartphone, ShoppingBag, User, Mail, Phone, MessageCircle } from "lucide-react";
 import Logo from "@/components/Logo";
 
 interface Product {
@@ -30,7 +30,8 @@ const Checkout = () => {
   const [form, setForm] = useState({
     name: "",
     email: "",
-    whatsapp: "",
+    customer_whatsapp: "",
+    payment_phone: "",
     payment_method: "mpesa",
   });
 
@@ -108,13 +109,13 @@ const Checkout = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!product) return;
-    if (!form.name || !form.email || !form.whatsapp) {
-      toast.error("Preencha todos os campos obrigatórios, incluindo o número de telefone");
+    if (!form.name || !form.email || !form.customer_whatsapp || !form.payment_phone) {
+      toast.error("Preencha todos os campos obrigatórios.");
       return;
     }
     
     // Validate phone prefix based on operator to prevent API errors
-    const cleanPhone = form.whatsapp.replace(/\D/g, "").replace(/^258/, "").replace(/^\+258/, "");
+    const cleanPhone = form.payment_phone.replace(/\D/g, "").replace(/^258/, "").replace(/^\+258/, "");
     const prefix = cleanPhone.substring(0, 2);
     
     if (form.payment_method === "mpesa" && !["84", "85"].includes(prefix)) {
@@ -137,7 +138,7 @@ const Checkout = () => {
         product_id: product.id,
         customer_name: form.name,
         customer_email: form.email,
-        customer_whatsapp: form.whatsapp || null,
+        customer_whatsapp: form.customer_whatsapp,
         payment_method: form.payment_method,
         price: product.price,
         status: "pending",
@@ -162,7 +163,7 @@ const Checkout = () => {
           order_id: orderId,
           payment_method: form.payment_method,
           amount: product.price,
-          phone: form.whatsapp,
+          phone: form.payment_phone,
           product_name: product.name,
         })
       });
@@ -251,6 +252,17 @@ const Checkout = () => {
                     />
                   </div>
                   <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                      <MessageCircle className="w-3 h-3 text-emerald-500" /> WhatsApp (Opcional)
+                    </Label>
+                    <Input
+                      placeholder="Ex: 840000000"
+                      value={form.customer_whatsapp}
+                      onChange={(e) => setForm({ ...form, customer_whatsapp: e.target.value })}
+                      className="bg-background/50 border-border"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground flex items-center justify-between">
                       <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> Número pagante *</span>
                       <span className="text-[10px] text-primary">
@@ -260,8 +272,8 @@ const Checkout = () => {
                     <Input
                       type="tel"
                       placeholder={form.payment_method === 'mpesa' ? "Ex: 840000000" : "Ex: 860000000"}
-                      value={form.whatsapp}
-                      onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
+                      value={form.payment_phone}
+                      onChange={(e) => setForm({ ...form, payment_phone: e.target.value })}
                       required
                       className="bg-background/50 border-border"
                     />
@@ -339,7 +351,7 @@ const Checkout = () => {
               <Button
                 onClick={handleSubmit}
                 className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/20"
-                disabled={submitting || !form.name || !form.email || !form.whatsapp}
+                disabled={submitting || !form.name || !form.email || !form.payment_phone}
               >
                 {submitting ? "Processando..." : `Pagar ${product.price.toFixed(2)} MT`}
               </Button>
@@ -374,7 +386,7 @@ const Checkout = () => {
                   <Button
                     onClick={handleSubmit}
                     className="w-full h-12 text-base font-semibold mt-6 shadow-lg shadow-primary/20"
-                    disabled={submitting || !form.name || !form.email || !form.whatsapp}
+                    disabled={submitting || !form.name || !form.email || !form.payment_phone}
                   >
                     {submitting ? "Processando..." : `Finalizar Pagamento`}
                   </Button>
