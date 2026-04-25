@@ -116,8 +116,6 @@ const Index = () => {
                 </a>
               </Button>
             </div>
-            
-            </div>
           </div>
         </div>
       </section>
