@@ -173,21 +173,27 @@ Deno.serve(async (req) => {
               .eq("is_active", true);
 
             if (webhooks && webhooks.length > 0 && webhooks[0].config?.url) {
-              console.log("Triggering webhook to:", webhooks[0].config.url);
-              // Faz o disparo do webhook de forma assíncrona (não espera a resposta)
-              fetch(webhooks[0].config.url, {
+              const webhookUrl = webhooks[0].config.url;
+              console.log("Triggering webhook to:", webhookUrl);
+              
+              const webhookPayload = {
+                event: "payment_approved",
+                order_id: orderId,
+                customer_email: order.customer_email,
+                customer_name: order.customer_name,
+                price: order.price,
+                product_name: product.name,
+                timestamp: new Date().toISOString()
+              };
+
+              // IMPORTANTE: Adicionar await para garantir que a função não fecha antes do disparo
+              const whRes = await fetch(webhookUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  event: "payment_approved",
-                  order_id: orderId,
-                  customer_email: order.customer_email,
-                  customer_name: order.customer_name,
-                  price: order.price,
-                  product_name: product.name,
-                  timestamp: new Date().toISOString()
-                })
-              }).catch(err => console.error("Webhook trigger failed", err));
+                body: JSON.stringify(webhookPayload)
+              });
+              
+              console.log(`Webhook response status: ${whRes.status}`);
             }
           } catch (whErr) {
             console.error("Failed to process webhook:", whErr);
