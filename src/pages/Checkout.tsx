@@ -253,12 +253,13 @@ const Checkout = () => {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <MessageCircle className="w-3 h-3 text-emerald-500" /> WhatsApp (Opcional)
+                      <MessageCircle className="w-3 h-3 text-emerald-500" /> WhatsApp *
                     </Label>
                     <Input
                       placeholder="Ex: 840000000"
                       value={form.customer_whatsapp}
                       onChange={(e) => setForm({ ...form, customer_whatsapp: e.target.value })}
+                      required
                       className="bg-background/50 border-border"
                     />
                   </div>
@@ -354,7 +355,7 @@ const Checkout = () => {
               <Button
                 onClick={handleSubmit}
                 className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/20"
-                disabled={submitting || !form.name || !form.email || !form.payment_phone}
+                disabled={submitting || !form.name || !form.email || !form.customer_whatsapp || !form.payment_phone}
               >
                 {submitting ? "Processando..." : `Pagar ${product.price.toFixed(2)} MT`}
               </Button>
@@ -389,7 +390,7 @@ const Checkout = () => {
                   <Button
                     onClick={handleSubmit}
                     className="w-full h-12 text-base font-semibold mt-6 shadow-lg shadow-primary/20"
-                    disabled={submitting || !form.name || !form.email || !form.payment_phone}
+                    disabled={submitting || !form.name || !form.email || !form.customer_whatsapp || !form.payment_phone}
                   >
                     {submitting ? "Processando..." : `Finalizar Pagamento`}
                   </Button>
