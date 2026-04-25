@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { Plus, Edit, Trash2, Link2, Loader2, ClipboardList, Copy, Eye } from "lucide-react";
+import { Plus, Edit, Trash2, Link2, Loader2, ClipboardList, Copy, Eye, Users } from "lucide-react";
 import { toast } from "sonner";
 
 interface Quiz {
