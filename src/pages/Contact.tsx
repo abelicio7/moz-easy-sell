@@ -53,7 +53,14 @@ const Contact = () => {
                   </div>
                   <div>
                     <p className="font-medium text-foreground">WhatsApp</p>
-                    <p className="text-muted-foreground text-sm">+258 84 000 0000</p>
+                    <a 
+                      href="https://wa.me/5547999530835" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-muted-foreground text-sm hover:text-primary transition-colors"
+                    >
+                      +55 (47) 99953-0835
+                    </a>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">

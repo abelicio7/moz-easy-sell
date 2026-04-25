@@ -117,19 +117,6 @@ const Index = () => {
               </Button>
             </div>
             
-            {/* Social Proof Mini */}
-            <div className="pt-12 flex flex-col items-center gap-4 animate-fade-in" style={{ animationDelay: "0.5s" }}>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Confiado por centenas de empreendedores</p>
-              <div className="flex -space-x-3">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="w-10 h-10 rounded-full border-2 border-background bg-muted flex items-center justify-center text-[10px] font-bold overflow-hidden">
-                    <img src={`https://i.pravatar.cc/100?u=${i}`} alt="User" />
-                  </div>
-                ))}
-                <div className="w-10 h-10 rounded-full border-2 border-background bg-secondary text-white flex items-center justify-center text-[10px] font-bold">
-                  +200
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -203,7 +190,7 @@ const Index = () => {
                 ))}
               </div>
               <Button size="lg" className="w-full h-14 bg-white text-secondary hover:bg-white/90 font-bold text-lg rounded-xl" asChild>
-                <Link to="/register text-secondary">Quero minha conta agora</Link>
+                <Link to="/register">Quero minha conta agora</Link>
               </Button>
             </div>
           </div>
