@@ -90,6 +90,7 @@ const EditQuiz = () => {
         const q = questions[qi];
         const { data: savedQ } = await supabase.from('quiz_questions').insert({
           quiz_id: id, title: q.title, description: q.description,
+          image_url: q.image_url || null,
           order_index: qi, question_type: 'multiple_choice'
         }).select().single();
         if (!savedQ) continue;

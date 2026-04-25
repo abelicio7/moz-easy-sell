@@ -42,7 +42,7 @@ const TakeQuiz = () => {
 
       const { data: qData } = await supabase
         .from('quiz_questions')
-        .select('id, title, description, quiz_options(id, option_text, score, order_index)')
+        .select('id, title, description, image_url, quiz_options(id, option_text, score, order_index)')
         .eq('quiz_id', quizData.id)
         .order('order_index');
 

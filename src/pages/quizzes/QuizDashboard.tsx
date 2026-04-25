@@ -128,7 +128,7 @@ const QuizDashboard = () => {
                   <Link2 className="w-3 h-3" /> /quiz/{quiz.slug}
                 </p>
 
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2 mt-2">
                   <Button variant="outline" size="sm" className="rounded-xl text-xs font-bold" onClick={() => copyLink(quiz.slug)}>
                     <Copy className="w-3 h-3 mr-1.5" /> Link
                   </Button>
@@ -136,6 +136,11 @@ const QuizDashboard = () => {
                     <a href={`/quiz/${quiz.slug}`} target="_blank" rel="noreferrer">
                       <Eye className="w-3 h-3 mr-1.5" /> Ver
                     </a>
+                  </Button>
+                  <Button variant="outline" size="sm" className="rounded-xl text-xs font-bold text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:hover:bg-emerald-500/10" asChild>
+                    <Link to={`/dashboard/quizzes/${quiz.id}/leads`}>
+                      <Users className="w-3 h-3 mr-1.5" /> Leads
+                    </Link>
                   </Button>
                   <Button size="sm" className="rounded-xl text-xs font-bold" asChild>
                     <Link to={`/dashboard/quizzes/${quiz.id}/edit`}>
