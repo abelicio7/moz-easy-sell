@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface Option { id: string; option_text: string; score: number; order_index: number; }
 interface Question { id: string; title: string; image_url?: string; options: Option[]; }
-interface QuizResult { title: string; description: string; recommended_product_url: string; cta_text: string; result_image?: string; }
+interface QuizResult { title: string; description: string; recommended_product_url: string; cta_text: string; result_image?: string; min_score?: number; max_score?: number; }
 interface QuizData { id: string; title: string; description: string; cover_image: string; }
 
 const TakeQuiz = () => {
@@ -17,6 +17,7 @@ const TakeQuiz = () => {
   const [loading, setLoading] = useState(true);
   const [quiz, setQuiz] = useState<QuizData | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [allResults, setAllResults] = useState<QuizResult[]>([]);
   const [result, setResult] = useState<QuizResult | null>(null);
 
   // Navigation
@@ -55,8 +56,8 @@ const TakeQuiz = () => {
       }
 
       const { data: rData } = await supabase
-        .from('quiz_results').select('*').eq('quiz_id', quizData.id).maybeSingle();
-      if (rData) setResult(rData as QuizResult);
+        .from('quiz_results').select('*').eq('quiz_id', quizData.id);
+      if (rData) setAllResults(rData as QuizResult[]);
 
       setLoading(false);
     };
@@ -81,6 +82,13 @@ const TakeQuiz = () => {
     if (!quiz) return;
     setSubmittingLead(true);
     try {
+      // Find the best matching result based on score
+      const finalResult = allResults.find(r => 
+        totalScore >= (r.min_score || 0) && totalScore <= (r.max_score || 999)
+      ) || allResults[0]; // Fallback to first result if no range matches
+
+      setResult(finalResult);
+
       await supabase.from('quiz_leads').insert({
         quiz_id: quiz.id,
         name: leadName,
@@ -88,7 +96,7 @@ const TakeQuiz = () => {
         phone: leadPhone || null,
         answers_json: answers,
         total_score: totalScore,
-        result_title: result?.title || ''
+        result_title: finalResult?.title || ''
       });
       setStep('result');
     } catch (err) {

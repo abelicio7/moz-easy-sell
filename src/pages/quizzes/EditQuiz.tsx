@@ -305,54 +305,73 @@ const EditQuiz = () => {
             className="w-full h-14 rounded-3xl border-2 border-dashed gap-2 text-sm font-bold hover:border-primary hover:text-primary transition-colors">
             <Plus className="w-5 h-5" /> Adicionar Pergunta
           </Button>
-        </div>
-      )}
-
-      {/* RESULT TAB */}
+             {/* RESULT TAB */}
       {activeTab === 'result' && (
         <div className="max-w-3xl space-y-6">
-          <div className="p-4 bg-blue-50 dark:bg-blue-500/10 rounded-2xl border border-blue-100 dark:border-blue-500/20 text-sm text-blue-700 dark:text-blue-400">
-            <strong>Como funciona:</strong> Após responder a todas as perguntas e preencher os dados, o utilizador verá esta página de resultado com o botão para aceder ao teu produto ou oferta.
+          <div className="p-4 bg-blue-50 dark:bg-blue-500/10 rounded-2xl border border-blue-100 dark:border-blue-500/20 text-sm text-blue-700 dark:text-blue-400 flex items-start gap-3">
+             <HelpCircle className="w-5 h-5 shrink-0" />
+             <div>
+                <strong>Como funcionam os resultados inteligentes:</strong> Podes criar vários resultados. O sistema mostrará o resultado que corresponder à pontuação total do cliente.
+                <p className="mt-1 text-xs opacity-70">Dica: Define as pontuações em cada opção de resposta na aba "Perguntas".</p>
+             </div>
           </div>
 
           {results.map((r, rIdx) => (
-            <Card key={r.id} className="rounded-3xl border-border/70 shadow-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base font-black text-foreground">Página de Resultado</CardTitle>
+            <Card key={r.id} className="rounded-3xl border-border/70 shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
+              <CardHeader className="pb-4 flex flex-row items-center justify-between space-y-0">
+                <CardTitle className="text-base font-black text-foreground">Resultado #{rIdx + 1}</CardTitle>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                  onClick={() => setResults(prev => prev.filter((_, i) => i !== rIdx))}
+                  disabled={results.length === 1}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </CardHeader>
               <CardContent className="space-y-5">
+                {/* Score Range */}
+                <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 rounded-2xl border border-border/50">
+                   <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Pontuação Mínima</Label>
+                      <Input type="number" value={r.min_score} onChange={e => setResults(prev => prev.map((res, i) => i === rIdx ? { ...res, min_score: parseInt(e.target.value) || 0 } : res))} className="h-11 rounded-xl bg-background" />
+                   </div>
+                   <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Pontuação Máxima</Label>
+                      <Input type="number" value={r.max_score} onChange={e => setResults(prev => prev.map((res, i) => i === rIdx ? { ...res, max_score: parseInt(e.target.value) || 0 } : res))} className="h-11 rounded-xl bg-background" />
+                   </div>
+                </div>
+
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Imagem do Resultado (Opcional)</Label>
                   <ImageUpload
                     value={r.result_image}
                     onChange={(url) => setResults(prev => prev.map((res, i) => i === rIdx ? { ...res, result_image: url || '' } : res))}
                     folder="results"
-                    label="Carregar imagem para o resultado"
+                    label="Carregar imagem para este resultado"
                     aspectRatio="aspect-video"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Título do Resultado</Label>
-                  <Input placeholder="Ex: O seu plano personalizado está pronto! 🎉"
+                  <Input placeholder="Ex: Tu és um Especialista! 🏆"
                     value={r.title} onChange={e => setResults(prev => prev.map((res, i) => i === rIdx ? { ...res, title: e.target.value } : res))}
                     className="h-12 rounded-xl" />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Descrição</Label>
-                  <Textarea placeholder="Ex: Com base nas suas respostas, identificamos o programa ideal para si..."
+                  <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Descrição Personalizada</Label>
+                  <Textarea placeholder="Ex: Parabéns, o teu perfil indica que já tens conhecimentos avançados..."
                     value={r.description} onChange={e => setResults(prev => prev.map((res, i) => i === rIdx ? { ...res, description: e.target.value } : res))}
                     className="rounded-xl min-h-[100px] resize-none" />
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider flex items-center gap-2"><Link2 className="w-3 h-3" /> URL do Produto / Oferta</Label>
+                    <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider flex items-center gap-2"><Link2 className="w-3 h-3" /> URL do Produto para este Perfil</Label>
                     <Input placeholder="https://ensinapay.com/checkout/..."
                       value={r.recommended_product_url} onChange={e => setResults(prev => prev.map((res, i) => i === rIdx ? { ...res, recommended_product_url: e.target.value } : res))}
                       className="h-12 rounded-xl" />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Texto do Botão</Label>
-                    <Input placeholder="Ex: Garantir Agora"
+                    <Input placeholder="Ex: Garantir Vaga"
                       value={r.cta_text} onChange={e => setResults(prev => prev.map((res, i) => i === rIdx ? { ...res, cta_text: e.target.value } : res))}
                       className="h-12 rounded-xl" />
                   </div>
@@ -360,6 +379,11 @@ const EditQuiz = () => {
               </CardContent>
             </Card>
           ))}
+
+          <Button variant="outline" className="w-full h-14 rounded-3xl border-2 border-dashed gap-2"
+            onClick={() => setResults(prev => [...prev, { id: crypto.randomUUID(), title: '', description: '', min_score: 0, max_score: 100, recommended_product_url: '', cta_text: 'Garantir Agora' }])}>
+            <Plus className="w-5 h-5" /> Adicionar Outro Resultado Sugerido
+          </Button>
         </div>
       )}
 
