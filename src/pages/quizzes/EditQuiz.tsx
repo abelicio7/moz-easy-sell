@@ -15,6 +15,7 @@ import {
   Link2, Eye, Loader2, CheckCircle2, Settings, HelpCircle
 } from "lucide-react";
 import ImageUpload from "@/components/ImageUpload";
+import { Switch } from "@/components/ui/switch";
 
 
 interface Option { id: string; option_text: string; score: number; order_index: number; }
@@ -371,7 +372,10 @@ const EditQuiz = () => {
             className="w-full h-14 rounded-3xl border-2 border-dashed gap-2 text-sm font-bold hover:border-primary hover:text-primary transition-colors">
             <Plus className="w-5 h-5" /> Adicionar Pergunta
           </Button>
-             {/* RESULT TAB */}
+        </div>
+      )}
+
+      {/* RESULT TAB */}
       {activeTab === 'result' && (
         <div className="max-w-3xl space-y-6">
           <div className="p-4 bg-blue-50 dark:bg-blue-500/10 rounded-2xl border border-blue-100 dark:border-blue-500/20 text-sm text-blue-700 dark:text-blue-400 flex items-start gap-3">
