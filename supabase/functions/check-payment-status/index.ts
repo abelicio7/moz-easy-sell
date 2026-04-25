@@ -71,7 +71,13 @@ Deno.serve(async (req) => {
 
       // Trigger email delivery using the configured send-email-notification edge function (which uses Brevo)
       if (orderStatus === "paid" && order?.customer_email) {
-        const product = order.products as any;
+        // Garantir que pegamos o produto corretamente (mesmo se vier como array)
+        const productRaw = order.products;
+        const product = Array.isArray(productRaw) ? productRaw[0] : productRaw;
+        const productName = product?.name || "Produto Adquirido";
+        
+        console.log("Preparing customer email for:", order.customer_email, "Product:", productName);
+
         const htmlContent = `
           <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9fafb; padding: 40px 20px;">
             <div style="text-align: center; margin-bottom: 30px;">
@@ -80,14 +86,14 @@ Deno.serve(async (req) => {
             <div style="background-color: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); border: 1px solid #f3f4f6;">
               <h2 style="color: #111827; margin-top: 0; font-size: 24px; text-align: center;">Pagamento Confirmado! 🎉</h2>
               <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">Olá <strong>${order.customer_name?.split(" ")[0] || ''}</strong>,</p>
-              <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">Temos uma ótima notícia! O seu pagamento referente ao produto <strong>${product?.name}</strong> foi aprovado com sucesso.</p>
+              <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">Temos uma ótima notícia! O seu pagamento referente ao produto <strong>${productName}</strong> foi aprovado com sucesso.</p>
               
               <div style="background-color: #f9fafb; padding: 25px; border-radius: 8px; margin: 30px 0; border: 1px solid #e5e7eb; text-align: center;">
                 ${product?.delivery_type === "link" 
                   ? `<p style="margin: 0 0 15px 0; color: #374151; font-size: 15px;">Clique no botão abaixo para acessar o seu produto agora mesmo:</p>
-                     <a href="${product?.delivery_content}" style="background-color: #000000; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-size: 16px; letter-spacing: 0.5px;">Acessar Meu Produto</a>`
+                     <a href="${product?.delivery_content || '#'}" style="background-color: #000000; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-size: 16px; letter-spacing: 0.5px;">Acessar Meu Produto</a>`
                   : `<p style="margin: 0 0 10px 0; color: #374151; font-size: 15px; font-weight: bold;">O seu conteúdo exclusivo:</p>
-                     <div style="background-color: #ffffff; padding: 15px; border-radius: 6px; border: 1px dashed #cbd5e1; text-align: left; white-space: pre-wrap; color: #1e293b; font-size: 14px; font-family: monospace;">${product?.delivery_content}</div>`
+                     <div style="background-color: #ffffff; padding: 15px; border-radius: 6px; border: 1px dashed #cbd5e1; text-align: left; white-space: pre-wrap; color: #1e293b; font-size: 14px; font-family: monospace;">${product?.delivery_content || 'O conteúdo será entregue em breve.'}</div>`
                 }
               </div>
               
@@ -104,7 +110,7 @@ Deno.serve(async (req) => {
         const { data: emailRes, error: emailErr } = await supabase.functions.invoke("send-email-notification", {
           body: {
             to: order.customer_email,
-            subject: `Seu Produto: ${product?.name}`,
+            subject: `Seu Produto: ${productName}`,
             htmlContent: htmlContent,
             senderName: "Equipa EnsinaPay"
           }
@@ -114,7 +120,6 @@ Deno.serve(async (req) => {
         else console.log("Customer email invocation result:", emailRes);
 
         // 1.1 NOTIFY SELLER
-        const product = order.products as any;
         console.log("Checking seller notification for product user_id:", product?.user_id);
         
         if (product?.user_id) {
