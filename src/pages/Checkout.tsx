@@ -376,40 +376,47 @@ const Checkout = () => {
 };
 
 const OrderSummary = ({ product, submitting, onSubmit }: { product: Product, submitting: boolean, onSubmit: any }) => (
-  <Card className="border-border/50 bg-card shadow-sm">
-    <CardContent className="pt-6">
-      <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-4">
-        <ShoppingBag className="w-4 h-4 text-primary" />
+  <Card className="border-border/10 bg-[#0B1221] shadow-2xl overflow-hidden rounded-[1.5rem]">
+    <CardContent className="pt-8 pb-8 px-6">
+      <h3 className="text-base font-bold text-white flex items-center gap-3 mb-8">
+        <div className="w-8 h-8 rounded-lg bg-teal-500/20 flex items-center justify-center">
+          <ShoppingBag className="w-4 h-4 text-teal-400" />
+        </div>
         Resumo do pedido
       </h3>
-      <div className="space-y-2 text-sm">
-        <div className="flex justify-between text-muted-foreground">
-          <span>Produto</span>
-          <span>{product.price.toFixed(2)} MT</span>
+      
+      <div className="space-y-4 text-sm">
+        <div className="flex justify-between items-center">
+          <span className="text-slate-400 font-medium">Produto</span>
+          <span className="text-slate-200 font-bold">{product.price.toFixed(2)} MT</span>
         </div>
-        <div className="flex justify-between text-muted-foreground">
-          <span>Taxa de serviço</span>
-          <span className="text-emerald-500 font-bold uppercase text-[10px]">Grátis</span>
+        <div className="flex justify-between items-center">
+          <span className="text-slate-400 font-medium">Taxa de serviço</span>
+          <span className="text-teal-400 font-black text-[10px] uppercase tracking-widest">Grátis</span>
         </div>
-        <Separator className="my-2" />
-        <div className="flex justify-between font-bold text-foreground text-base">
-          <span>Total</span>
-          <span className="text-primary">{product.price.toFixed(2)} MT</span>
+        
+        <Separator className="bg-white/5 my-6" />
+        
+        <div className="flex justify-between items-center">
+          <span className="text-white font-black text-lg">Total</span>
+          <span className="text-teal-400 font-black text-2xl tracking-tight">
+            {product.price.toFixed(2)} <span className="text-sm">MT</span>
+          </span>
         </div>
       </div>
 
-      <div className="hidden lg:block">
+      <div className="mt-10">
         <Button
           onClick={onSubmit}
-          className="w-full h-12 text-base font-semibold mt-6 shadow-lg shadow-primary/20 rounded-xl"
+          className="w-full h-16 text-lg font-black bg-teal-600 hover:bg-teal-500 text-[#0B1221] transition-all duration-300 rounded-2xl shadow-xl shadow-teal-900/20 active:scale-[0.98]"
           disabled={submitting}
         >
           {submitting ? "Processando..." : `Finalizar Pagamento`}
         </Button>
       </div>
 
-      <p className="text-[10px] text-muted-foreground text-center mt-4 flex items-center justify-center gap-1">
-        <Shield className="w-3 h-3 text-primary" /> Pague com segurança via EnsinaPay
+      <p className="text-[10px] text-slate-500 font-medium text-center mt-6 uppercase tracking-wider flex items-center justify-center gap-2">
+        Pague com segurança via EnsinaPay
       </p>
     </CardContent>
   </Card>
