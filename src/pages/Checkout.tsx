@@ -217,9 +217,8 @@ const Checkout = () => {
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           <div className="lg:col-span-3 space-y-6">
-            <div className="lg:hidden space-y-4">
+            <div className="lg:hidden">
               <ProductCard product={product} />
-              <OrderSummary product={product} submitting={submitting} onSubmit={handleSubmit} />
             </div>
 
             <Card className="border-border/50 bg-card">
@@ -352,21 +351,17 @@ const Checkout = () => {
               </CardContent>
             </Card>
 
-            <div className="lg:hidden">
-              <Button
-                onClick={handleSubmit}
-                className="w-full h-14 text-base font-black shadow-xl shadow-primary/20 rounded-2xl"
-                disabled={submitting || !form.name || !form.email || !form.customer_whatsapp || !form.payment_phone}
-              >
-                {submitting ? "Processando..." : `Finalizar Pagamento`}
-              </Button>
+            <div className="lg:hidden pt-4">
+              <OrderSummary product={product} submitting={submitting} onSubmit={handleSubmit} 
+                disabled={submitting || !form.name || !form.email || !form.customer_whatsapp || !form.payment_phone} />
             </div>
           </div>
 
           <div className="hidden lg:block lg:col-span-2">
             <div className="sticky top-20 space-y-4">
               <ProductCard product={product} />
-              <OrderSummary product={product} submitting={submitting} onSubmit={handleSubmit} />
+              <OrderSummary product={product} submitting={submitting} onSubmit={handleSubmit} 
+                disabled={submitting || !form.name || !form.email || !form.customer_whatsapp || !form.payment_phone} />
             </div>
           </div>
         </div>
@@ -375,7 +370,7 @@ const Checkout = () => {
   );
 };
 
-const OrderSummary = ({ product, submitting, onSubmit }: { product: Product, submitting: boolean, onSubmit: any }) => (
+const OrderSummary = ({ product, submitting, onSubmit, disabled }: { product: Product, submitting: boolean, onSubmit: any, disabled: boolean }) => (
   <Card className="border-border/50 bg-card shadow-lg overflow-hidden rounded-[1.5rem]">
     <CardContent className="pt-8 pb-8 px-6">
       <h3 className="text-base font-bold text-foreground flex items-center gap-3 mb-8">
@@ -408,8 +403,8 @@ const OrderSummary = ({ product, submitting, onSubmit }: { product: Product, sub
       <div className="mt-10">
         <Button
           onClick={onSubmit}
-          className="w-full h-16 text-lg font-black bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 rounded-2xl shadow-xl shadow-primary/10 active:scale-[0.98]"
-          disabled={submitting}
+          className="w-full h-16 text-lg font-black bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 rounded-2xl shadow-xl shadow-primary/10 active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
+          disabled={disabled}
         >
           {submitting ? "Processando..." : `Finalizar Pagamento`}
         </Button>
