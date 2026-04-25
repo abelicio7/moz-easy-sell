@@ -1,335 +1,412 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Trash2, ArrowLeft, GripVertical, Save } from "lucide-react";
+import {
+  Plus, Trash2, Save, ArrowLeft, GripVertical, ChevronDown, ChevronUp,
+  Image, Link2, Eye, Loader2, CheckCircle2, Settings, HelpCircle
+} from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+
+interface Option { id: string; option_text: string; score: number; order_index: number; }
+interface Question {
+  id: string; title: string; description: string; image_url: string;
+  order_index: number; options: Option[]; isOpen: boolean;
+}
+interface QuizResult { id: string; title: string; description: string; min_score: number; max_score: number; recommended_product_url: string; cta_text: string; }
+interface QuizData {
+  id: string; title: string; description: string; slug: string;
+  status: string; cover_image: string; call_to_action_url: string; call_to_action_text: string;
+}
+
+const newOptionTemplate = (): Option => ({ id: crypto.randomUUID(), option_text: '', score: 0, order_index: 0 });
+const newQuestionTemplate = (order: number): Question => ({
+  id: crypto.randomUUID(), title: '', description: '', image_url: '',
+  order_index: order, options: [newOptionTemplate(), newOptionTemplate()], isOpen: true
+});
 
 const EditQuiz = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  
-  // States
-  const [quiz, setQuiz] = useState<any>(null);
-  const [questions, setQuestions] = useState<any[]>([]);
-  const [results, setResults] = useState<any[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [quiz, setQuiz] = useState<QuizData | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [results, setResults] = useState<QuizResult[]>([]);
+  const [activeTab, setActiveTab] = useState<'questions' | 'result' | 'settings'>('questions');
 
-  useEffect(() => {
-    fetchData();
-  }, [id]);
+  useEffect(() => { if (id) loadQuiz(); }, [id]);
 
-  const fetchData = async () => {
+  const loadQuiz = async () => {
     setLoading(true);
-    // 1. Fetch Quiz
-    const { data: quizData } = await supabase.from("quizzes").select("*").eq("id", id).single();
-    if (!quizData) {
-      toast.error("Quiz não encontrado");
-      navigate("/dashboard/quizzes");
-      return;
+    const { data: quizData } = await supabase.from('quizzes').select('*').eq('id', id).single();
+    if (!quizData) { toast.error("Quiz não encontrado"); navigate('/dashboard/quizzes'); return; }
+    setQuiz(quizData as QuizData);
+
+    const { data: qData } = await supabase.from('quiz_questions').select('*, quiz_options(*)').eq('quiz_id', id).order('order_index');
+    if (qData) {
+      setQuestions(qData.map((q: any) => ({
+        id: q.id, title: q.title, description: q.description || '', image_url: q.image_url || '',
+        order_index: q.order_index, isOpen: false,
+        options: (q.quiz_options || []).sort((a: any, b: any) => a.order_index - b.order_index).map((o: any) => ({
+          id: o.id, option_text: o.option_text, score: o.score || 0, order_index: o.order_index
+        }))
+      })));
     }
-    setQuiz(quizData);
 
-    // 2. Fetch Questions & Options
-    const { data: questionsData } = await supabase.from("quiz_questions").select("*, quiz_options(*)").eq("quiz_id", id).order("order_index", { ascending: true });
-    setQuestions(questionsData || []);
-
-    // 3. Fetch Results
-    const { data: resultsData } = await supabase.from("quiz_results").select("*").eq("quiz_id", id).order("min_score", { ascending: true });
-    setResults(resultsData || []);
-    
+    const { data: rData } = await supabase.from('quiz_results').select('*').eq('quiz_id', id);
+    if (rData && rData.length > 0) {
+      setResults(rData as QuizResult[]);
+    } else {
+      setResults([{ id: crypto.randomUUID(), title: '', description: '', min_score: 0, max_score: 100, recommended_product_url: '', cta_text: 'Garantir Agora' }]);
+    }
     setLoading(false);
   };
 
-  // ---- SALVAR GERAL ----
-  const saveGeneral = async () => {
-    const { error } = await supabase.from("quizzes").update({
-      title: quiz.title,
-      description: quiz.description,
-      slug: quiz.slug,
-      status: quiz.status,
-      call_to_action_text: quiz.call_to_action_text,
-      call_to_action_url: quiz.call_to_action_url
-    }).eq("id", quiz.id);
-    if (error) toast.error("Erro ao salvar: " + error.message);
-    else toast.success("Configurações salvas!");
-  };
+  const saveAll = async () => {
+    if (!quiz || !id) return;
+    setSaving(true);
+    try {
+      // 1. Save quiz metadata
+      await supabase.from('quizzes').update({
+        title: quiz.title, description: quiz.description, slug: quiz.slug,
+        status: quiz.status, cover_image: quiz.cover_image,
+        call_to_action_url: quiz.call_to_action_url, call_to_action_text: quiz.call_to_action_text,
+        updated_at: new Date().toISOString()
+      }).eq('id', id);
 
-  // ---- PERGUNTAS ----
-  const addQuestion = async () => {
-    const { data, error } = await supabase.from("quiz_questions").insert({
-      quiz_id: id,
-      title: "Nova Pergunta",
-      order_index: questions.length
-    }).select().single();
-    if (data) setQuestions([...questions, { ...data, quiz_options: [] }]);
-  };
+      // 2. Delete and re-insert questions + options
+      await supabase.from('quiz_questions').delete().eq('quiz_id', id);
 
-  const updateQuestion = async (qId: string, updates: any) => {
-    setQuestions(questions.map(q => q.id === qId ? { ...q, ...updates } : q));
-    await supabase.from("quiz_questions").update(updates).eq("id", qId);
-  };
+      for (let qi = 0; qi < questions.length; qi++) {
+        const q = questions[qi];
+        const { data: savedQ } = await supabase.from('quiz_questions').insert({
+          quiz_id: id, title: q.title, description: q.description,
+          order_index: qi, question_type: 'multiple_choice'
+        }).select().single();
+        if (!savedQ) continue;
 
-  const deleteQuestion = async (qId: string) => {
-    if (!confirm("Excluir pergunta?")) return;
-    await supabase.from("quiz_questions").delete().eq("id", qId);
-    setQuestions(questions.filter(q => q.id !== qId));
-  };
+        for (let oi = 0; oi < q.options.length; oi++) {
+          const o = q.options[oi];
+          await supabase.from('quiz_options').insert({
+            question_id: savedQ.id, option_text: o.option_text,
+            score: o.score || 0, order_index: oi
+          });
+        }
+      }
 
-  const addOption = async (qId: string) => {
-    const qIndex = questions.findIndex(q => q.id === qId);
-    const q = questions[qIndex];
-    const { data, error } = await supabase.from("quiz_options").insert({
-      question_id: qId,
-      option_text: "Nova Opção",
-      score: 0,
-      order_index: q.quiz_options.length
-    }).select().single();
-    
-    if (data) {
-      const newQuestions = [...questions];
-      newQuestions[qIndex].quiz_options.push(data);
-      setQuestions(newQuestions);
+      // 3. Save results
+      await supabase.from('quiz_results').delete().eq('quiz_id', id);
+      for (const r of results) {
+        await supabase.from('quiz_results').insert({
+          quiz_id: id, title: r.title, description: r.description,
+          min_score: r.min_score || 0, max_score: r.max_score || 999,
+          recommended_product_url: r.recommended_product_url, cta_text: r.cta_text || 'Ver Oferta'
+        });
+      }
+
+      toast.success("Quiz guardado com sucesso! ✅");
+    } catch (err: any) {
+      toast.error("Erro ao guardar: " + err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const updateOption = async (qId: string, optId: string, updates: any) => {
-    const newQuestions = questions.map(q => {
-      if (q.id === qId) {
-        return {
-          ...q,
-          quiz_options: q.quiz_options.map((opt: any) => opt.id === optId ? { ...opt, ...updates } : opt)
-        };
-      }
-      return q;
-    });
-    setQuestions(newQuestions);
-    await supabase.from("quiz_options").update(updates).eq("id", optId);
+  const addQuestion = () => {
+    setQuestions(prev => [...prev.map(q => ({ ...q, isOpen: false })), newQuestionTemplate(prev.length)]);
   };
 
-  const deleteOption = async (qId: string, optId: string) => {
-    await supabase.from("quiz_options").delete().eq("id", optId);
-    const newQuestions = questions.map(q => {
-      if (q.id === qId) {
-        return { ...q, quiz_options: q.quiz_options.filter((opt: any) => opt.id !== optId) };
-      }
-      return q;
-    });
-    setQuestions(newQuestions);
+  const removeQuestion = (idx: number) => {
+    setQuestions(prev => prev.filter((_, i) => i !== idx));
   };
 
-  // ---- RESULTADOS ----
-  const addResult = async () => {
-    const { data, error } = await supabase.from("quiz_results").insert({
-      quiz_id: id,
-      title: "Novo Resultado",
-      min_score: 0,
-      max_score: 10
-    }).select().single();
-    if (data) setResults([...results, data]);
+  const updateQuestion = (idx: number, field: string, value: any) => {
+    setQuestions(prev => prev.map((q, i) => i === idx ? { ...q, [field]: value } : q));
   };
 
-  const updateResult = async (rId: string, updates: any) => {
-    setResults(results.map(r => r.id === rId ? { ...r, ...updates } : r));
-    await supabase.from("quiz_results").update(updates).eq("id", rId);
+  const addOption = (qIdx: number) => {
+    setQuestions(prev => prev.map((q, i) => i === qIdx ? { ...q, options: [...q.options, newOptionTemplate()] } : q));
   };
 
-  const deleteResult = async (rId: string) => {
-    if (!confirm("Excluir resultado?")) return;
-    await supabase.from("quiz_results").delete().eq("id", rId);
-    setResults(results.filter(r => r.id !== rId));
+  const removeOption = (qIdx: number, oIdx: number) => {
+    setQuestions(prev => prev.map((q, i) => i === qIdx ? { ...q, options: q.options.filter((_, j) => j !== oIdx) } : q));
   };
 
+  const updateOption = (qIdx: number, oIdx: number, field: string, value: any) => {
+    setQuestions(prev => prev.map((q, i) => i === qIdx ? {
+      ...q, options: q.options.map((o, j) => j === oIdx ? { ...o, [field]: value } : o)
+    } : q));
+  };
 
-  if (loading || !quiz) return <DashboardLayout><div className="py-12 text-center text-muted-foreground">Carregando editor...</div></DashboardLayout>;
+  if (loading) return (
+    <DashboardLayout>
+      <div className="flex items-center justify-center py-24"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
+    </DashboardLayout>
+  );
 
   return (
     <DashboardLayout>
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" size="icon" asChild>
-          <Link to="/dashboard/quizzes"><ArrowLeft className="w-5 h-5" /></Link>
-        </Button>
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Editar Quiz</h2>
-          <p className="text-muted-foreground text-sm">Configure o funil, as perguntas e lógicas de resultado.</p>
+      {/* TOP BAR */}
+      <div className="flex items-center justify-between mb-8 gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => navigate('/dashboard/quizzes')}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-black text-foreground tracking-tight">{quiz?.title || 'Editor de Quiz'}</h1>
+            <p className="text-xs text-muted-foreground">/quiz/{quiz?.slug}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" className="rounded-xl gap-2" asChild>
+            <a href={`/quiz/${quiz?.slug}`} target="_blank" rel="noreferrer">
+              <Eye className="w-4 h-4" /> Pré-visualizar
+            </a>
+          </Button>
+          <Button onClick={saveAll} disabled={saving} className="rounded-xl gap-2 shadow-lg shadow-primary/20">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            Guardar
+          </Button>
         </div>
       </div>
 
-      <Tabs defaultValue="geral" className="space-y-6">
-        <TabsList className="bg-card border border-border">
-          <TabsTrigger value="geral">Geral</TabsTrigger>
-          <TabsTrigger value="perguntas">Perguntas ({questions.length})</TabsTrigger>
-          <TabsTrigger value="resultados">Resultados ({results.length})</TabsTrigger>
-        </TabsList>
+      {/* TABS */}
+      <div className="flex gap-1 bg-muted/50 p-1 rounded-2xl mb-8 w-fit border border-border">
+        {([['questions', 'Perguntas', HelpCircle], ['result', 'Resultado', CheckCircle2], ['settings', 'Definições', Settings]] as any).map(([tab, label, Icon]: any) => (
+          <button key={tab} onClick={() => setActiveTab(tab)}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === tab ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <Icon className="w-4 h-4" /> {label}
+          </button>
+        ))}
+      </div>
 
-        {/* --- ABA GERAL --- */}
-        <TabsContent value="geral">
-          <Card>
-            <CardHeader>
-              <CardTitle>Configurações Principais</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+      {/* QUESTIONS TAB */}
+      {activeTab === 'questions' && (
+        <div className="space-y-4 max-w-3xl">
+          {questions.length === 0 && (
+            <Card className="border-dashed border-2 rounded-3xl">
+              <CardContent className="py-16 text-center">
+                <HelpCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground font-semibold mb-6">Ainda não adicionaste nenhuma pergunta.</p>
+                <Button onClick={addQuestion} className="rounded-2xl gap-2">
+                  <Plus className="w-4 h-4" /> Adicionar Primeira Pergunta
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {questions.map((q, qIdx) => (
+            <Card key={q.id} className="rounded-3xl border-border/70 shadow-sm overflow-hidden">
+              {/* Question Header */}
+              <div
+                className="flex items-center justify-between p-5 cursor-pointer hover:bg-muted/30 transition-colors"
+                onClick={() => updateQuestion(qIdx, 'isOpen', !q.isOpen)}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black text-sm">
+                    {qIdx + 1}
+                  </div>
+                  <div>
+                    <p className="font-bold text-foreground text-sm leading-tight">
+                      {q.title || <span className="text-muted-foreground italic">Pergunta sem título...</span>}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">{q.options.length} opções</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                    onClick={(e) => { e.stopPropagation(); removeQuestion(qIdx); }}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                  {q.isOpen ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                </div>
+              </div>
+
+              {/* Question Body */}
+              {q.isOpen && (
+                <CardContent className="pt-0 pb-6 px-5 space-y-5 border-t border-border/50">
+                  <div className="space-y-2 pt-4">
+                    <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Texto da Pergunta</Label>
+                    <Input
+                      placeholder="Ex: Qual o seu principal objetivo?"
+                      value={q.title}
+                      onChange={e => updateQuestion(qIdx, 'title', e.target.value)}
+                      className="h-12 rounded-xl bg-background border-border font-semibold"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider flex items-center gap-2">
+                      <Image className="w-3 h-3" /> URL da Imagem (Opcional)
+                    </Label>
+                    <Input
+                      placeholder="https://exemplo.com/imagem.jpg"
+                      value={q.image_url}
+                      onChange={e => updateQuestion(qIdx, 'image_url', e.target.value)}
+                      className="h-12 rounded-xl bg-background border-border"
+                    />
+                    {q.image_url && (
+                      <div className="w-full aspect-video rounded-2xl overflow-hidden bg-muted mt-2">
+                        <img src={q.image_url} alt="preview" className="w-full h-full object-cover" onError={e => (e.currentTarget.style.display = 'none')} />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Opções de Resposta</Label>
+                    <div className="space-y-2">
+                      {q.options.map((opt, oIdx) => (
+                        <div key={opt.id} className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center text-muted-foreground font-black text-xs shrink-0">
+                            {String.fromCharCode(65 + oIdx)}
+                          </div>
+                          <Input
+                            placeholder={`Opção ${String.fromCharCode(65 + oIdx)}`}
+                            value={opt.option_text}
+                            onChange={e => updateOption(qIdx, oIdx, 'option_text', e.target.value)}
+                            className="flex-1 h-11 rounded-xl bg-background border-border"
+                          />
+                          <Input
+                            type="number"
+                            placeholder="Pts"
+                            value={opt.score}
+                            onChange={e => updateOption(qIdx, oIdx, 'score', parseInt(e.target.value) || 0)}
+                            className="w-16 h-11 rounded-xl bg-background border-border text-center text-sm"
+                            title="Pontuação"
+                          />
+                          <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10 rounded-xl shrink-0"
+                            onClick={() => removeOption(qIdx, oIdx)}
+                            disabled={q.options.length <= 2}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    <Button variant="outline" size="sm" className="rounded-xl gap-2 w-full border-dashed"
+                      onClick={() => addOption(qIdx)}>
+                      <Plus className="w-4 h-4" /> Adicionar Opção
+                    </Button>
+                  </div>
+                </CardContent>
+              )}
+            </Card>
+          ))}
+
+          <Button variant="outline" onClick={addQuestion}
+            className="w-full h-14 rounded-3xl border-2 border-dashed gap-2 text-sm font-bold hover:border-primary hover:text-primary transition-colors">
+            <Plus className="w-5 h-5" /> Adicionar Pergunta
+          </Button>
+        </div>
+      )}
+
+      {/* RESULT TAB */}
+      {activeTab === 'result' && (
+        <div className="max-w-3xl space-y-6">
+          <div className="p-4 bg-blue-50 dark:bg-blue-500/10 rounded-2xl border border-blue-100 dark:border-blue-500/20 text-sm text-blue-700 dark:text-blue-400">
+            <strong>Como funciona:</strong> Após responder a todas as perguntas e preencher os dados, o utilizador verá esta página de resultado com o botão para aceder ao teu produto ou oferta.
+          </div>
+
+          {results.map((r, rIdx) => (
+            <Card key={r.id} className="rounded-3xl border-border/70 shadow-sm">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base font-black text-foreground">Página de Resultado</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Título do Resultado</Label>
+                  <Input placeholder="Ex: O seu plano personalizado está pronto! 🎉"
+                    value={r.title} onChange={e => setResults(prev => prev.map((res, i) => i === rIdx ? { ...res, title: e.target.value } : res))}
+                    className="h-12 rounded-xl" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Descrição</Label>
+                  <Textarea placeholder="Ex: Com base nas suas respostas, identificamos o programa ideal para si..."
+                    value={r.description} onChange={e => setResults(prev => prev.map((res, i) => i === rIdx ? { ...res, description: e.target.value } : res))}
+                    className="rounded-xl min-h-[100px] resize-none" />
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider flex items-center gap-2"><Link2 className="w-3 h-3" /> URL do Produto / Oferta</Label>
+                    <Input placeholder="https://ensinapay.com/checkout/..."
+                      value={r.recommended_product_url} onChange={e => setResults(prev => prev.map((res, i) => i === rIdx ? { ...res, recommended_product_url: e.target.value } : res))}
+                      className="h-12 rounded-xl" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Texto do Botão</Label>
+                    <Input placeholder="Ex: Garantir Agora"
+                      value={r.cta_text} onChange={e => setResults(prev => prev.map((res, i) => i === rIdx ? { ...res, cta_text: e.target.value } : res))}
+                      className="h-12 rounded-xl" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* SETTINGS TAB */}
+      {activeTab === 'settings' && quiz && (
+        <div className="max-w-3xl space-y-6">
+          <Card className="rounded-3xl border-border/70 shadow-sm">
+            <CardHeader><CardTitle className="text-base font-black">Configurações Gerais</CardTitle></CardHeader>
+            <CardContent className="space-y-5">
               <div className="space-y-2">
-                <Label>Título do Quiz *</Label>
-                <Input value={quiz.title || ""} onChange={(e) => setQuiz({...quiz, title: e.target.value})} />
+                <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Título do Quiz</Label>
+                <Input value={quiz.title} onChange={e => setQuiz({ ...quiz, title: e.target.value })} className="h-12 rounded-xl" />
               </div>
               <div className="space-y-2">
-                <Label>Descrição</Label>
-                <Textarea value={quiz.description || ""} onChange={(e) => setQuiz({...quiz, description: e.target.value})} rows={3} placeholder="Instruções para o utilizador..." />
+                <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Descrição</Label>
+                <Textarea value={quiz.description || ''} onChange={e => setQuiz({ ...quiz, description: e.target.value })} className="rounded-xl min-h-[80px] resize-none" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider flex items-center gap-2"><Image className="w-3 h-3" /> URL da Imagem de Capa (Ecrã Inicial)</Label>
+                <Input placeholder="https://exemplo.com/capa.jpg" value={quiz.cover_image || ''} onChange={e => setQuiz({ ...quiz, cover_image: e.target.value })} className="h-12 rounded-xl" />
+                {quiz.cover_image && (
+                  <div className="w-full aspect-video rounded-2xl overflow-hidden bg-muted">
+                    <img src={quiz.cover_image} alt="cover" className="w-full h-full object-cover" />
+                  </div>
+                )}
               </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Identificador do Link (Slug) *</Label>
-                  <Input value={quiz.slug || ""} onChange={(e) => setQuiz({...quiz, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})} />
-                  <p className="text-xs text-muted-foreground">O quiz ficará acessível em: /quiz/{quiz.slug}</p>
+                  <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Slug (URL)</Label>
+                  <Input value={quiz.slug} onChange={e => setQuiz({ ...quiz, slug: e.target.value })} className="h-12 rounded-xl font-mono text-sm" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Status</Label>
-                  <Select value={quiz.status} onValueChange={(val) => setQuiz({...quiz, status: val})}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Estado</Label>
+                  <Select value={quiz.status} onValueChange={v => setQuiz({ ...quiz, status: v })}>
+                    <SelectTrigger className="h-12 rounded-xl"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="draft">Rascunho (Privado)</SelectItem>
-                      <SelectItem value="active">Ativo (Público)</SelectItem>
+                      <SelectItem value="draft">Rascunho</SelectItem>
+                      <SelectItem value="active">Publicado</SelectItem>
                       <SelectItem value="inactive">Inativo</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
-              
-              <div className="pt-4 border-t border-border">
-                <h4 className="text-sm font-semibold mb-4">Botão de Oferta Global (Opcional)</h4>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Texto do Botão</Label>
-                    <Input placeholder="Ex: Descubra como resolver" value={quiz.call_to_action_text || ""} onChange={(e) => setQuiz({...quiz, call_to_action_text: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>URL da Oferta</Label>
-                    <Input placeholder="https://..." value={quiz.call_to_action_url || ""} onChange={(e) => setQuiz({...quiz, call_to_action_url: e.target.value})} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-6">
-                <Button onClick={saveGeneral}><Save className="w-4 h-4 mr-2" /> Salvar Configurações</Button>
-              </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
+      )}
 
-        {/* --- ABA PERGUNTAS --- */}
-        <TabsContent value="perguntas">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold">Gerir Perguntas</h3>
-            <Button onClick={addQuestion}><Plus className="w-4 h-4 mr-2" /> Adicionar Pergunta</Button>
-          </div>
-          
-          <div className="space-y-6">
-            {questions.map((q, index) => (
-              <Card key={q.id} className="border-border">
-                <CardHeader className="py-4 bg-muted/30 border-b border-border flex flex-row items-start justify-between">
-                  <div className="flex-1 mr-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="bg-primary/20 text-primary font-bold w-6 h-6 rounded flex items-center justify-center text-xs">{index + 1}</span>
-                      <Input value={q.title} onChange={(e) => updateQuestion(q.id, { title: e.target.value })} className="font-semibold" placeholder="Escreva a pergunta..." />
-                    </div>
-                    <Textarea value={q.description || ""} onChange={(e) => updateQuestion(q.id, { description: e.target.value })} placeholder="Descrição curta (opcional)" className="text-sm min-h-[60px]" />
-                  </div>
-                  <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteQuestion(q.id)}><Trash2 className="w-4 h-4" /></Button>
-                </CardHeader>
-                <CardContent className="py-4">
-                  <div className="space-y-3">
-                    {q.quiz_options?.sort((a:any,b:any) => a.order_index - b.order_index).map((opt: any) => (
-                      <div key={opt.id} className="flex flex-col sm:flex-row items-center gap-2">
-                        <GripVertical className="w-4 h-4 text-muted-foreground hidden sm:block" />
-                        <Input className="flex-1" value={opt.option_text} onChange={(e) => updateOption(q.id, opt.id, { option_text: e.target.value })} placeholder="Texto da opção" />
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                          <Label className="whitespace-nowrap text-xs text-muted-foreground">Pontos:</Label>
-                          <Input type="number" className="w-20" value={opt.score} onChange={(e) => updateOption(q.id, opt.id, { score: parseInt(e.target.value)||0 })} />
-                          <Button variant="ghost" size="icon" onClick={() => deleteOption(q.id, opt.id)}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <Button variant="outline" size="sm" className="mt-4" onClick={() => addOption(q.id)}>
-                    <Plus className="w-3 h-3 mr-2" /> Adicionar Opção
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-            {questions.length === 0 && (
-              <div className="text-center py-10 border border-dashed rounded-lg text-muted-foreground">
-                Nenhuma pergunta criada. <button onClick={addQuestion} className="text-primary underline">Criar a primeira</button>.
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        {/* --- ABA RESULTADOS --- */}
-        <TabsContent value="resultados">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-bold">Possíveis Resultados</h3>
-            <Button onClick={addResult}><Plus className="w-4 h-4 mr-2" /> Adicionar Resultado</Button>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-4">
-            {results.map((r) => (
-              <Card key={r.id}>
-                <CardHeader className="py-4 border-b border-border flex flex-row items-center justify-between">
-                  <CardTitle className="text-base text-primary">Resultado Final</CardTitle>
-                  <Button variant="ghost" size="icon" className="text-destructive h-8 w-8" onClick={() => deleteResult(r.id)}><Trash2 className="w-4 h-4" /></Button>
-                </CardHeader>
-                <CardContent className="py-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Pontos Mínimos</Label>
-                      <Input type="number" value={r.min_score || 0} onChange={(e) => updateResult(r.id, { min_score: parseInt(e.target.value)||0 })} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Pontos Máximos</Label>
-                      <Input type="number" value={r.max_score || 0} onChange={(e) => updateResult(r.id, { max_score: parseInt(e.target.value)||0 })} />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <Label className="text-xs">Título do Resultado</Label>
-                    <Input placeholder="Ex: Você é um mestre!" value={r.title} onChange={(e) => updateResult(r.id, { title: e.target.value })} />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Descrição (Feedback)</Label>
-                    <Textarea placeholder="Explique o que significa esse resultado..." value={r.description || ""} onChange={(e) => updateResult(r.id, { description: e.target.value })} rows={3} />
-                  </div>
-
-                  <div className="pt-2 border-t border-border space-y-3">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Oferta Específica</p>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Texto do Botão (CTA)</Label>
-                      <Input placeholder="Ex: Comprar ebook avançado" value={r.cta_text || ""} onChange={(e) => updateResult(r.id, { cta_text: e.target.value })} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Link da Oferta (Checkout)</Label>
-                      <Input placeholder="https://..." value={r.recommended_product_url || ""} onChange={(e) => updateResult(r.id, { recommended_product_url: e.target.value })} />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          {results.length === 0 && (
-            <div className="text-center py-10 border border-dashed rounded-lg text-muted-foreground">
-              Define os resultados baseados nos pontos acumulados. <button onClick={addResult} className="text-primary underline">Criar Resultado</button>.
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-      
+      {/* SAVE BUTTON at bottom */}
+      <div className="mt-10 max-w-3xl">
+        <Button onClick={saveAll} disabled={saving} size="lg" className="w-full h-14 rounded-2xl text-base font-black shadow-xl shadow-primary/20 gap-3">
+          {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+          {saving ? 'A guardar...' : 'Guardar Quiz'}
+        </Button>
+      </div>
     </DashboardLayout>
   );
 };
