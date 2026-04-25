@@ -262,25 +262,6 @@ const Checkout = () => {
                       className="bg-background/50 border-border"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground flex items-center justify-between">
-                      <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> Número pagante *</span>
-                      <span className="text-[10px] text-primary">
-                        {form.payment_method === 'mpesa' ? 'Deve ser 84/85' : 'Deve ser 86/87'}
-                      </span>
-                    </Label>
-                    <Input
-                      type="tel"
-                      placeholder={form.payment_method === 'mpesa' ? "Ex: 840000000" : "Ex: 860000000"}
-                      value={form.payment_phone}
-                      onChange={(e) => setForm({ ...form, payment_phone: e.target.value })}
-                      required
-                      className="bg-background/50 border-border"
-                    />
-                    <p className="text-[10px] text-muted-foreground">
-                      O pagamento será solicitado neste número via {form.payment_method === "mpesa" ? "M-Pesa" : "E-Mola"}
-                    </p>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -344,6 +325,28 @@ const Checkout = () => {
                     </div>
                   </label>
                 </RadioGroup>
+
+                <div className="mt-8 pt-6 border-t border-border space-y-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground flex items-center justify-between">
+                      <span className="flex items-center gap-1 font-bold text-foreground"><Smartphone className="w-3.5 h-3.5 text-primary" /> Número de Pagamento *</span>
+                      <span className="text-[10px] text-primary font-bold">
+                        {form.payment_method === 'mpesa' ? 'Vodacom (84/85)' : 'Movitel (86/87)'}
+                      </span>
+                    </Label>
+                    <Input
+                      type="tel"
+                      placeholder={form.payment_method === 'mpesa' ? "Ex: 840000000" : "Ex: 860000000"}
+                      value={form.payment_phone}
+                      onChange={(e) => setForm({ ...form, payment_phone: e.target.value })}
+                      required
+                      className="h-12 bg-background/50 border-border rounded-xl text-lg font-bold"
+                    />
+                    <p className="text-[10px] text-muted-foreground italic">
+                      Irás receber um pedido de confirmação (PIN) neste número via {form.payment_method === "mpesa" ? "M-Pesa" : "E-Mola"}.
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -416,7 +419,7 @@ const ProductCard = ({ product }: { product: Product }) => (
       </div>
     )}
     <CardContent className={product.image_url ? "pt-4" : "pt-6"}>
-      <h2 className="text-lg font-bold text-foreground truncate">{product.name}</h2>
+      <h2 className="text-lg font-bold text-foreground">{product.name}</h2>
       {product.description && (
         <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{product.description}</p>
       )}
