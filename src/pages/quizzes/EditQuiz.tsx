@@ -11,10 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Plus, Trash2, Save, ArrowLeft, GripVertical, ChevronDown, ChevronUp,
-  Image, Link2, Eye, Loader2, CheckCircle2, Settings, HelpCircle
+  Plus, Trash2, Save, ArrowLeft, ChevronDown, ChevronUp,
+  Link2, Eye, Loader2, CheckCircle2, Settings, HelpCircle
 } from "lucide-react";
-import { Switch } from "@/components/ui/switch";
+import ImageUpload from "@/components/ImageUpload";
+
 
 interface Option { id: string; option_text: string; score: number; order_index: number; }
 interface Question {
@@ -247,20 +248,14 @@ const EditQuiz = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider flex items-center gap-2">
-                      <Image className="w-3 h-3" /> URL da Imagem (Opcional)
-                    </Label>
-                    <Input
-                      placeholder="https://exemplo.com/imagem.jpg"
+                    <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Imagem da Pergunta (Opcional)</Label>
+                    <ImageUpload
                       value={q.image_url}
-                      onChange={e => updateQuestion(qIdx, 'image_url', e.target.value)}
-                      className="h-12 rounded-xl bg-background border-border"
+                      onChange={(url) => updateQuestion(qIdx, 'image_url', url || '')}
+                      folder="questions"
+                      label="Carregar imagem para esta pergunta"
+                      aspectRatio="aspect-[4/3]"
                     />
-                    {q.image_url && (
-                      <div className="w-full aspect-video rounded-2xl overflow-hidden bg-muted mt-2">
-                        <img src={q.image_url} alt="preview" className="w-full h-full object-cover" onError={e => (e.currentTarget.style.display = 'none')} />
-                      </div>
-                    )}
                   </div>
 
                   <div className="space-y-3">
@@ -371,13 +366,14 @@ const EditQuiz = () => {
                 <Textarea value={quiz.description || ''} onChange={e => setQuiz({ ...quiz, description: e.target.value })} className="rounded-xl min-h-[80px] resize-none" />
               </div>
               <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider flex items-center gap-2"><Image className="w-3 h-3" /> URL da Imagem de Capa (Ecrã Inicial)</Label>
-                <Input placeholder="https://exemplo.com/capa.jpg" value={quiz.cover_image || ''} onChange={e => setQuiz({ ...quiz, cover_image: e.target.value })} className="h-12 rounded-xl" />
-                {quiz.cover_image && (
-                  <div className="w-full aspect-video rounded-2xl overflow-hidden bg-muted">
-                    <img src={quiz.cover_image} alt="cover" className="w-full h-full object-cover" />
-                  </div>
-                )}
+                <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Imagem de Capa (Ecrã Inicial)</Label>
+                <ImageUpload
+                  value={quiz.cover_image}
+                  onChange={(url) => setQuiz({ ...quiz, cover_image: url || '' })}
+                  folder="covers"
+                  label="Carregar imagem de capa do quiz"
+                  aspectRatio="aspect-video"
+                />
               </div>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
