@@ -421,11 +421,6 @@ const OrderSummary = ({ product, submitting, onSubmit }: { product: Product, sub
     </CardContent>
   </Card>
 );
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const ProductCard = ({ product }: { product: Product }) => (
   <Card className="border-border/50 overflow-hidden bg-card">
