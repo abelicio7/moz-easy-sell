@@ -1,11 +1,11 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, ArrowRight, CheckCircle2, MessageSquare, HelpCircle, UserPlus, Flag } from "lucide-react";
+import { Loader2, ArrowRight, CheckCircle2, MessageSquare, HelpCircle, UserPlus, Flag, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import Logo from "@/components/Logo";
 
@@ -66,7 +66,7 @@ const TakeQuiz = () => {
     fetchFlowData();
   }, [slug]);
 
-  // Initial Lead Creation (when the user actually starts)
+  // Initial Lead Creation
   const initializeLead = async (startNodeId: string) => {
     try {
       const { data, error } = await supabase.from('flow_leads').insert({
@@ -107,7 +107,6 @@ const TakeQuiz = () => {
     setScore(newScore);
     setCurrentNodeId(nextNodeId);
 
-    // Track movement
     const targetNode = nodes.find(n => n.id === nextNodeId);
     updateLeadTracking(nextNodeId, newPath, newAnswers, newScore, targetNode?.type === 'result');
   }, [currentNodeId, path, answers, score, leadId, nodes]);
@@ -136,14 +135,10 @@ const TakeQuiz = () => {
   const handleLeadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
     try {
       if (leadId) {
-        await supabase.from('flow_leads').update({
-          contact_data: formData,
-        }).eq('id', leadId);
+        await supabase.from('flow_leads').update({ contact_data: formData }).eq('id', leadId);
       }
-
       handleNext();
     } catch (err) {
       console.error(err);
@@ -153,163 +148,172 @@ const TakeQuiz = () => {
   };
 
   const currentNode = nodes.find(n => n.id === currentNodeId);
+  const totalSteps = useMemo(() => {
+    // Estimativa simples de passos baseada em profundidade ou contagem de nós relevantes
+    return nodes.filter(n => ['question', 'message', 'input'].includes(n.type)).length + 1;
+  }, [nodes]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-slate-950">
         <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-        <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Iniciando Experiência...</p>
+        <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Preparando Experiência...</p>
       </div>
     );
   }
 
   if (!flow || !currentNode) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-center px-6">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 text-center px-6">
         <Logo size="sm" />
-        <h1 className="text-2xl font-black text-slate-800 mt-8 mb-2">Funil não encontrado</h1>
-        <p className="text-slate-500 max-w-xs">Este link pode estar expirado ou o funil ainda não foi publicado.</p>
+        <h1 className="text-2xl font-black text-slate-800 dark:text-white mt-8 mb-2">Funil Indisponível</h1>
+        <p className="text-slate-500 max-w-xs">Este conteúdo não está acessível no momento.</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white md:bg-slate-50 flex flex-col items-center overflow-x-hidden">
-      {/* Progress Bar */}
-      <div className="fixed top-0 left-0 w-full h-1.5 bg-slate-100 z-50">
-        <motion.div 
-          className="h-full bg-blue-600 shadow-[0_0_10px_rgba(37,99,235,0.5)]"
-          initial={{ width: 0 }}
-          animate={{ width: `${(path.length / (nodes.length || 1)) * 100}%` }}
-        />
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 flex flex-col items-center selection:bg-blue-100 overflow-x-hidden">
+      {/* Progress Header */}
+      <div className="fixed top-0 left-0 w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-50 border-b border-slate-100 dark:border-slate-800">
+        <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800">
+          <motion.div 
+            className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 shadow-[0_0_15px_rgba(37,99,235,0.4)]"
+            initial={{ width: 0 }}
+            animate={{ width: `${(path.length / (totalSteps || 1)) * 100}%` }}
+          />
+        </div>
+        <div className="max-w-xl mx-auto px-6 h-12 flex items-center justify-between">
+           <Logo size="sm" />
+           <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Passo {path.length + 1} de {totalSteps}</span>
+           </div>
+        </div>
       </div>
 
-      <div className="w-full max-w-2xl flex-1 flex flex-col items-center justify-center py-12 px-6">
+      {/* Main Container */}
+      <div className="w-full max-w-xl flex-1 flex flex-col pt-24 pb-12 px-5">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentNodeId}
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 1.05 }}
-            transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-            className="w-full"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="flex-1 flex flex-col"
           >
+            {/* IMAGE HEADER (XQuiz Style) */}
+            {currentNode.data.image_url && (
+              <div className="w-full aspect-[16/10] rounded-[2.5rem] overflow-hidden mb-8 shadow-2xl shadow-blue-500/10 border-4 border-white dark:border-slate-800">
+                <img 
+                  src={currentNode.data.image_url} 
+                  alt="Destaque" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+
             {/* START NODE */}
             {currentNode.type === 'start' && (
-              <div className="text-center space-y-8 py-10">
-                <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-blue-500/30">
-                  <Logo size="sm" />
-                </div>
-                <div className="space-y-4">
-                  <h1 className="text-4xl md:text-6xl font-black text-slate-900 leading-tight tracking-tighter">
-                    {currentNode.data.label}
-                  </h1>
-                  <p className="text-lg md:text-xl text-slate-500 max-w-md mx-auto leading-relaxed">
-                    Clique no botão abaixo para iniciar a sua jornada personalizada.
-                  </p>
-                </div>
+              <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
+                {!currentNode.data.image_url && (
+                  <div className="w-24 h-24 bg-blue-600 rounded-[2rem] flex items-center justify-center mb-10 shadow-2xl shadow-blue-500/40 rotate-3">
+                    <Logo size="sm" />
+                  </div>
+                )}
+                <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white leading-[1.1] tracking-tight mb-6 text-balance">
+                  {currentNode.data.label}
+                </h1>
+                <p className="text-lg text-slate-500 dark:text-slate-400 mb-10 leading-relaxed px-4">
+                  Descubra o caminho ideal preparado especialmente para si. Comece em menos de 1 minuto.
+                </p>
                 <Button 
                   size="lg" 
-                  className="h-16 px-12 rounded-full text-lg font-black bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-500/20 w-full md:w-auto"
+                  className="h-16 px-12 rounded-2xl text-lg font-black bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-500/20 w-full"
                   onClick={handleNext}
                 >
-                  Começar Agora <ArrowRight className="w-5 h-5 ml-2" />
+                  Continuar <ChevronRight className="w-6 h-6 ml-1" />
                 </Button>
               </div>
             )}
 
             {/* MESSAGE NODE */}
             {currentNode.type === 'message' && (
-              <div className="space-y-8 py-6">
-                <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
-                     <MessageSquare className="w-6 h-6" />
-                   </div>
-                   <span className="text-xs font-black text-blue-600 uppercase tracking-widest">Informação</span>
-                </div>
-                <div className="space-y-6">
-                   <h2 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight tracking-tighter">
+              <div className="flex-1 flex flex-col py-2">
+                <div className="space-y-6 text-center md:text-left">
+                   <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white leading-tight tracking-tight">
                     {currentNode.data.label}
                    </h2>
-                   <div className="text-lg md:text-2xl text-slate-600 leading-relaxed text-balance">
+                   <div className="text-lg md:text-xl text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
                     {currentNode.data.content}
                    </div>
                 </div>
-                <Button 
-                  size="lg" 
-                  className="h-16 px-12 rounded-full text-lg font-black bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-500/20 w-full md:w-auto mt-8"
-                  onClick={handleNext}
-                >
-                  Continuar <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
+                <div className="mt-auto pt-10">
+                  <Button 
+                    size="lg" 
+                    className="h-16 px-12 rounded-2xl text-lg font-black bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-500/20 w-full"
+                    onClick={handleNext}
+                  >
+                    Próximo <ChevronRight className="w-6 h-6 ml-1" />
+                  </Button>
+                </div>
               </div>
             )}
 
             {/* QUESTION NODE */}
             {currentNode.type === 'question' && (
-              <div className="space-y-8 py-6">
-                <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100">
-                     <HelpCircle className="w-6 h-6" />
-                   </div>
-                   <span className="text-xs font-black text-amber-600 uppercase tracking-widest">Pergunta</span>
-                </div>
-                <h2 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight tracking-tighter">
+              <div className="flex-1 flex flex-col py-2">
+                <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white leading-tight tracking-tight mb-8 text-center md:text-left">
                   {currentNode.data.question || currentNode.data.label}
                 </h2>
                 
-                <div className="grid gap-3 pt-4">
+                <div className="grid gap-4">
                   {(currentNode.data.options || []).map((opt: any, i: number) => (
                     <button
                       key={opt.id || i}
                       onClick={() => handleOptionSelect(opt)}
-                      className="group flex items-center justify-between p-6 rounded-3xl border-2 border-slate-100 bg-white hover:border-blue-500 hover:bg-blue-50/30 transition-all duration-300 text-left outline-none"
+                      className="group relative flex items-center p-6 rounded-[1.8rem] border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-blue-500 dark:hover:border-blue-500 shadow-sm hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 text-left outline-none"
                     >
-                      <span className="text-lg font-bold text-slate-700 group-hover:text-blue-700 transition-colors">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all mr-4 shrink-0 font-black text-xs">
+                        {String.fromCharCode(65 + i)}
+                      </div>
+                      <span className="text-lg font-bold text-slate-700 dark:text-slate-200 group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors flex-1">
                         {opt.label || `Opção ${i+1}`}
                       </span>
-                      <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-blue-500 group-hover:text-white transition-all">
-                        <ArrowRight className="w-5 h-5" />
-                      </div>
+                      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all" />
                     </button>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* INPUT / LEAD NODE */}
+            {/* INPUT NODE */}
             {currentNode.type === 'input' && (
-              <div className="space-y-8 py-6">
-                <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100">
-                     <UserPlus className="w-6 h-6" />
-                   </div>
-                   <span className="text-xs font-black text-emerald-600 uppercase tracking-widest">Inscrição</span>
-                </div>
-                <div className="space-y-4 text-center md:text-left">
-                  <h2 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight tracking-tighter">
+              <div className="flex-1 flex flex-col py-2">
+                <div className="space-y-4 text-center mb-8">
+                  <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white leading-tight tracking-tight">
                     {currentNode.data.title || 'Complete seus dados'}
                   </h2>
-                  <p className="text-lg text-slate-500">Estamos quase terminando! Deixe seus dados para prosseguir.</p>
+                  <p className="text-lg text-slate-500">Iremos enviar o seu resultado agora mesmo.</p>
                 </div>
 
-                <form onSubmit={handleLeadSubmit} className="space-y-4 pt-4">
-                  <div className="grid gap-4">
+                <form onSubmit={handleLeadSubmit} className="space-y-5">
+                  <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label className="font-bold text-slate-700">Seu Nome</Label>
+                      <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">Nome</Label>
                       <Input 
-                        className="h-14 rounded-2xl border-2 focus-visible:ring-blue-500 text-lg px-6" 
-                        placeholder="Como gostaria de ser chamado?" 
+                        className="h-16 rounded-2xl border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 focus-visible:ring-blue-500 text-lg px-6 shadow-sm" 
+                        placeholder="Seu nome" 
                         required
                         value={formData.name || ''}
                         onChange={e => setFormData(p => ({...p, name: e.target.value}))}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="font-bold text-slate-700">E-mail Principal</Label>
+                      <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">E-mail</Label>
                       <Input 
                         type="email" 
-                        className="h-14 rounded-2xl border-2 focus-visible:ring-blue-500 text-lg px-6" 
+                        className="h-16 rounded-2xl border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 focus-visible:ring-blue-500 text-lg px-6 shadow-sm" 
                         placeholder="seu@email.com" 
                         required
                         value={formData.email || ''}
@@ -317,11 +321,11 @@ const TakeQuiz = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="font-bold text-slate-700">WhatsApp (com DDD)</Label>
+                      <Label className="font-black text-[10px] uppercase tracking-widest text-slate-400 ml-1">WhatsApp</Label>
                       <Input 
                         type="tel" 
-                        className="h-14 rounded-2xl border-2 focus-visible:ring-blue-500 text-lg px-6" 
-                        placeholder="+258 84 000 0000" 
+                        className="h-16 rounded-2xl border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 focus-visible:ring-blue-500 text-lg px-6 shadow-sm" 
+                        placeholder="840000000" 
                         value={formData.phone || ''}
                         onChange={e => setFormData(p => ({...p, phone: e.target.value}))}
                       />
@@ -330,9 +334,9 @@ const TakeQuiz = () => {
                   <Button 
                     type="submit" 
                     disabled={isSubmitting}
-                    className="h-16 w-full rounded-full text-lg font-black bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-500/20 mt-4"
+                    className="h-18 w-full rounded-2xl text-xl font-black bg-blue-600 hover:bg-blue-700 shadow-2xl shadow-blue-500/20 mt-6 py-8"
                   >
-                    {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : 'Finalizar e Ver Resultado'}
+                    {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : 'Ver Resultado'}
                   </Button>
                 </form>
               </div>
@@ -340,27 +344,25 @@ const TakeQuiz = () => {
 
             {/* RESULT NODE */}
             {currentNode.type === 'result' && (
-              <div className="text-center space-y-8 py-10">
-                <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto border-4 border-white shadow-xl">
-                  <CheckCircle2 className="w-12 h-12 text-emerald-600" />
+              <div className="flex-1 flex flex-col items-center justify-center text-center py-6">
+                <div className="w-24 h-24 bg-emerald-500 rounded-[2.5rem] flex items-center justify-center mb-8 shadow-2xl shadow-emerald-500/30 rotate-6">
+                  <CheckCircle2 className="w-12 h-12 text-white" />
                 </div>
-                <div className="space-y-4">
-                  <h1 className="text-4xl md:text-6xl font-black text-slate-900 leading-tight tracking-tighter">
-                    {currentNode.data.label}
-                  </h1>
-                  <div className="text-lg md:text-xl text-slate-500 leading-relaxed max-w-lg mx-auto">
-                    {currentNode.data.description || 'Obrigado por completar este funil! Recebemos suas respostas com sucesso.'}
-                  </div>
+                <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white leading-[1.1] tracking-tight mb-6">
+                  {currentNode.data.label}
+                </h1>
+                <div className="text-lg text-slate-500 dark:text-slate-400 leading-relaxed mb-12 px-4 whitespace-pre-wrap">
+                  {currentNode.data.description || 'Perfil analisado com sucesso! Clique abaixo para aceder à sua oferta personalizada.'}
                 </div>
                 
                 {currentNode.data.buttonUrl && (
                   <Button 
                     size="lg" 
-                    className="h-16 px-12 rounded-full text-lg font-black bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-500/20 w-full md:w-auto"
+                    className="h-18 px-12 rounded-2xl text-xl font-black bg-blue-600 hover:bg-blue-700 shadow-2xl shadow-blue-500/20 w-full py-8"
                     asChild
                   >
                     <a href={currentNode.data.buttonUrl} target="_blank" rel="noopener noreferrer">
-                      {currentNode.data.buttonText || 'Acessar Agora'} <ArrowRight className="w-5 h-5 ml-2" />
+                      {currentNode.data.buttonText || 'Garantir Agora'} <ArrowRight className="w-6 h-6 ml-2" />
                     </a>
                   </Button>
                 )}
@@ -371,7 +373,7 @@ const TakeQuiz = () => {
       </div>
 
       {/* Footer Branding */}
-      <div className="py-8 opacity-40 hover:opacity-100 transition-opacity flex items-center gap-2">
+      <div className="py-8 opacity-20 hover:opacity-100 transition-opacity flex items-center gap-2">
          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Powered by</span>
          <Logo size="sm" />
       </div>

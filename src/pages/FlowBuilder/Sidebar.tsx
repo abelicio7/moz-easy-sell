@@ -90,6 +90,14 @@ const Sidebar = ({ selectedNode, setNodes, setSelectedNode, isMobileVisible }: S
             {(selectedNode.type === 'message') && (
               <div className="space-y-4">
                 <div className="space-y-2">
+                  <Label>Imagem de Destaque (URL)</Label>
+                  <Input 
+                    placeholder="https://exemplo.com/hero.jpg"
+                    value={selectedNode.data.image_url || ''}
+                    onChange={(e) => updateNodeData({ image_url: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label>Conteúdo da Mensagem</Label>
                   <Textarea 
                     placeholder="Olá! Como posso ajudar?"
@@ -105,6 +113,14 @@ const Sidebar = ({ selectedNode, setNodes, setSelectedNode, isMobileVisible }: S
             {/* Question Node Settings */}
             {(selectedNode.type === 'question') && (
               <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Imagem de Destaque (URL)</Label>
+                  <Input 
+                    placeholder="https://exemplo.com/imagem.jpg"
+                    value={selectedNode.data.image_url || ''}
+                    onChange={(e) => updateNodeData({ image_url: e.target.value })}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label>Pergunta</Label>
                   <Input 
