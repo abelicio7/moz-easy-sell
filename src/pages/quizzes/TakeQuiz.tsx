@@ -6,12 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2, ChevronRight, ArrowRight, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import InteractiveScale from "@/components/InteractiveScale";
 
-interface Option { id: string; option_text: string; score: number; order_index: number; }
+interface Option { id: string; option_text: string; score: number; order_index: number; image_url?: string; }
 interface Question { 
   id: string; title: string; description?: string; image_url?: string; 
-  options: Option[]; question_type: 'multiple_choice' | 'message';
+  options: Option[]; question_type: 'multiple_choice' | 'message' | 'range';
   button_text?: string; button_url?: string; is_external_link?: boolean;
+  min_value?: number; max_value?: number; step_value?: number; unit?: string;
+  layout?: 'list' | 'grid'; footer_image_url?: string; secondary_image_url?: string;
 }
 interface QuizResult { title: string; description: string; recommended_product_url: string; cta_text: string; result_image?: string; min_score?: number; max_score?: number; }
 interface QuizData { id: string; title: string; description: string; cover_image: string; }
@@ -59,7 +62,16 @@ const TakeQuiz = () => {
           button_text: q.button_text || 'Continuar',
           button_url: q.button_url || '',
           is_external_link: q.is_external_link || false,
-          options: (q.quiz_options || []).sort((a: any, b: any) => a.order_index - b.order_index)
+          min_value: q.min_value || 100,
+          max_value: q.max_value || 220,
+          step_value: q.step_value || 1,
+          unit: q.unit || 'cm',
+          layout: q.layout || 'list',
+          footer_image_url: q.footer_image_url || null,
+          secondary_image_url: q.secondary_image_url || null,
+          options: (q.quiz_options || []).sort((a: any, b: any) => a.order_index - b.order_index).map((o: any) => ({
+            id: o.id, option_text: o.option_text, score: o.score, order_index: o.order_index, image_url: o.image_url
+          }))
         })));
       }
 
@@ -198,11 +210,20 @@ const TakeQuiz = () => {
               transition={{ duration: 0.3 }}
               className="w-full space-y-6"
             >
-              {q.image_url && (
-                <div className="w-full aspect-[4/3] rounded-[2rem] overflow-hidden shadow-xl shadow-slate-200/80 border-4 border-white">
-                  <img src={q.image_url} alt="" className="w-full h-full object-cover" />
-                </div>
-              )}
+              {(q.image_url || q.secondary_image_url) && (
+                 <div className={`w-full grid gap-4 ${q.secondary_image_url ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                   {q.image_url && (
+                     <div className="w-full aspect-[4/3] rounded-[2rem] overflow-hidden shadow-xl shadow-slate-200/80 border-4 border-white">
+                       <img src={q.image_url} alt="" className="w-full h-full object-cover" />
+                     </div>
+                   )}
+                   {q.secondary_image_url && (
+                     <div className="w-full aspect-[4/3] rounded-[2rem] overflow-hidden shadow-xl shadow-slate-200/80 border-4 border-white">
+                       <img src={q.secondary_image_url} alt="" className="w-full h-full object-cover" />
+                     </div>
+                   )}
+                 </div>
+               )}
               
               <h2 className="text-3xl font-black text-slate-900 leading-tight tracking-tight text-center px-2">
                 {q.title}
@@ -233,23 +254,75 @@ const TakeQuiz = () => {
                     {q.button_text || 'Continuar'} <ChevronRight className="w-6 h-6 ml-1" />
                   </Button>
                 </div>
-              ) : (
-                <div className="space-y-3 pt-2">
-                  {q.options.map((opt, i) => (
-                    <button key={opt.id}
-                      onClick={() => handleAnswer(opt)}
-                      className="group w-full flex items-center gap-4 p-5 rounded-[1.5rem] border-2 border-slate-100 bg-white hover:border-blue-500 hover:bg-blue-50/30 active:scale-[0.98] transition-all duration-200 text-left shadow-sm hover:shadow-md"
-                    >
-                      <div className="w-11 h-11 rounded-2xl bg-slate-50 group-hover:bg-blue-600 flex items-center justify-center font-black text-sm text-slate-400 group-hover:text-white transition-all shrink-0">
-                        {String.fromCharCode(65 + i)}
-                      </div>
-                      <span className="text-base font-bold text-slate-700 group-hover:text-slate-900 flex-1">
-                        {opt.option_text}
-                      </span>
-                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 shrink-0" />
-                    </button>
-                  ))}
+              ) : q.question_type === 'range' ? (
+                <div className="space-y-8">
+                  <InteractiveScale 
+                    min={q.min_value || 100}
+                    max={q.max_value || 220}
+                    step={q.step_value || 1}
+                    unit={q.unit || 'cm'}
+                    onChange={(val, unit) => {
+                      // Update answer in state
+                      const updatedAnswers = [...answers];
+                      const existingIndex = updatedAnswers.findIndex(a => a.questionId === q.id);
+                      const answerText = `${val}${unit}`;
+                      
+                      if (existingIndex >= 0) {
+                        updatedAnswers[existingIndex] = { questionId: q.id, answer: answerText, score: 0 };
+                      } else {
+                        updatedAnswers.push({ questionId: q.id, answer: answerText, score: 0 });
+                      }
+                      setAnswers(updatedAnswers);
+                    }}
+                  />
+                  <Button
+                    size="lg"
+                    className="w-full h-16 rounded-2xl text-lg font-black bg-emerald-600 hover:bg-emerald-700 shadow-xl shadow-emerald-500/20"
+                    onClick={() => {
+                      setDirection(1);
+                      if (currentQ + 1 < questions.length) {
+                        setCurrentQ(prev => prev + 1);
+                      } else {
+                        setStep('lead');
+                      }
+                    }}
+                  >
+                    {q.button_text || 'Continuar'} <ChevronRight className="w-6 h-6 ml-1" />
+                  </Button>
                 </div>
+              ) : (
+                <div className="space-y-6">
+                   <div className={`pt-2 ${q.layout === 'grid' ? 'grid grid-cols-2 gap-3' : 'space-y-3'}`}>
+                     {q.options.map((opt, i) => (
+                       <button key={opt.id}
+                         onClick={() => handleAnswer(opt)}
+                         className={`group w-full flex ${q.layout === 'grid' ? 'flex-col items-center text-center p-4' : 'items-center gap-4 p-5'} rounded-[1.5rem] border-2 border-slate-100 bg-white hover:border-blue-500 hover:bg-blue-50/30 active:scale-[0.98] transition-all duration-200 text-left shadow-sm hover:shadow-md`}
+                       >
+                         {opt.image_url ? (
+                           <div className={`overflow-hidden rounded-2xl mb-3 ${q.layout === 'grid' ? 'w-full aspect-square' : 'w-16 h-16 shrink-0'}`}>
+                             <img src={opt.image_url} alt="" className="w-full h-full object-cover" />
+                           </div>
+                         ) : (
+                           <div className="w-11 h-11 rounded-2xl bg-slate-50 group-hover:bg-blue-600 flex items-center justify-center font-black text-sm text-slate-400 group-hover:text-white transition-all shrink-0">
+                             {String.fromCharCode(65 + i)}
+                           </div>
+                         )}
+                         <span className={`text-base font-bold text-slate-700 group-hover:text-slate-900 ${q.layout === 'grid' ? '' : 'flex-1'}`}>
+                           {opt.option_text}
+                         </span>
+                         {q.layout !== 'grid' && <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 shrink-0" />}
+                       </button>
+                     ))}
+                   </div>
+
+                   {q.footer_image_url && (
+                     <div className="pt-4 flex flex-col items-center gap-4">
+                        <div className="w-3/4 aspect-video rounded-3xl overflow-hidden shadow-lg border-2 border-white">
+                          <img src={q.footer_image_url} alt="" className="w-full h-full object-cover" />
+                        </div>
+                     </div>
+                   )}
+                 </div>
               )}
             </motion.div>
           )}

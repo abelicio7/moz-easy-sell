@@ -36,25 +36,28 @@ const QuestionNode = ({ data, selected }: NodeProps) => {
         </p>
         
         {/* Branching Options */}
-        <div className="space-y-2">
+        <div className={data.layout === 'grid' ? 'grid grid-cols-2 gap-2' : 'space-y-2'}>
           {options.length > 0 ? options.map((opt: any, i: number) => (
             <div key={opt.id || i} className="relative group">
-              <div className="flex items-center justify-between text-[11px] bg-slate-50/80 group-hover:bg-slate-100/80 p-3 rounded-2xl border border-slate-100 transition-all font-bold text-slate-600">
-                <span className="truncate pr-4">{opt.label || `Opção ${i+1}`}</span>
-                <ChevronRight className="w-3 h-3 text-slate-400 group-hover:translate-x-1 transition-transform" />
+              <div className={`flex flex-col gap-1 ${data.layout === 'grid' ? 'p-2' : 'flex-row items-center justify-between p-3'} text-[10px] bg-slate-50/80 group-hover:bg-slate-100/80 rounded-2xl border border-slate-100 transition-all font-bold text-slate-600`}>
+                <div className="flex items-center gap-2 overflow-hidden">
+                  {opt.image_url && <div className="w-4 h-4 rounded bg-slate-200 shrink-0 overflow-hidden"><img src={opt.image_url} className="w-full h-full object-cover" /></div>}
+                  <span className="truncate">{opt.label || `Opção ${i+1}`}</span>
+                </div>
+                {data.layout !== 'grid' && <ChevronRight className="w-3 h-3 text-slate-400 group-hover:translate-x-1 transition-transform shrink-0" />}
               </div>
               {/* Branch Handle */}
               <Handle 
                 type="source" 
                 position={Position.Right} 
                 id={opt.id || `opt-${i}`}
-                style={{ right: '-12px', top: '50%' }}
-                className="!w-6 !h-6 !bg-amber-500 border-[4px] border-white shadow-md hover:scale-110 transition-transform !cursor-crosshair" 
+                style={{ right: data.layout === 'grid' ? '-4px' : '-12px', top: '50%' }}
+                className="!w-5 !h-5 !bg-amber-500 border-[3px] border-white shadow-md hover:scale-110 transition-transform !cursor-crosshair" 
               />
             </div>
           )) : (
             <div className="text-[10px] text-slate-400 italic p-6 border-2 border-dashed border-slate-100 rounded-2xl text-center bg-slate-50/30">
-              Crie opções no painel lateral para ramificar o fluxo.
+              Crie opções no painel lateral.
             </div>
           )}
         </div>

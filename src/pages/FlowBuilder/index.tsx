@@ -36,6 +36,7 @@ import MessageNode from './nodes/MessageNode';
 import QuestionNode from './nodes/QuestionNode';
 import LeadNode from './nodes/LeadNode';
 import ConditionNode from './nodes/ConditionNode';
+import ScaleNode from './nodes/ScaleNode';
 import { StartNode, ResultNode } from './nodes/BaseNodes';
 
 // Tab Views
@@ -48,6 +49,7 @@ const nodeTypes: NodeTypes = {
   question: QuestionNode,
   input: LeadNode,
   condition: ConditionNode,
+  scale: ScaleNode,
   result: ResultNode,
 };
 
@@ -164,6 +166,14 @@ const FlowBuilderInstance = () => {
       if (type === 'question') { data.label = 'Nova Pergunta'; data.question = ''; data.options = []; }
       if (type === 'message') { data.label = 'Nova Mensagem'; data.content = ''; }
       if (type === 'input') { data.label = 'Captura Lead'; data.title = 'Deixe os seus dados'; }
+      if (type === 'scale') { 
+        data.label = 'Nova Escala'; 
+        data.question = 'Qual a sua altura?'; 
+        data.min_value = 100; 
+        data.max_value = 220; 
+        data.step_value = 1; 
+        data.unit = 'cm'; 
+      }
       if (type === 'result') { data.label = 'Resultado Final'; }
 
       const newNode = { id: uuidv4(), type, position, data };

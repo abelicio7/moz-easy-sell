@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   MessageSquare, HelpCircle, FormInput, Flag, Split, Zap, Globe, 
-  ArrowLeft, Plus, Trash2, Settings2, Info
+  ArrowLeft, Plus, Trash2, Settings2, Info, Ruler
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,7 +15,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import { LayoutGrid, List, Image as ImageIcon } from 'lucide-react';
 
 interface SidebarProps {
   selectedNode: any | null;
@@ -129,6 +129,49 @@ const Sidebar = ({ selectedNode, setNodes, setSelectedNode, isMobileVisible }: S
                     onChange={(e) => updateNodeData({ question: e.target.value })}
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase">Layout das Opções</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button 
+                      variant={selectedNode.data.layout === 'list' ? 'default' : 'outline'} 
+                      size="sm" 
+                      className="h-8 gap-2"
+                      onClick={() => updateNodeData({ layout: 'list' })}
+                    >
+                      <List className="w-3 h-3" /> Lista
+                    </Button>
+                    <Button 
+                      variant={selectedNode.data.layout === 'grid' ? 'default' : 'outline'} 
+                      size="sm" 
+                      className="h-8 gap-2"
+                      onClick={() => updateNodeData({ layout: 'grid' })}
+                    >
+                      <LayoutGrid className="w-3 h-3" /> Grelha
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase">Img. Secundária</Label>
+                    <Input 
+                      placeholder="URL..." 
+                      className="h-8 text-[10px]"
+                      value={selectedNode.data.secondary_image_url || ''}
+                      onChange={(e) => updateNodeData({ secondary_image_url: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase">Img. Rodapé</Label>
+                    <Input 
+                      placeholder="URL..." 
+                      className="h-8 text-[10px]"
+                      value={selectedNode.data.footer_image_url || ''}
+                      onChange={(e) => updateNodeData({ footer_image_url: e.target.value })}
+                    />
+                  </div>
+                </div>
                 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -149,16 +192,31 @@ const Sidebar = ({ selectedNode, setNodes, setSelectedNode, isMobileVisible }: S
                   <div className="space-y-2">
                     {(selectedNode.data.options || []).map((opt: any, index: number) => (
                       <div key={opt.id} className="flex gap-2">
-                        <Input 
-                          placeholder={`Opção ${index + 1}`} 
-                          className="h-8 text-sm" 
-                          value={opt.label}
-                          onChange={(e) => {
-                            const newOptions = [...selectedNode.data.options];
-                            newOptions[index].label = e.target.value;
-                            updateNodeData({ options: newOptions });
-                          }}
-                        />
+                        <div className="flex-1 space-y-2">
+                          <Input 
+                            placeholder={`Opção ${index + 1}`} 
+                            className="h-8 text-sm" 
+                            value={opt.label}
+                            onChange={(e) => {
+                              const newOptions = [...selectedNode.data.options];
+                              newOptions[index].label = e.target.value;
+                              updateNodeData({ options: newOptions });
+                            }}
+                          />
+                          <div className="flex items-center gap-2">
+                             <ImageIcon className="w-3 h-3 text-muted-foreground" />
+                             <Input 
+                               placeholder="Imagem (URL)" 
+                               className="h-6 text-[9px] bg-muted/30" 
+                               value={opt.image_url || ''}
+                               onChange={(e) => {
+                                 const newOptions = [...selectedNode.data.options];
+                                 newOptions[index].image_url = e.target.value;
+                                 updateNodeData({ options: newOptions });
+                               }}
+                             />
+                          </div>
+                        </div>
                         <Button 
                           variant="ghost" 
                           size="icon" 
@@ -173,6 +231,64 @@ const Sidebar = ({ selectedNode, setNodes, setSelectedNode, isMobileVisible }: S
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Scale Node Settings */}
+            {(selectedNode.type === 'scale') && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Pergunta</Label>
+                  <Input 
+                    placeholder="Qual a sua altura?"
+                    value={selectedNode.data.question || ''}
+                    onChange={(e) => updateNodeData({ question: e.target.value })}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase">Mínimo</Label>
+                    <Input 
+                      type="number"
+                      value={selectedNode.data.min_value || 100}
+                      onChange={(e) => updateNodeData({ min_value: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase">Máximo</Label>
+                    <Input 
+                      type="number"
+                      value={selectedNode.data.max_value || 220}
+                      onChange={(e) => updateNodeData({ max_value: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase">Passo (Step)</Label>
+                    <Input 
+                      type="number"
+                      value={selectedNode.data.step_value || 1}
+                      onChange={(e) => updateNodeData({ step_value: parseInt(e.target.value) || 1 })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase">Unidade</Label>
+                    <Input 
+                      value={selectedNode.data.unit || 'cm'}
+                      onChange={(e) => updateNodeData({ unit: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100 flex gap-3">
+                   <Info className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                   <p className="text-[10px] text-emerald-800 leading-relaxed font-medium">
+                     Este componente exibe uma régua interativa para que o utilizador deslize e selecione um valor numérico.
+                   </p>
                 </div>
               </div>
             )}
@@ -316,6 +432,20 @@ const Sidebar = ({ selectedNode, setNodes, setSelectedNode, isMobileVisible }: S
             <div className="flex flex-col">
               <span className="text-sm font-bold">Captura Lead</span>
               <span className="text-[10px] text-muted-foreground">Coleta dados</span>
+            </div>
+          </div>
+
+          <div 
+            className="group flex items-center gap-3 p-3 rounded-xl border bg-background hover:border-primary hover:shadow-md cursor-grab transition-all active:scale-95"
+            onDragStart={(e) => onDragStart(e, 'scale')} 
+            draggable
+          >
+            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
+              <Ruler className="w-5 h-5 text-emerald-500" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold">Escala / Régua</span>
+              <span className="text-[10px] text-muted-foreground">Altura, Peso, etc</span>
             </div>
           </div>
         </div>

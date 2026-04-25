@@ -12,18 +12,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Plus, Trash2, Save, ArrowLeft, ChevronDown, ChevronUp,
-  Link2, Eye, Loader2, CheckCircle2, Settings, HelpCircle
+  Link2, Eye, Loader2, CheckCircle2, Settings, HelpCircle, Ruler
 } from "lucide-react";
 import ImageUpload from "@/components/ImageUpload";
 import { Switch } from "@/components/ui/switch";
 
 
-interface Option { id: string; option_text: string; score: number; order_index: number; }
+interface Option { id: string; option_text: string; score: number; order_index: number; image_url?: string; }
 interface Question {
   id: string; title: string; description: string; image_url: string;
   order_index: number; options: Option[]; isOpen: boolean;
-  question_type: 'multiple_choice' | 'message';
+  question_type: 'multiple_choice' | 'message' | 'range';
   button_text: string; button_url: string; is_external_link: boolean;
+  min_value?: number; max_value?: number; step_value?: number; unit?: string;
+  layout?: 'list' | 'grid'; footer_image_url?: string; secondary_image_url?: string;
 }
 interface QuizResult { id: string; title: string; description: string; min_score: number; max_score: number; recommended_product_url: string; cta_text: string; result_image?: string; }
 interface QuizData {
@@ -31,11 +33,12 @@ interface QuizData {
   status: string; cover_image: string; call_to_action_url: string; call_to_action_text: string;
 }
 
-const newOptionTemplate = (): Option => ({ id: crypto.randomUUID(), option_text: '', score: 0, order_index: 0 });
+const newOptionTemplate = (): Option => ({ id: crypto.randomUUID(), option_text: '', score: 0, order_index: 0, image_url: '' });
 const newQuestionTemplate = (order: number): Question => ({
   id: crypto.randomUUID(), title: '', description: '', image_url: '',
   order_index: order, options: [newOptionTemplate(), newOptionTemplate()], isOpen: true,
-  question_type: 'multiple_choice', button_text: 'Continuar', button_url: '', is_external_link: false
+  question_type: 'multiple_choice', button_text: 'Continuar', button_url: '', is_external_link: false,
+  min_value: 100, max_value: 220, step_value: 1, unit: 'cm', layout: 'list', footer_image_url: '', secondary_image_url: ''
 });
 
 const EditQuiz = () => {
@@ -65,8 +68,15 @@ const EditQuiz = () => {
         button_text: q.button_text || 'Continuar',
         button_url: q.button_url || '',
         is_external_link: q.is_external_link || false,
+        min_value: q.min_value || 100,
+        max_value: q.max_value || 220,
+        step_value: q.step_value || 1,
+        unit: q.unit || 'cm',
+        layout: q.layout || 'list',
+        footer_image_url: q.footer_image_url || '',
+        secondary_image_url: q.secondary_image_url || '',
         options: (q.quiz_options || []).sort((a: any, b: any) => a.order_index - b.order_index).map((o: any) => ({
-          id: o.id, option_text: o.option_text, score: o.score || 0, order_index: o.order_index
+          id: o.id, option_text: o.option_text, score: o.score || 0, order_index: o.order_index, image_url: o.image_url || ''
         }))
       })));
     }
@@ -104,15 +114,22 @@ const EditQuiz = () => {
           question_type: q.question_type,
           button_text: q.button_text,
           button_url: q.button_url,
-          is_external_link: q.is_external_link
+          is_external_link: q.is_external_link,
+          min_value: q.min_value,
+          max_value: q.max_value,
+          step_value: q.step_value,
+          unit: q.unit,
+          layout: q.layout,
+          footer_image_url: q.footer_image_url,
+          secondary_image_url: q.secondary_image_url
         }).select().single();
         if (!savedQ) continue;
-
+ 
         for (let oi = 0; oi < q.options.length; oi++) {
           const o = q.options[oi];
           await supabase.from('quiz_options').insert({
             question_id: savedQ.id, option_text: o.option_text,
-            score: o.score || 0, order_index: oi
+            score: o.score || 0, order_index: oi, image_url: o.image_url || null
           });
         }
       }
@@ -231,7 +248,7 @@ const EditQuiz = () => {
                 <div className="flex items-center gap-3">
                   <div className="relative">
                     <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black text-sm">
-                      {qIdx + 1}
+                      {q.question_type === 'range' ? <Ruler className="w-5 h-5" /> : qIdx + 1}
                     </div>
                     {q.image_url && (
                       <div className="absolute -top-1 -right-1 w-5 h-5 rounded-lg border-2 border-background overflow-hidden shadow-sm">
@@ -245,9 +262,10 @@ const EditQuiz = () => {
                     </p>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge variant="secondary" className="text-[9px] px-1.5 py-0 font-bold uppercase tracking-wider h-4">
-                        {q.question_type === 'message' ? 'Mensagem' : 'Múltipla Escolha'}
+                        {q.question_type === 'message' ? 'Mensagem' : q.question_type === 'range' ? 'Escala/Régua' : 'Múltipla Escolha'}
                       </Badge>
-                      <p className="text-[10px] text-muted-foreground">{q.options.length} opções</p>
+                      {q.question_type !== 'range' && <p className="text-[10px] text-muted-foreground">{q.options.length} opções</p>}
+                      {q.question_type === 'range' && <p className="text-[10px] text-muted-foreground">{q.min_value} - {q.max_value} {q.unit}</p>}
                     </div>
                   </div>
                 </div>
@@ -272,6 +290,7 @@ const EditQuiz = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="multiple_choice">Pergunta (Opções)</SelectItem>
+                        <SelectItem value="range">Escala / Régua (Altura, Peso, etc)</SelectItem>
                         <SelectItem value="message">Mensagem / Info</SelectItem>
                       </SelectContent>
                     </Select>
@@ -326,50 +345,119 @@ const EditQuiz = () => {
                   </div>
                 )}
 
+                {q.question_type === 'range' && (
+                  <div className="space-y-4 pt-2">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-2xl border border-border/50">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Mínimo</Label>
+                        <Input type="number" value={q.min_value} onChange={e => updateQuestion(qIdx, 'min_value', parseInt(e.target.value))} className="h-11 rounded-xl bg-background" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Máximo</Label>
+                        <Input type="number" value={q.max_value} onChange={e => updateQuestion(qIdx, 'max_value', parseInt(e.target.value))} className="h-11 rounded-xl bg-background" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Passo (Step)</Label>
+                        <Input type="number" value={q.step_value} onChange={e => updateQuestion(qIdx, 'step_value', parseInt(e.target.value))} className="h-11 rounded-xl bg-background" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Unidade</Label>
+                        <Input value={q.unit} onChange={e => updateQuestion(qIdx, 'unit', e.target.value)} className="h-11 rounded-xl bg-background" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Imagem Principal</Label>
+                    <ImageUpload
+                      value={q.image_url}
+                      onChange={(url) => updateQuestion(qIdx, 'image_url', url || '')}
+                      folder="questions"
+                      label="Principal"
+                      aspectRatio="aspect-[4/3]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Imagem Secundária (Antes/Depois)</Label>
+                    <ImageUpload
+                      value={q.secondary_image_url}
+                      onChange={(url) => updateQuestion(qIdx, 'secondary_image_url', url || '')}
+                      folder="questions"
+                      label="Opcional"
+                      aspectRatio="aspect-[4/3]"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Imagem do Slide (Opcional)</Label>
+                  <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Imagem de Rodapé (Contexto)</Label>
                   <ImageUpload
-                    value={q.image_url}
-                    onChange={(url) => updateQuestion(qIdx, 'image_url', url || '')}
+                    value={q.footer_image_url}
+                    onChange={(url) => updateQuestion(qIdx, 'footer_image_url', url || '')}
                     folder="questions"
-                    label="Carregar imagem para este slide"
-                    aspectRatio="aspect-[4/3]"
+                    label="Opcional"
+                    aspectRatio="aspect-video"
                   />
                 </div>
 
                 {q.question_type === 'multiple_choice' && (
-                  <div className="space-y-3">
-                    <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Opções de Resposta</Label>
-                    <div className="space-y-2">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Opções de Resposta</Label>
+                      <div className="flex bg-muted/50 p-1 rounded-lg border border-border">
+                        <button 
+                          onClick={() => updateQuestion(qIdx, 'layout', 'list')}
+                          className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${q.layout === 'list' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
+                        >Lista</button>
+                        <button 
+                          onClick={() => updateQuestion(qIdx, 'layout', 'grid')}
+                          className={`px-3 py-1 text-[10px] font-black uppercase rounded-md transition-all ${q.layout === 'grid' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground'}`}
+                        >Grelha</button>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
                       {q.options.map((opt, oIdx) => (
-                        <div key={opt.id} className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center text-muted-foreground font-black text-xs shrink-0">
-                            {String.fromCharCode(65 + oIdx)}
+                        <div key={opt.id} className="p-4 bg-muted/30 rounded-2xl border border-border/50 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center text-muted-foreground font-black text-xs shrink-0">
+                              {String.fromCharCode(65 + oIdx)}
+                            </div>
+                            <Input
+                              placeholder={`Opção ${String.fromCharCode(65 + oIdx)}`}
+                              value={opt.option_text}
+                              onChange={e => updateOption(qIdx, oIdx, 'option_text', e.target.value)}
+                              className="flex-1 h-11 rounded-xl bg-background border-border"
+                            />
+                            <Input
+                              type="number"
+                              placeholder="Pts"
+                              value={opt.score}
+                              onChange={e => updateOption(qIdx, oIdx, 'score', parseInt(e.target.value) || 0)}
+                              className="w-16 h-11 rounded-xl bg-background border-border text-center text-sm"
+                            />
+                            <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10 rounded-xl shrink-0"
+                              onClick={() => removeOption(qIdx, oIdx)}
+                              disabled={q.options.length <= 2}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
                           </div>
-                          <Input
-                            placeholder={`Opção ${String.fromCharCode(65 + oIdx)}`}
-                            value={opt.option_text}
-                            onChange={e => updateOption(qIdx, oIdx, 'option_text', e.target.value)}
-                            className="flex-1 h-11 rounded-xl bg-background border-border"
-                          />
-                          <Input
-                            type="number"
-                            placeholder="Pts"
-                            value={opt.score}
-                            onChange={e => updateOption(qIdx, oIdx, 'score', parseInt(e.target.value) || 0)}
-                            className="w-16 h-11 rounded-xl bg-background border-border text-center text-sm"
-                            title="Pontuação"
-                          />
-                          <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10 rounded-xl shrink-0"
-                            onClick={() => removeOption(qIdx, oIdx)}
-                            disabled={q.options.length <= 2}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+                          <div className="pl-10">
+                            <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1 block">Imagem da Opção (Opcional)</Label>
+                            <ImageUpload
+                              value={opt.image_url || ''}
+                              onChange={(url) => updateOption(qIdx, oIdx, 'image_url', url || '')}
+                              folder="options"
+                              label="Opcional"
+                              aspectRatio="aspect-square"
+                            />
+                          </div>
                         </div>
                       ))}
                     </div>
-                    <Button variant="outline" size="sm" className="rounded-xl gap-2 w-full border-dashed"
+                    <Button variant="outline" size="sm" className="rounded-xl gap-2 w-full border-dashed h-12"
                       onClick={() => addOption(qIdx)}>
                       <Plus className="w-4 h-4" /> Adicionar Opção
                     </Button>
