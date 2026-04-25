@@ -22,7 +22,7 @@ interface Question {
   id: string; title: string; description: string; image_url: string;
   order_index: number; options: Option[]; isOpen: boolean;
 }
-interface QuizResult { id: string; title: string; description: string; min_score: number; max_score: number; recommended_product_url: string; cta_text: string; }
+interface QuizResult { id: string; title: string; description: string; min_score: number; max_score: number; recommended_product_url: string; cta_text: string; result_image?: string; }
 interface QuizData {
   id: string; title: string; description: string; slug: string;
   status: string; cover_image: string; call_to_action_url: string; call_to_action_text: string;
@@ -111,7 +111,9 @@ const EditQuiz = () => {
         await supabase.from('quiz_results').insert({
           quiz_id: id, title: r.title, description: r.description,
           min_score: r.min_score || 0, max_score: r.max_score || 999,
-          recommended_product_url: r.recommended_product_url, cta_text: r.cta_text || 'Ver Oferta'
+          recommended_product_url: r.recommended_product_url, 
+          cta_text: r.cta_text || 'Ver Oferta',
+          result_image: r.result_image || null
         });
       }
 
@@ -319,6 +321,16 @@ const EditQuiz = () => {
                 <CardTitle className="text-base font-black text-foreground">Página de Resultado</CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Imagem do Resultado (Opcional)</Label>
+                  <ImageUpload
+                    value={r.result_image}
+                    onChange={(url) => setResults(prev => prev.map((res, i) => i === rIdx ? { ...res, result_image: url || '' } : res))}
+                    folder="results"
+                    label="Carregar imagem para o resultado"
+                    aspectRatio="aspect-video"
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Título do Resultado</Label>
                   <Input placeholder="Ex: O seu plano personalizado está pronto! 🎉"

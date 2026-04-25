@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface Option { id: string; option_text: string; score: number; order_index: number; }
 interface Question { id: string; title: string; image_url?: string; options: Option[]; }
-interface QuizResult { title: string; description: string; recommended_product_url: string; cta_text: string; }
+interface QuizResult { title: string; description: string; recommended_product_url: string; cta_text: string; result_image?: string; }
 interface QuizData { id: string; title: string; description: string; cover_image: string; }
 
 const TakeQuiz = () => {
@@ -269,10 +269,17 @@ const TakeQuiz = () => {
               transition={{ duration: 0.4 }}
               className="w-full text-center space-y-8"
             >
-              <div className="space-y-2">
-                <div className="w-20 h-20 bg-emerald-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-                  <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+              {result.result_image && (
+                <div className="w-full aspect-video rounded-[2rem] overflow-hidden shadow-2xl shadow-emerald-100">
+                  <img src={result.result_image} alt="" className="w-full h-full object-cover" />
                 </div>
+              )}
+              <div className="space-y-2">
+                {!result.result_image && (
+                  <div className="w-20 h-20 bg-emerald-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                    <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+                  </div>
+                )}
                 <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-tight">
                   {result.title || 'O teu resultado está pronto!'}
                 </h1>
