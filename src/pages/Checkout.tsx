@@ -400,7 +400,12 @@ const OrderSummary = ({ product, submitting, onSubmit, disabled }: { product: Pr
         </div>
       </div>
 
-      <div className="mt-10">
+      <div className="mt-8 space-y-4">
+        <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20 w-fit mx-auto lg:mx-0">
+          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[10px] font-black text-emerald-500 uppercase tracking-tighter">Envio automático após o pagamento</span>
+        </div>
+
         <Button
           onClick={onSubmit}
           className="w-full h-16 text-lg font-black bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 rounded-2xl shadow-xl shadow-primary/10 active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
