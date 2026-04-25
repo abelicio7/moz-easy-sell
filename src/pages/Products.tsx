@@ -96,7 +96,7 @@ const Products = () => {
           <p>Carregando produtos...</p>
         </div>
       ) : products.length === 0 ? (
-        <Card className="rounded-3xl border-dashed">
+        <Card className="rounded-3xl border-dashed bg-card/50">
           <CardContent className="py-12 text-center">
             <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="font-semibold text-foreground mb-2">Nenhum produto ainda</h3>
@@ -111,7 +111,7 @@ const Products = () => {
       ) : (
         <div className="grid gap-4">
           {products.map((product) => (
-            <Card key={product.id} className="overflow-hidden border-slate-100 hover:border-primary/30 hover:shadow-md transition-all duration-300 rounded-2xl">
+            <Card key={product.id} className="overflow-hidden border-border hover:border-primary/30 hover:shadow-md transition-all duration-300 rounded-2xl bg-card">
               <CardContent className="p-0">
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between p-5 gap-4">
                   <div className="flex items-center gap-4">
@@ -122,8 +122,8 @@ const Products = () => {
                       <h3 className="font-bold text-lg text-foreground leading-tight mb-1">{product.name}</h3>
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-sm font-black text-primary">{product.price.toFixed(2)} MT</span>
-                        <span className="text-slate-300">•</span>
-                        <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border-0">
+                        <span className="text-muted-foreground/30">•</span>
+                        <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider bg-muted text-muted-foreground border-0">
                           {product.delivery_type === "link" ? "Link" : product.delivery_type === "file" ? "Arquivo" : "Mensagem"}
                         </Badge>
                         
@@ -137,14 +137,14 @@ const Products = () => {
                   <div className="flex items-center gap-2 w-full md:w-auto">
                     <Button 
                       variant="outline" 
-                      className="flex-1 md:flex-none bg-white hover:bg-slate-50 rounded-xl border-slate-200"
+                      className="flex-1 md:flex-none bg-background hover:bg-muted rounded-xl border-border"
                       onClick={() => copyCheckoutLink(product.id)}
                       disabled={product.status !== 'approved'}
                     >
-                      <Copy className="w-4 h-4 mr-2 text-slate-400" /> <span className="text-xs font-bold">Checkout</span>
+                      <Copy className="w-4 h-4 mr-2 text-muted-foreground" /> <span className="text-xs font-bold">Checkout</span>
                     </Button>
                     
-                    <Button variant="secondary" className="flex-1 md:flex-none rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700" asChild>
+                    <Button variant="secondary" className="flex-1 md:flex-none rounded-xl bg-muted hover:bg-muted/80 text-foreground" asChild>
                       <Link to={`/dashboard/products/${product.id}/edit`}>
                         <Edit2 className="w-4 h-4 mr-2" /> <span className="text-xs font-bold">Editar</span>
                       </Link>
@@ -152,21 +152,21 @@ const Products = () => {
 
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl" disabled={isDeleting === product.id}>
+                        <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl" disabled={isDeleting === product.id}>
                           {isDeleting === product.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent className="rounded-3xl border-slate-100">
+                      <AlertDialogContent className="rounded-3xl border-border bg-card">
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Eliminar Produto?</AlertDialogTitle>
-                          <AlertDialogDescription>
+                          <AlertDialogTitle className="text-foreground">Eliminar Produto?</AlertDialogTitle>
+                          <AlertDialogDescription className="text-muted-foreground">
                             Esta ação não pode ser desfeita. Isto irá remover permanentemente o produto <strong>{product.name}</strong> e todos os seus links de checkout deixarão de funcionar.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+                          <AlertDialogCancel className="rounded-xl border-border text-foreground hover:bg-muted">Cancelar</AlertDialogCancel>
                           <AlertDialogAction 
-                            className="bg-red-600 hover:bg-red-700 rounded-xl"
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl"
                             onClick={() => handleDelete(product.id)}
                           >
                             Eliminar Permanentemente

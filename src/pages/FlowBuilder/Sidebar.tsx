@@ -20,10 +20,11 @@ import { Badge } from '@/components/ui/badge';
 interface SidebarProps {
   selectedNode: any | null;
   setNodes: React.Dispatch<React.SetStateAction<any[]>>;
+  setSelectedNode: React.Dispatch<React.SetStateAction<any | null>>;
   isMobileVisible?: boolean;
 }
 
-const Sidebar = ({ selectedNode, setNodes, isMobileVisible }: SidebarProps) => {
+const Sidebar = ({ selectedNode, setNodes, setSelectedNode, isMobileVisible }: SidebarProps) => {
   const onDragStart = (event: React.DragEvent, nodeType: string) => {
     event.dataTransfer.setData('application/reactflow', nodeType);
     event.dataTransfer.effectAllowed = 'move';
@@ -230,7 +231,18 @@ const Sidebar = ({ selectedNode, setNodes, isMobileVisible }: SidebarProps) => {
         </div>
 
         <div className="p-4 border-t bg-muted/30">
-          <Button variant="destructive" className="w-full gap-2 h-10 font-bold">
+          <Button 
+            variant="destructive" 
+            className="w-full gap-2 h-10 font-bold"
+            onClick={() => {
+              if (selectedNode.type === 'start') {
+                return; // Prevent deleting the start node
+              }
+              setNodes((nds) => nds.filter((node) => node.id !== selectedNode.id));
+              setSelectedNode(null);
+            }}
+            disabled={selectedNode.type === 'start'}
+          >
             <Trash2 className="w-4 h-4" /> Eliminar Bloco
           </Button>
         </div>

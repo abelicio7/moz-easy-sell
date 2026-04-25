@@ -292,6 +292,7 @@ const FlowBuilderInstance = () => {
             <Sidebar 
               selectedNode={selectedNode} 
               setNodes={setNodes} 
+              setSelectedNode={setSelectedNode}
               isMobileVisible={showMobileSidebar}
             />
           </TabsContent>
