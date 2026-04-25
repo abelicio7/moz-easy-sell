@@ -8,8 +8,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Shield, Smartphone, ShoppingBag, User, Mail, Phone } from "lucide-react";
+import { Shield, Smartphone, ShoppingBag, User, Mail, Phone, MessageCircle } from "lucide-react";
 import Logo from "@/components/Logo";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Product {
   id: string;
@@ -25,12 +26,12 @@ const Checkout = () => {
   const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
-  const [debugError, setDebugError] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     name: "",
     email: "",
     whatsapp: "",
+    payment_phone: "", // Dedicated field for M-Pesa/E-Mola
     payment_method: "mpesa",
   });
 
@@ -38,27 +39,11 @@ const Checkout = () => {
     const fetchProductAndPixel = async () => {
       const { data: productData, error: productError } = await supabase
         .from("products")
-        .select(`
-          id, 
-          name, 
-          description, 
-          price, 
-          image_url, 
-          user_id,
-          status
-        `)
+        .select(`id, name, description, price, image_url, user_id, status`)
         .eq("id", productId)
         .maybeSingle();
       
-      if (productError) {
-        console.error("Product error:", productError);
-        setDebugError(`Erro BD: ${productError.message}`);
-        setProduct(null);
-        setLoading(false);
-        return;
-      }
-      if (!productData) {
-        setDebugError(`Produto com ID ${productId} não existe no BD.`);
+      if (productError || !productData) {
         setProduct(null);
         setLoading(false);
         return;
@@ -108,51 +93,42 @@ const Checkout = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!product) return;
-    if (!form.name || !form.email || !form.whatsapp) {
-      toast.error("Preencha todos os campos obrigatórios, incluindo o número de telefone");
+    if (!form.name || !form.email || !form.whatsapp || !form.payment_phone) {
+      toast.error("Por favor, preencha todos os campos obrigatórios.");
       return;
     }
     
-    // Validate phone prefix based on operator to prevent API errors
-    const cleanPhone = form.whatsapp.replace(/\D/g, "").replace(/^258/, "").replace(/^\+258/, "");
+    // Validate phone prefix
+    const cleanPhone = form.payment_phone.replace(/\D/g, "").replace(/^258/, "");
     const prefix = cleanPhone.substring(0, 2);
     
     if (form.payment_method === "mpesa" && !["84", "85"].includes(prefix)) {
-      toast.error("Para pagar com M-Pesa, o número deve começar com 84 ou 85.");
+      toast.error("Número M-Pesa inválido. Deve começar com 84 ou 85.");
       return;
     }
     
     if (form.payment_method === "emola" && !["86", "87"].includes(prefix)) {
-      toast.error("Para pagar com E-Mola, o número deve começar com 86 ou 87.");
+      toast.error("Número E-Mola inválido. Deve começar com 86 ou 87.");
       return;
     }
 
     setSubmitting(true);
 
     try {
-      // 1. Create order ID locally to bypass RLS SELECT restriction for anonymous buyers
       const orderId = crypto.randomUUID();
-
       const { error } = await supabase.from("orders").insert({
         id: orderId,
         product_id: product.id,
         customer_name: form.name,
         customer_email: form.email,
-        customer_whatsapp: form.whatsapp || null,
+        customer_whatsapp: form.whatsapp,
         payment_method: form.payment_method,
         price: product.price,
         status: "pending",
-      }); // Do not use .select() here, as anonymous users only have INSERT permission, not SELECT.
+      });
 
-      if (error) {
-        toast.error(error.message || "Erro ao criar pedido");
-        setSubmitting(false);
-        return;
-      }
+      if (error) throw error;
       
-      const order = { id: orderId };
-
-      // 2. Call payment edge function via direct fetch to reveal true operator error codes
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       
@@ -163,10 +139,10 @@ const Checkout = () => {
           'Authorization': `Bearer ${supabaseAnonKey}`
         },
         body: JSON.stringify({
-          order_id: order.id,
+          order_id: orderId,
           payment_method: form.payment_method,
           amount: product.price,
-          phone: form.whatsapp,
+          phone: form.payment_phone,
           product_name: product.name,
         })
       });
@@ -174,236 +150,278 @@ const Checkout = () => {
       const paymentData = await paymentResponse.json();
 
       if (!paymentResponse.ok || paymentData.error) {
-        console.error("Payment failed:", paymentData);
-        const detailedError = paymentData.details ? JSON.stringify(paymentData.details) : "";
-        throw new Error(paymentData.error || paymentData.message || `Erro da operadora: ${detailedError}`);
+        throw new Error(paymentData.error || "Falha no processamento do pagamento.");
       }
 
-      if (paymentData.error) {
-         toast.error(`${paymentData.error} ${paymentData.details ? JSON.stringify(paymentData.details) : ""}`);
-         setSubmitting(false);
-         return;
-      }
-
-      // 3. Navigate to payment status page
       navigate(
-        `/checkout/${productId}/payment?order_id=${order.id}&debito_reference=${paymentData.debito_reference}&method=${form.payment_method}&amount=${product.price}`
+        `/checkout/${productId}/payment?order_id=${orderId}&debito_reference=${paymentData.debito_reference}&method=${form.payment_method}&amount=${product.price}`
       );
     } catch (err: any) {
-      toast.error(err?.message || "Erro de conexão com o servidor de pagamento. Tente novamente.");
+      toast.error(err?.message || "Erro ao processar checkout.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
-  }
-
-  if (!product) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-muted-foreground">Produto não encontrado</p>
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
+  if (!product) return <div className="min-h-screen flex items-center justify-center bg-background"><p>Produto não encontrado</p></div>;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Logo size="sm" />
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Shield className="w-3.5 h-3.5 text-primary" />
-            Checkout seguro
+    <div className="min-h-screen bg-slate-50 dark:bg-background">
+      <div className="border-b border-border bg-white dark:bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <Logo size="sm" />
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground bg-slate-100 dark:bg-muted px-3 py-1.5 rounded-full">
+            <Shield className="w-3 h-3 text-emerald-500" />
+            Checkout 100% Seguro
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          <div className="lg:col-span-3 space-y-6">
-            <div className="lg:hidden">
-              <ProductCard product={product} />
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          {/* Main Form Content */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="lg:hidden mb-6">
+              <ProductSummaryCard product={product} />
             </div>
 
-            <Card className="border-border/50">
-              <CardContent className="pt-6">
-                <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
-                  <User className="w-4 h-4 text-primary" />
-                  Seus dados
-                </h2>
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Nome completo *</Label>
+            {/* STEP 1: CONTACT DATA */}
+            <Card className="border-border/50 shadow-sm rounded-3xl overflow-hidden">
+              <CardContent className="pt-8 pb-8 px-6 md:px-8">
+                <div className="flex items-center gap-3 mb-6">
+                   <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600">
+                     <User className="w-5 h-5" />
+                   </div>
+                   <div>
+                     <h2 className="text-lg font-black text-foreground tracking-tight">Os seus dados</h2>
+                     <p className="text-xs text-muted-foreground">Onde enviaremos o seu acesso</p>
+                   </div>
+                </div>
+
+                <div className="space-y-5">
+                  <div className="grid gap-2">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Nome Completo</Label>
                     <Input
-                      placeholder="Digite seu nome completo"
+                      placeholder="Ex: João Manuel"
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      required
-                      className="bg-background/50"
+                      className="h-12 rounded-xl bg-slate-50 dark:bg-background border-slate-200 focus:ring-blue-500"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Mail className="w-3 h-3" /> Email *
-                    </Label>
+                  <div className="grid gap-2">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">E-mail Principal</Label>
                     <Input
                       type="email"
                       placeholder="seu@email.com"
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      required
-                      className="bg-background/50"
+                      className="h-12 rounded-xl bg-slate-50 dark:bg-background border-slate-200 focus:ring-blue-500"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground flex items-center justify-between">
-                      <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> Número pagante *</span>
-                      <span className="text-[10px] text-primary">
-                        {form.payment_method === 'mpesa' ? 'Deve ser 84/85' : 'Deve ser 86/87'}
-                      </span>
+                  <div className="grid gap-2">
+                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1 flex items-center gap-2">
+                       <MessageCircle className="w-3 h-3 text-emerald-500" /> WhatsApp para Suporte
                     </Label>
                     <Input
                       type="tel"
-                      placeholder={form.payment_method === 'mpesa' ? "Ex: 840000000" : "Ex: 860000000"}
+                      placeholder="Ex: 840000000"
                       value={form.whatsapp}
                       onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
-                      required
-                      className="bg-background/50"
+                      className="h-12 rounded-xl bg-slate-50 dark:bg-background border-slate-200 focus:ring-emerald-500"
                     />
-                    <p className="text-[10px] text-muted-foreground">
-                      O pagamento será enviado para este número via {form.payment_method === "mpesa" ? "M-Pesa" : "E-Mola"}
-                    </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="border-border/50">
-              <CardContent className="pt-6">
-                <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
-                  <Smartphone className="w-4 h-4 text-primary" />
-                  Método de pagamento
-                </h2>
+            {/* STEP 2: PAYMENT METHODS */}
+            <Card className="border-border/50 shadow-sm rounded-3xl overflow-hidden">
+              <CardContent className="pt-8 pb-8 px-6 md:px-8">
+                <div className="flex items-center gap-3 mb-6">
+                   <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center text-amber-600">
+                     <Smartphone className="w-5 h-5" />
+                   </div>
+                   <div>
+                     <h2 className="text-lg font-black text-foreground tracking-tight">Método de pagamento</h2>
+                     <p className="text-xs text-muted-foreground">Escolha como deseja pagar</p>
+                   </div>
+                </div>
+
                 <RadioGroup
                   value={form.payment_method}
                   onValueChange={(v) => setForm({ ...form, payment_method: v })}
-                  className="space-y-3"
+                  className="space-y-4"
                 >
-                  <label
-                    htmlFor="mpesa"
-                    className={`relative overflow-hidden flex items-center gap-4 rounded-xl p-4 cursor-pointer transition-all bg-gradient-to-br from-[#E51B24] to-[#8A0A12] text-white hover:scale-[1.02] ${
-                      form.payment_method === "mpesa"
-                        ? "border-0 shadow-2xl ring-4 ring-white/30 opacity-100"
-                        : "border-0 shadow-md opacity-70 hover:opacity-100"
-                    }`}
-                  >
-                    <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full border border-white/20 opacity-50"></div>
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-32 h-32 rounded-full border border-white/10 opacity-50"></div>
-                    <div className="relative z-10 flex items-center gap-4 w-full">
-                      <RadioGroupItem 
-                        value="mpesa" 
-                        id="mpesa" 
-                        className={form.payment_method === "mpesa" ? "border-white text-[#DD0512] bg-white fill-[#DD0512]" : "border-white/50 text-white fill-white"}
-                      />
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="w-12 h-12 rounded-full flex flex-col items-center justify-center shadow-sm bg-white text-[#DD0512]">
-                          <span className="font-black text-sm uppercase">M</span>
+                  {/* MPESA */}
+                  <div className="relative">
+                    <RadioGroupItem value="mpesa" id="mpesa" className="sr-only" />
+                    <Label
+                      htmlFor="mpesa"
+                      className={`block rounded-2xl border-2 p-5 cursor-pointer transition-all ${
+                        form.payment_method === "mpesa"
+                          ? "border-red-500 bg-red-50/30 dark:bg-red-500/5 ring-1 ring-red-500"
+                          : "border-slate-100 dark:border-muted hover:border-slate-200"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center shadow-lg">
+                            <span className="text-white font-black text-sm">M</span>
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-900 dark:text-white">M-Pesa</p>
+                            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Vodacom Moçambique</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-white">M-Pesa</p>
-                          <p className="text-xs text-white/80">Vodacom Moçambique</p>
-                        </div>
+                        {form.payment_method === "mpesa" && (
+                          <div className="w-5 h-5 rounded-full bg-red-500 flex items-center justify-center">
+                            <div className="w-2 h-2 rounded-full bg-white" />
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </label>
-                  <label
-                    htmlFor="emola"
-                    className={`relative overflow-hidden flex items-center gap-4 rounded-xl p-4 cursor-pointer transition-all bg-gradient-to-br from-[#F57C00] to-[#b34700] text-white hover:scale-[1.02] ${
-                      form.payment_method === "emola"
-                        ? "border-0 shadow-2xl ring-4 ring-white/30 opacity-100"
-                        : "border-0 shadow-md opacity-70 hover:opacity-100"
-                    }`}
-                  >
-                    <div className="absolute -right-4 -top-4 w-20 h-20 rounded-full border border-white/20 opacity-50"></div>
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-32 h-32 rounded-full border border-white/10 opacity-50"></div>
-                    <div className="relative z-10 flex items-center gap-4 w-full">
-                      <RadioGroupItem 
-                        value="emola" 
-                        id="emola" 
-                        className={form.payment_method === "emola" ? "border-white text-[#EC7028] bg-white fill-[#EC7028]" : "border-white/50 text-white fill-white"}
-                      />
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="w-12 h-12 rounded-full flex flex-col items-center justify-center shadow-sm bg-white text-[#EC7028]">
-                          <span className="font-black text-sm uppercase">E</span>
+
+                      <AnimatePresence>
+                        {form.payment_method === "mpesa" && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="pt-4 border-t border-red-100 dark:border-red-500/20 space-y-3">
+                               <Label className="text-xs font-bold text-red-600 uppercase">Número M-Pesa (84/85)</Label>
+                               <Input 
+                                 placeholder="84xxxxxxx"
+                                 value={form.payment_phone}
+                                 onChange={(e) => setForm({...form, payment_phone: e.target.value})}
+                                 className="h-12 rounded-xl bg-white dark:bg-background border-red-200 focus:ring-red-500"
+                               />
+                               <p className="text-[10px] text-red-500/70 italic">Receberá um pedido de PIN no seu telemóvel.</p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </Label>
+                  </div>
+
+                  {/* EMOLA */}
+                  <div className="relative">
+                    <RadioGroupItem value="emola" id="emola" className="sr-only" />
+                    <Label
+                      htmlFor="emola"
+                      className={`block rounded-2xl border-2 p-5 cursor-pointer transition-all ${
+                        form.payment_method === "emola"
+                          ? "border-orange-500 bg-orange-50/30 dark:bg-orange-500/5 ring-1 ring-orange-500"
+                          : "border-slate-100 dark:border-muted hover:border-slate-200"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center shadow-lg">
+                            <span className="text-white font-black text-sm">E</span>
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-900 dark:text-white">E-Mola</p>
+                            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Movitel Moçambique</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-white">E-Mola</p>
-                          <p className="text-xs text-white/80">Movitel Moçambique</p>
-                        </div>
+                        {form.payment_method === "emola" && (
+                          <div className="w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center">
+                            <div className="w-2 h-2 rounded-full bg-white" />
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  </label>
+
+                      <AnimatePresence>
+                        {form.payment_method === "emola" && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="pt-4 border-t border-orange-100 dark:border-orange-500/20 space-y-3">
+                               <Label className="text-xs font-bold text-orange-600 uppercase">Número E-Mola (86/87)</Label>
+                               <Input 
+                                 placeholder="86xxxxxxx"
+                                 value={form.payment_phone}
+                                 onChange={(e) => setForm({...form, payment_phone: e.target.value})}
+                                 className="h-12 rounded-xl bg-white dark:bg-background border-orange-200 focus:ring-orange-500"
+                               />
+                               <p className="text-[10px] text-orange-500/70 italic">Receberá um pedido de PIN no seu telemóvel.</p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </Label>
+                  </div>
                 </RadioGroup>
               </CardContent>
             </Card>
-
-            <div className="lg:hidden">
-              <Button
-                onClick={handleSubmit}
-                className="w-full h-12 text-base font-semibold"
-                disabled={submitting || !form.name || !form.email || !form.whatsapp}
-              >
-                {submitting ? "Processando pagamento..." : `Pagar ${product.price.toFixed(2)} MT`}
-              </Button>
-            </div>
           </div>
 
-          <div className="hidden lg:block lg:col-span-2">
-            <div className="sticky top-20 space-y-4">
-              <ProductCard product={product} />
-              <Card className="border-border/50">
-                <CardContent className="pt-6">
-                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-4">
-                    <ShoppingBag className="w-4 h-4 text-primary" />
-                    Resumo do pedido
+          {/* ORDER SUMMARY (Desktop) */}
+          <div className="lg:col-span-5">
+            <div className="sticky top-24 space-y-6">
+              <div className="hidden lg:block">
+                 <ProductSummaryCard product={product} />
+              </div>
+
+              <Card className="border-border/50 shadow-xl rounded-3xl bg-slate-900 text-white overflow-hidden">
+                <CardContent className="pt-8 pb-8 px-8">
+                  <h3 className="text-xs font-black uppercase tracking-[2px] text-slate-400 mb-6 flex items-center gap-2">
+                    <ShoppingBag className="w-4 h-4 text-blue-400" /> Resumo do pedido
                   </h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>Produto</span>
-                      <span>{product.price.toFixed(2)} MT</span>
+                  
+                  <div className="space-y-4">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-400">Subtotal</span>
+                      <span className="font-bold">{product.price.toFixed(2)} MT</span>
                     </div>
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>Taxa de serviço</span>
-                      <span className="text-primary">Grátis</span>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-400">Taxas e Entrega</span>
+                      <span className="text-emerald-400 font-bold tracking-widest uppercase text-[10px]">Grátis</span>
                     </div>
-                    <Separator className="my-2" />
-                    <div className="flex justify-between font-bold text-foreground text-base">
-                      <span>Total</span>
-                      <span className="text-primary">{product.price.toFixed(2)} MT</span>
+                    
+                    <Separator className="bg-slate-800" />
+                    
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-lg font-black tracking-tight">Total</span>
+                      <span className="text-3xl font-black text-blue-400 tracking-tighter">
+                        {product.price.toFixed(2)} <span className="text-sm">MT</span>
+                      </span>
                     </div>
                   </div>
 
                   <Button
                     onClick={handleSubmit}
-                    className="w-full h-12 text-base font-semibold mt-6"
-                    disabled={submitting || !form.name || !form.email || !form.whatsapp}
+                    disabled={submitting || !form.name || !form.email || !form.whatsapp || !form.payment_phone}
+                    className="w-full h-16 rounded-2xl text-lg font-black bg-blue-600 hover:bg-blue-700 shadow-2xl shadow-blue-500/20 mt-8 transition-all active:scale-95"
                   >
-                    {submitting ? "Processando pagamento..." : `Pagar ${product.price.toFixed(2)} MT`}
+                    {submitting ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                        Processando...
+                      </>
+                    ) : (
+                      `Pagar Agora`
+                    )}
                   </Button>
 
-                  <p className="text-[10px] text-muted-foreground text-center mt-3">
-                    Ao clicar em Pagar, você concorda com os nossos Termos de Uso
-                  </p>
+                  <div className="mt-6 flex items-center justify-center gap-4 opacity-50 grayscale hover:grayscale-0 transition-all">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/ba/M-Pesa_logo.png" className="h-4 object-contain" alt="M-Pesa" />
+                    <div className="h-4 w-[1px] bg-slate-700" />
+                    <span className="text-[10px] font-black tracking-widest">E-MOLA</span>
+                  </div>
                 </CardContent>
               </Card>
+
+              <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground opacity-60">
+                 <Shield className="w-3 h-3" />
+                 Sua transação está protegida por encriptação 256-bit
+              </div>
             </div>
           </div>
         </div>
@@ -412,24 +430,30 @@ const Checkout = () => {
   );
 };
 
-const ProductCard = ({ product }: { product: Product }) => (
-  <Card className="border-border/50 overflow-hidden">
-    {product.image_url && (
-      <div className="aspect-video w-full overflow-hidden bg-muted">
-        <img
-          src={product.image_url}
-          alt={product.name}
-          className="w-full h-full object-cover"
-        />
-      </div>
-    )}
-    <CardContent className={product.image_url ? "pt-4" : "pt-6"}>
-      <h2 className="text-lg font-bold text-foreground">{product.name}</h2>
-      {product.description && (
-        <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{product.description}</p>
+const ProductSummaryCard = ({ product }: { product: Product }) => (
+  <Card className="border-border/50 overflow-hidden rounded-3xl bg-white dark:bg-card shadow-sm">
+    <div className="flex items-center gap-4 p-4">
+      {product.image_url ? (
+        <div className="w-20 h-20 rounded-2xl overflow-hidden bg-slate-100 shrink-0">
+          <img
+            src={product.image_url}
+            alt={product.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      ) : (
+        <div className="w-20 h-20 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
+          <ShoppingBag className="w-8 h-8" />
+        </div>
       )}
-      <p className="text-2xl font-bold text-primary mt-3">{product.price.toFixed(2)} MT</p>
-    </CardContent>
+      <div className="flex-1 min-w-0">
+        <h2 className="text-base font-bold text-foreground truncate">{product.name}</h2>
+        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{product.description || 'Produto Digital'}</p>
+        <div className="mt-1 flex items-center gap-2">
+           <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-blue-100 text-blue-600 bg-blue-50/30">Entrega Instantânea</Badge>
+        </div>
+      </div>
+    </div>
   </Card>
 );
 
