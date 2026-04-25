@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
         `;
 
         console.log("Invoking email notification for order", orderId);
-        await supabase.functions.invoke("send-email-notification", {
+        const { data: emailRes, error: emailErr } = await supabase.functions.invoke("send-email-notification", {
           body: {
             to: order.customer_email,
             subject: `Seu Produto: ${product?.name}`,
@@ -110,23 +110,34 @@ Deno.serve(async (req) => {
           }
         });
 
+        if (emailErr) console.error("Customer email invocation error:", emailErr);
+        else console.log("Customer email invocation result:", emailRes);
+
         // 1.1 NOTIFY SELLER
+        const product = order.products as any;
+        console.log("Checking seller notification for product user_id:", product?.user_id);
+        
         if (product?.user_id) {
           try {
-            // Get seller profile
-            const { data: profile } = await supabase
-              .from("profiles")
-              .select("email, full_name")
-              .eq("id", product.user_id)
-              .single();
+            // USAR ADMIN API PARA GARANTIR QUE BUSCAMOS O EMAIL, MESMO SEM PERFIL COMPLETO
+            const { data: authUser, error: authErr } = await supabase.auth.admin.getUserById(product.user_id);
 
-            if (profile?.email) {
+            if (authErr) {
+              console.error("Error fetching seller from auth:", authErr);
+            }
+            
+            const sellerEmail = authUser?.user?.email;
+            const sellerName = authUser?.user?.user_metadata?.full_name || "Vendedor";
+            
+            console.log("Seller email found from auth:", sellerEmail);
+
+            if (sellerEmail) {
               const sellerHtmlContent = `
                 <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #f0fdf4; padding: 40px 20px;">
                   <div style="background-color: #ffffff; padding: 40px; border-radius: 16px; border: 1px solid #dcfce7; text-align: center;">
                     <div style="font-size: 48px; margin-bottom: 10px;">💰</div>
                     <h2 style="color: #166534; margin: 0; font-size: 24px;">Venda Realizada!</h2>
-                    <p style="color: #6b7280; font-size: 16px; margin-top: 10px;">Boas notícias, <strong>${profile.full_name || 'Vendedor'}</strong>!</p>
+                    <p style="color: #6b7280; font-size: 16px; margin-top: 10px;">Boas notícias, <strong>${sellerName}</strong>!</p>
                     
                     <div style="margin: 30px 0; padding: 20px; background-color: #f8fafc; border-radius: 12px; text-align: left; border: 1px solid #e2e8f0;">
                       <p style="margin: 0 0 10px 0; color: #64748b; font-size: 12px; font-weight: bold; uppercase;">Detalhes da Transação:</p>
@@ -145,14 +156,18 @@ Deno.serve(async (req) => {
                 </div>
               `;
 
-              await supabase.functions.invoke("send-email-notification", {
+              console.log("Invoking seller notification for", sellerEmail);
+              const { data: sellerRes, error: sellerErr } = await supabase.functions.invoke("send-email-notification", {
                 body: {
-                  to: profile.email,
+                  to: sellerEmail,
                   subject: `VENDA REALIZADA: ${product?.name} (MT ${order.price.toFixed(2)})`,
                   htmlContent: sellerHtmlContent,
                   senderName: "Vendas EnsinaPay"
                 }
               });
+
+              if (sellerErr) console.error("Seller email invocation error:", sellerErr);
+              else console.log("Seller email invocation result:", sellerRes);
             }
           } catch (sellerErr) {
             console.error("Failed to notify seller:", sellerErr);
