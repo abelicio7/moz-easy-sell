@@ -109,6 +109,55 @@ Deno.serve(async (req) => {
             senderName: "Equipa EnsinaPay"
           }
         });
+
+        // 1.1 NOTIFY SELLER
+        if (product?.user_id) {
+          try {
+            // Get seller profile
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("email, full_name")
+              .eq("id", product.user_id)
+              .single();
+
+            if (profile?.email) {
+              const sellerHtmlContent = `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #f0fdf4; padding: 40px 20px;">
+                  <div style="background-color: #ffffff; padding: 40px; border-radius: 16px; border: 1px solid #dcfce7; text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 10px;">💰</div>
+                    <h2 style="color: #166534; margin: 0; font-size: 24px;">Venda Realizada!</h2>
+                    <p style="color: #6b7280; font-size: 16px; margin-top: 10px;">Boas notícias, <strong>${profile.full_name || 'Vendedor'}</strong>!</p>
+                    
+                    <div style="margin: 30px 0; padding: 20px; background-color: #f8fafc; border-radius: 12px; text-align: left; border: 1px solid #e2e8f0;">
+                      <p style="margin: 0 0 10px 0; color: #64748b; font-size: 12px; font-weight: bold; uppercase;">Detalhes da Transação:</p>
+                      <p style="margin: 5px 0; color: #1e293b; font-size: 15px;"><strong>Produto:</strong> ${product?.name}</p>
+                      <p style="margin: 5px 0; color: #1e293b; font-size: 15px;"><strong>Valor:</strong> ${order.price.toFixed(2)} MT</p>
+                      <p style="margin: 5px 0; color: #1e293b; font-size: 15px;"><strong>Cliente:</strong> ${order.customer_name}</p>
+                    </div>
+
+                    <a href="https://www.ensinapay.com/dashboard/sales" style="background-color: #16a34a; color: #ffffff; padding: 14px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 14px;">Ver no Dashboard</a>
+                    
+                    <p style="color: #94a3b8; font-size: 12px; margin-top: 30px;">
+                      Continue o excelente trabalho!<br>
+                      Equipa EnsinaPay
+                    </p>
+                  </div>
+                </div>
+              `;
+
+              await supabase.functions.invoke("send-email-notification", {
+                body: {
+                  to: profile.email,
+                  subject: `VENDA REALIZADA: ${product?.name} (MT ${order.price.toFixed(2)})`,
+                  htmlContent: sellerHtmlContent,
+                  senderName: "Vendas EnsinaPay"
+                }
+              });
+            }
+          } catch (sellerErr) {
+            console.error("Failed to notify seller:", sellerErr);
+          }
+        }
       }
 
       // 2. Trigger webhook se existir
