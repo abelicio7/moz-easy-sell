@@ -229,14 +229,26 @@ const EditQuiz = () => {
                 onClick={() => updateQuestion(qIdx, 'isOpen', !q.isOpen)}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black text-sm">
-                    {qIdx + 1}
+                  <div className="relative">
+                    <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary font-black text-sm">
+                      {qIdx + 1}
+                    </div>
+                    {q.image_url && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-lg border-2 border-background overflow-hidden shadow-sm">
+                        <img src={q.image_url} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    )}
                   </div>
                   <div>
                     <p className="font-bold text-foreground text-sm leading-tight">
                       {q.title || <span className="text-muted-foreground italic">Pergunta sem título...</span>}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">{q.options.length} opções</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 font-bold uppercase tracking-wider h-4">
+                        {q.question_type === 'message' ? 'Mensagem' : 'Múltipla Escolha'}
+                      </Badge>
+                      <p className="text-[10px] text-muted-foreground">{q.options.length} opções</p>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
