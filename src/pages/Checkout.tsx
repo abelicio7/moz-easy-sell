@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Shield, Smartphone, ShoppingBag, User, Mail, MessageCircle, Loader2, ArrowRight } from "lucide-react";
+import { Shield, Smartphone, ShoppingBag, User, Mail, Phone } from "lucide-react";
 import Logo from "@/components/Logo";
 
 interface Product {
@@ -25,60 +25,105 @@ const Checkout = () => {
   const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
+  const [debugError, setDebugError] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
-  
   const [form, setForm] = useState({
     name: "",
     email: "",
     whatsapp: "",
-    payment_phone: "",
     payment_method: "mpesa",
   });
 
   useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from("products")
-          .select("*")
-          .eq("id", productId)
-          .maybeSingle();
-        
-        if (error || !data) {
-          toast.error("Produto não encontrado.");
-          setLoading(false);
-          return;
-        }
-        setProduct(data as any);
-      } catch (err) {
-        console.error("Fetch error:", err);
-      } finally {
+    const fetchProductAndPixel = async () => {
+      const { data: productData, error: productError } = await supabase
+        .from("products")
+        .select(`
+          id, 
+          name, 
+          description, 
+          price, 
+          image_url, 
+          user_id,
+          status
+        `)
+        .eq("id", productId)
+        .maybeSingle();
+      
+      if (productError) {
+        console.error("Product error:", productError);
+        setDebugError(`Erro BD: ${productError.message}`);
+        setProduct(null);
         setLoading(false);
+        return;
       }
+      if (!productData) {
+        setDebugError(`Produto com ID ${productId} não existe no BD.`);
+        setProduct(null);
+        setLoading(false);
+        return;
+      }
+      setProduct(productData as any);
+
+      if (productData?.user_id) {
+        try {
+          const { data: pixelData } = await supabase
+            .from("seller_integrations")
+            .select("config")
+            .eq("user_id", productData.user_id)
+            .eq("integration_type", "facebook_pixel")
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (pixelData?.config?.pixelId) {
+            const pixelId = pixelData.config.pixelId;
+            const win = window as any;
+            if (!win.fbq) {
+              !function(f:any,b:any,e:any,v:any,n?:any,t?:any,s?:any)
+              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+              n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+              if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+              n.queue=[];t=b.createElement(e);t.async=!0;
+              t.src=v;s=b.getElementsByTagName(e)[0];
+              s.parentNode.insertBefore(t,s)}(win, document,'script',
+              'https://connect.facebook.net/en_US/fbevents.js');
+            }
+            win.fbq('init', pixelId);
+            win.fbq('track', 'PageView');
+            win.fbq('track', 'InitiateCheckout', {
+              content_name: productData.name,
+              value: productData.price,
+              currency: 'MZN'
+            });
+          }
+        } catch (e) {
+          console.error("Erro ao carregar pixel:", e);
+        }
+      }
+      setLoading(false);
     };
-    if (productId) fetchProduct();
+    fetchProductAndPixel();
   }, [productId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!product) return;
-    
-    if (!form.name || !form.email || !form.whatsapp || !form.payment_phone) {
-      toast.error("Por favor, preencha todos os campos.");
+    if (!form.name || !form.email || !form.whatsapp) {
+      toast.error("Preencha todos os campos obrigatórios, incluindo o número de telefone");
       return;
     }
     
-    // Simple validation
-    const cleanPhone = form.payment_phone.replace(/\D/g, "").replace(/^258/, "");
+    // Validate phone prefix based on operator to prevent API errors
+    const cleanPhone = form.whatsapp.replace(/\D/g, "").replace(/^258/, "").replace(/^\+258/, "");
     const prefix = cleanPhone.substring(0, 2);
     
     if (form.payment_method === "mpesa" && !["84", "85"].includes(prefix)) {
-      toast.error("M-Pesa: Número deve começar com 84 ou 85.");
+      toast.error("Para pagar com M-Pesa, o número deve começar com 84 ou 85.");
       return;
     }
+    
     if (form.payment_method === "emola" && !["86", "87"].includes(prefix)) {
-      toast.error("E-Mola: Número deve começar com 86 ou 87.");
+      toast.error("Para pagar com E-Mola, o número deve começar com 86 ou 87.");
       return;
     }
 
@@ -86,18 +131,23 @@ const Checkout = () => {
 
     try {
       const orderId = crypto.randomUUID();
-      const { error: orderError } = await supabase.from("orders").insert({
+
+      const { error } = await supabase.from("orders").insert({
         id: orderId,
         product_id: product.id,
         customer_name: form.name,
         customer_email: form.email,
-        customer_whatsapp: form.whatsapp,
+        customer_whatsapp: form.whatsapp || null,
         payment_method: form.payment_method,
         price: product.price,
         status: "pending",
       });
 
-      if (orderError) throw orderError;
+      if (error) {
+        toast.error(error.message || "Erro ao criar pedido");
+        setSubmitting(false);
+        return;
+      }
       
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -112,7 +162,7 @@ const Checkout = () => {
           order_id: orderId,
           payment_method: form.payment_method,
           amount: product.price,
-          phone: form.payment_phone,
+          phone: form.whatsapp,
           product_name: product.name,
         })
       });
@@ -120,216 +170,220 @@ const Checkout = () => {
       const paymentData = await paymentResponse.json();
 
       if (!paymentResponse.ok || paymentData.error) {
-        throw new Error(paymentData.error || "Erro no pagamento.");
+        throw new Error(paymentData.error || "Erro no pagamento");
       }
 
-      navigate(`/checkout/${productId}/payment?order_id=${orderId}&debito_reference=${paymentData.debito_reference}&method=${form.payment_method}&amount=${product.price}`);
+      navigate(
+        `/checkout/${productId}/payment?order_id=${orderId}&debito_reference=${paymentData.debito_reference}&method=${form.payment_method}&amount=${product.price}`
+      );
     } catch (err: any) {
-      toast.error(err?.message || "Ocorreu um erro. Tente novamente.");
+      toast.error(err?.message || "Erro ao processar pagamento.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
-  if (!product) return <div className="min-h-screen flex items-center justify-center bg-background"><p>Produto não disponível.</p></div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Produto não encontrado</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20">
-      <div className="bg-white dark:bg-card border-b border-border sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Logo size="sm" />
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-3 py-1.5 rounded-full border border-emerald-100 dark:border-emerald-500/20">
-            <Shield className="w-3 h-3" /> Checkout Seguro
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Logo size="sm" />
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Shield className="w-3.5 h-3.5 text-primary" />
+            Checkout seguro
           </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          <div className="lg:col-span-7 space-y-6">
-            <Card className="rounded-3xl border-slate-200 dark:border-muted shadow-sm overflow-hidden">
-              <CardContent className="p-8">
-                <div className="flex items-center gap-3 mb-8">
-                   <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600">
-                     <User className="w-5 h-5" />
-                   </div>
-                   <div>
-                     <h2 className="text-lg font-black text-slate-800 dark:text-white tracking-tight">Dados de contacto</h2>
-                     <p className="text-xs text-slate-500">Onde receberá o seu produto</p>
-                   </div>
-                </div>
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+          <div className="lg:col-span-3 space-y-6">
+            <div className="lg:hidden">
+              <ProductCard product={product} />
+            </div>
 
+            <Card className="border-border/50 bg-card">
+              <CardContent className="pt-6">
+                <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
+                  <User className="w-4 h-4 text-primary" />
+                  Seus dados
+                </h2>
                 <div className="space-y-4">
-                  <div className="grid gap-2">
-                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Nome Completo</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Nome completo *</Label>
                     <Input
-                      placeholder="Como se chama?"
+                      placeholder="Digite seu nome completo"
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="h-12 rounded-xl bg-slate-50 dark:bg-muted/30 border-slate-200 dark:border-muted"
+                      required
+                      className="bg-background/50 border-border"
                     />
                   </div>
-                  <div className="grid gap-2">
-                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">E-mail para entrega</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Mail className="w-3 h-3" /> Email *
+                    </Label>
                     <Input
                       type="email"
-                      placeholder="exemplo@email.com"
+                      placeholder="seu@email.com"
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      className="h-12 rounded-xl bg-slate-50 dark:bg-muted/30 border-slate-200 dark:border-muted"
+                      required
+                      className="bg-background/50 border-border"
                     />
                   </div>
-                  <div className="grid gap-2">
-                    <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">WhatsApp de Suporte</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground flex items-center justify-between">
+                      <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> Número pagante *</span>
+                      <span className="text-[10px] text-primary">
+                        {form.payment_method === 'mpesa' ? 'Deve ser 84/85' : 'Deve ser 86/87'}
+                      </span>
+                    </Label>
                     <Input
                       type="tel"
-                      placeholder="Ex: 840000000"
+                      placeholder={form.payment_method === 'mpesa' ? "Ex: 840000000" : "Ex: 860000000"}
                       value={form.whatsapp}
                       onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
-                      className="h-12 rounded-xl bg-slate-50 dark:bg-muted/30 border-slate-200 dark:border-muted"
+                      required
+                      className="bg-background/50 border-border"
                     />
+                    <p className="text-[10px] text-muted-foreground">
+                      O pagamento será solicitado neste número via {form.payment_method === "mpesa" ? "M-Pesa" : "E-Mola"}
+                    </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="rounded-3xl border-slate-200 dark:border-muted shadow-sm overflow-hidden">
-              <CardContent className="p-8">
-                <div className="flex items-center gap-3 mb-8">
-                   <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center text-amber-600">
-                     <Smartphone className="w-5 h-5" />
-                   </div>
-                   <div>
-                     <h2 className="text-lg font-black text-slate-800 dark:text-white tracking-tight">Pagamento</h2>
-                     <p className="text-xs text-slate-500">Selecione o seu método favorito</p>
-                   </div>
-                </div>
-
+            <Card className="border-border/50 bg-card">
+              <CardContent className="pt-6">
+                <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
+                  <Smartphone className="w-4 h-4 text-primary" />
+                  Método de pagamento
+                </h2>
                 <RadioGroup
                   value={form.payment_method}
                   onValueChange={(v) => setForm({ ...form, payment_method: v })}
-                  className="space-y-4"
+                  className="space-y-3"
                 >
-                  {/* MPESA */}
-                  <div 
-                    className={`rounded-2xl border-2 p-5 transition-all cursor-pointer ${
-                      form.payment_method === "mpesa" 
-                        ? "border-red-500 bg-red-50/20 dark:bg-red-500/5 ring-1 ring-red-500" 
-                        : "border-slate-100 dark:border-muted hover:border-slate-200"
+                  <label
+                    htmlFor="mpesa"
+                    className={`relative overflow-hidden flex items-center gap-4 rounded-xl p-4 cursor-pointer transition-all bg-gradient-to-br from-[#E51B24] to-[#8A0A12] text-white hover:scale-[1.01] ${
+                      form.payment_method === "mpesa"
+                        ? "shadow-lg ring-2 ring-primary/20 opacity-100"
+                        : "opacity-80 hover:opacity-100"
                     }`}
-                    onClick={() => setForm({...form, payment_method: 'mpesa'})}
                   >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-red-600 flex items-center justify-center shadow-lg">
-                          <span className="text-white font-black text-xs uppercase">M</span>
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-900 dark:text-white">M-Pesa</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Vodacom Moçambique</p>
-                        </div>
+                    <RadioGroupItem 
+                      value="mpesa" 
+                      id="mpesa" 
+                      className="border-white text-white fill-white"
+                    />
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="w-10 h-10 rounded-full flex flex-col items-center justify-center bg-white text-[#DD0512]">
+                        <span className="font-black text-xs uppercase">M</span>
                       </div>
-                      <RadioGroupItem value="mpesa" id="mpesa" className={form.payment_method === 'mpesa' ? 'border-red-500 text-red-500' : ''} />
+                      <div>
+                        <p className="font-bold text-white">M-Pesa</p>
+                        <p className="text-[10px] text-white/80">Vodacom Moçambique</p>
+                      </div>
                     </div>
-
-                    {form.payment_method === "mpesa" && (
-                      <div className="pt-4 border-t border-red-100 dark:border-red-500/20 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                         <Label className="text-xs font-bold text-red-600 uppercase tracking-wider">Número M-Pesa (84/85)</Label>
-                         <Input 
-                           placeholder="840000000"
-                           value={form.payment_phone}
-                           onChange={(e) => setForm({...form, payment_phone: e.target.value})}
-                           className="h-12 rounded-xl bg-white dark:bg-background border-red-200"
-                         />
-                         <p className="text-[10px] text-red-400 italic">Confirme o pagamento no seu telemóvel.</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* EMOLA */}
-                  <div 
-                    className={`rounded-2xl border-2 p-5 transition-all cursor-pointer ${
-                      form.payment_method === "emola" 
-                        ? "border-orange-500 bg-orange-50/20 dark:bg-orange-500/5 ring-1 ring-orange-500" 
-                        : "border-slate-100 dark:border-muted hover:border-slate-200"
+                  </label>
+                  
+                  <label
+                    htmlFor="emola"
+                    className={`relative overflow-hidden flex items-center gap-4 rounded-xl p-4 cursor-pointer transition-all bg-gradient-to-br from-[#F57C00] to-[#b34700] text-white hover:scale-[1.01] ${
+                      form.payment_method === "emola"
+                        ? "shadow-lg ring-2 ring-primary/20 opacity-100"
+                        : "opacity-80 hover:opacity-100"
                     }`}
-                    onClick={() => setForm({...form, payment_method: 'emola'})}
                   >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-orange-500 flex items-center justify-center shadow-lg">
-                          <span className="text-white font-black text-xs uppercase">E</span>
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-900 dark:text-white">E-Mola</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Movitel Moçambique</p>
-                        </div>
+                    <RadioGroupItem 
+                      value="emola" 
+                      id="emola" 
+                      className="border-white text-white fill-white"
+                    />
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="w-10 h-10 rounded-full flex flex-col items-center justify-center bg-white text-[#F57C00]">
+                        <span className="font-black text-xs uppercase">E</span>
                       </div>
-                      <RadioGroupItem value="emola" id="emola" className={form.payment_method === 'emola' ? 'border-orange-500 text-orange-500' : ''} />
+                      <div>
+                        <p className="font-bold text-white">E-Mola</p>
+                        <p className="text-[10px] text-white/80">Movitel Moçambique</p>
+                      </div>
                     </div>
-
-                    {form.payment_method === "emola" && (
-                      <div className="pt-4 border-t border-orange-100 dark:border-orange-500/20 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                         <Label className="text-xs font-bold text-orange-600 uppercase tracking-wider">Número E-Mola (86/87)</Label>
-                         <Input 
-                           placeholder="860000000"
-                           value={form.payment_phone}
-                           onChange={(e) => setForm({...form, payment_phone: e.target.value})}
-                           className="h-12 rounded-xl bg-white dark:bg-background border-orange-200"
-                         />
-                         <p className="text-[10px] text-orange-400 italic">Confirme o pagamento no seu telemóvel.</p>
-                      </div>
-                    )}
-                  </div>
+                  </label>
                 </RadioGroup>
               </CardContent>
             </Card>
+
+            <div className="lg:hidden">
+              <Button
+                onClick={handleSubmit}
+                className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/20"
+                disabled={submitting || !form.name || !form.email || !form.whatsapp}
+              >
+                {submitting ? "Processando..." : `Pagar ${product.price.toFixed(2)} MT`}
+              </Button>
+            </div>
           </div>
 
-          <div className="lg:col-span-5 space-y-6">
-            <Card className="rounded-3xl border-slate-200 dark:border-muted overflow-hidden shadow-sm bg-white dark:bg-card">
-              <div className="p-6 flex items-center gap-4">
-                {product.image_url ? (
-                  <div className="w-20 h-20 rounded-2xl overflow-hidden bg-slate-100 shrink-0">
-                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+          <div className="hidden lg:block lg:col-span-2">
+            <div className="sticky top-20 space-y-4">
+              <ProductCard product={product} />
+              <Card className="border-border/50 bg-card">
+                <CardContent className="pt-6">
+                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-4">
+                    <ShoppingBag className="w-4 h-4 text-primary" />
+                    Resumo do pedido
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Produto</span>
+                      <span>{product.price.toFixed(2)} MT</span>
+                    </div>
+                    <div className="flex justify-between text-muted-foreground">
+                      <span>Taxa de serviço</span>
+                      <span className="text-emerald-500 font-bold uppercase text-[10px]">Grátis</span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex justify-between font-bold text-foreground text-base">
+                      <span>Total</span>
+                      <span className="text-primary">{product.price.toFixed(2)} MT</span>
+                    </div>
                   </div>
-                ) : (
-                  <div className="w-20 h-20 rounded-2xl bg-slate-100 dark:bg-muted flex items-center justify-center text-slate-400 shrink-0">
-                    <ShoppingBag className="w-8 h-8" />
-                  </div>
-                )}
-                <div className="flex-1">
-                  <h3 className="font-bold text-slate-800 dark:text-white truncate">{product.name}</h3>
-                  <p className="text-[10px] font-black uppercase text-blue-600 tracking-widest mt-1">Acesso Imediato</p>
-                </div>
-              </div>
-              <div className="px-6 pb-6 space-y-3">
-                 <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Valor do Produto</span>
-                    <span className="font-bold text-slate-800 dark:text-white">{product.price.toFixed(2)} MT</span>
-                 </div>
-                 <Separator className="dark:bg-muted" />
-                 <div className="flex justify-between items-center">
-                    <span className="text-base font-black text-slate-800 dark:text-white">Total a pagar</span>
-                    <span className="text-2xl font-black text-blue-600 tracking-tighter">{product.price.toFixed(2)} MT</span>
-                 </div>
-                 <Button 
-                   onClick={handleSubmit} 
-                   disabled={submitting || !form.name || !form.email || !form.whatsapp || !form.payment_phone}
-                   className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-lg font-black mt-4 shadow-xl shadow-blue-500/20"
-                 >
-                   {submitting ? <Loader2 className="animate-spin mr-2" /> : 'Finalizar Pagamento'}
-                   {!submitting && <ArrowRight className="w-5 h-5 ml-2" />}
-                 </Button>
-              </div>
-            </Card>
 
-            <div className="text-center space-y-4 px-6">
-               <p className="text-[10px] text-slate-400 leading-relaxed uppercase tracking-widest font-bold">
-                 Ambiente seguro e encriptado<br/>EnsinaPay &copy; 2026
-               </p>
+                  <Button
+                    onClick={handleSubmit}
+                    className="w-full h-12 text-base font-semibold mt-6 shadow-lg shadow-primary/20"
+                    disabled={submitting || !form.name || !form.email || !form.whatsapp}
+                  >
+                    {submitting ? "Processando..." : `Finalizar Pagamento`}
+                  </Button>
+
+                  <p className="text-[10px] text-muted-foreground text-center mt-4">
+                    Pague com segurança via EnsinaPay
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
@@ -337,5 +391,26 @@ const Checkout = () => {
     </div>
   );
 };
+
+const ProductCard = ({ product }: { product: Product }) => (
+  <Card className="border-border/50 overflow-hidden bg-card">
+    {product.image_url && (
+      <div className="aspect-video w-full overflow-hidden bg-muted">
+        <img
+          src={product.image_url}
+          alt={product.name}
+          className="w-full h-full object-cover"
+        />
+      </div>
+    )}
+    <CardContent className={product.image_url ? "pt-4" : "pt-6"}>
+      <h2 className="text-lg font-bold text-foreground truncate">{product.name}</h2>
+      {product.description && (
+        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{product.description}</p>
+      )}
+      <p className="text-2xl font-bold text-primary mt-3">{product.price.toFixed(2)} MT</p>
+    </CardContent>
+  </Card>
+);
 
 export default Checkout;
