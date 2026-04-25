@@ -21,6 +21,8 @@ interface Option { id: string; option_text: string; score: number; order_index: 
 interface Question {
   id: string; title: string; description: string; image_url: string;
   order_index: number; options: Option[]; isOpen: boolean;
+  question_type: 'multiple_choice' | 'message';
+  button_text: string; button_url: string; is_external_link: boolean;
 }
 interface QuizResult { id: string; title: string; description: string; min_score: number; max_score: number; recommended_product_url: string; cta_text: string; result_image?: string; }
 interface QuizData {
@@ -31,7 +33,8 @@ interface QuizData {
 const newOptionTemplate = (): Option => ({ id: crypto.randomUUID(), option_text: '', score: 0, order_index: 0 });
 const newQuestionTemplate = (order: number): Question => ({
   id: crypto.randomUUID(), title: '', description: '', image_url: '',
-  order_index: order, options: [newOptionTemplate(), newOptionTemplate()], isOpen: true
+  order_index: order, options: [newOptionTemplate(), newOptionTemplate()], isOpen: true,
+  question_type: 'multiple_choice', button_text: 'Continuar', button_url: '', is_external_link: false
 });
 
 const EditQuiz = () => {
@@ -57,6 +60,10 @@ const EditQuiz = () => {
       setQuestions(qData.map((q: any) => ({
         id: q.id, title: q.title, description: q.description || '', image_url: q.image_url || '',
         order_index: q.order_index, isOpen: false,
+        question_type: q.question_type || 'multiple_choice',
+        button_text: q.button_text || 'Continuar',
+        button_url: q.button_url || '',
+        is_external_link: q.is_external_link || false,
         options: (q.quiz_options || []).sort((a: any, b: any) => a.order_index - b.order_index).map((o: any) => ({
           id: o.id, option_text: o.option_text, score: o.score || 0, order_index: o.order_index
         }))
@@ -92,7 +99,11 @@ const EditQuiz = () => {
         const { data: savedQ } = await supabase.from('quiz_questions').insert({
           quiz_id: id, title: q.title, description: q.description,
           image_url: q.image_url || null,
-          order_index: qi, question_type: 'multiple_choice'
+          order_index: qi, 
+          question_type: q.question_type,
+          button_text: q.button_text,
+          button_url: q.button_url,
+          is_external_link: q.is_external_link
         }).select().single();
         if (!savedQ) continue;
 
@@ -239,8 +250,21 @@ const EditQuiz = () => {
               {/* Question Body */}
               {q.isOpen && (
                 <CardContent className="pt-0 pb-6 px-5 space-y-5 border-t border-border/50">
-                  <div className="space-y-2 pt-4">
-                    <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Texto da Pergunta</Label>
+                <div className="grid md:grid-cols-2 gap-4 pt-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Tipo de Slide</Label>
+                    <Select value={q.question_type} onValueChange={v => updateQuestion(qIdx, 'question_type', v)}>
+                      <SelectTrigger className="h-12 rounded-xl bg-background border-border">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="multiple_choice">Pergunta (Opções)</SelectItem>
+                        <SelectItem value="message">Mensagem / Info</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Título / Pergunta</Label>
                     <Input
                       placeholder="Ex: Qual o seu principal objetivo?"
                       value={q.title}
@@ -248,18 +272,59 @@ const EditQuiz = () => {
                       className="h-12 rounded-xl bg-background border-border font-semibold"
                     />
                   </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Imagem da Pergunta (Opcional)</Label>
-                    <ImageUpload
-                      value={q.image_url}
-                      onChange={(url) => updateQuestion(qIdx, 'image_url', url || '')}
-                      folder="questions"
-                      label="Carregar imagem para esta pergunta"
-                      aspectRatio="aspect-[4/3]"
-                    />
+                {q.question_type === 'message' && (
+                  <div className="space-y-4 pt-2">
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Descrição / Texto</Label>
+                      <Textarea
+                        placeholder="Escreve aqui a mensagem que queres mostrar..."
+                        value={q.description}
+                        onChange={e => updateQuestion(qIdx, 'description', e.target.value)}
+                        className="rounded-xl min-h-[100px] resize-none"
+                      />
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-2xl border border-border/50">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Texto do Botão</Label>
+                        <Input value={q.button_text} onChange={e => updateQuestion(qIdx, 'button_text', e.target.value)} className="h-11 rounded-xl bg-background" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">URL do Link (Opcional)</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="https://..."
+                            value={q.button_url}
+                            onChange={e => updateQuestion(qIdx, 'button_url', e.target.value)}
+                            disabled={!q.is_external_link}
+                            className="h-11 rounded-xl bg-background flex-1"
+                          />
+                          <div className="flex flex-col items-center justify-center px-2">
+                            <Label className="text-[8px] font-black uppercase mb-1">Link Ext.</Label>
+                            <Switch
+                              checked={q.is_external_link}
+                              onCheckedChange={v => updateQuestion(qIdx, 'is_external_link', v)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                )}
 
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Imagem do Slide (Opcional)</Label>
+                  <ImageUpload
+                    value={q.image_url}
+                    onChange={(url) => updateQuestion(qIdx, 'image_url', url || '')}
+                    folder="questions"
+                    label="Carregar imagem para este slide"
+                    aspectRatio="aspect-[4/3]"
+                  />
+                </div>
+
+                {q.question_type === 'multiple_choice' && (
                   <div className="space-y-3">
                     <Label className="text-xs font-bold uppercase text-muted-foreground tracking-wider">Opções de Resposta</Label>
                     <div className="space-y-2">
@@ -296,6 +361,7 @@ const EditQuiz = () => {
                       <Plus className="w-4 h-4" /> Adicionar Opção
                     </Button>
                   </div>
+                )}
                 </CardContent>
               )}
             </Card>

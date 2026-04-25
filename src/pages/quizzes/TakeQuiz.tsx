@@ -8,7 +8,11 @@ import { Loader2, ChevronRight, ArrowRight, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Option { id: string; option_text: string; score: number; order_index: number; }
-interface Question { id: string; title: string; image_url?: string; options: Option[]; }
+interface Question { 
+  id: string; title: string; description?: string; image_url?: string; 
+  options: Option[]; question_type: 'multiple_choice' | 'message';
+  button_text?: string; button_url?: string; is_external_link?: boolean;
+}
 interface QuizResult { title: string; description: string; recommended_product_url: string; cta_text: string; result_image?: string; min_score?: number; max_score?: number; }
 interface QuizData { id: string; title: string; description: string; cover_image: string; }
 
@@ -43,14 +47,18 @@ const TakeQuiz = () => {
 
       const { data: qData } = await supabase
         .from('quiz_questions')
-        .select('id, title, description, image_url, quiz_options(id, option_text, score, order_index)')
+        .select('id, title, description, image_url, question_type, button_text, button_url, is_external_link, quiz_options(id, option_text, score, order_index)')
         .eq('quiz_id', quizData.id)
         .order('order_index');
 
       if (qData) {
         setQuestions(qData.map((q: any) => ({
-          id: q.id, title: q.title,
+          id: q.id, title: q.title, description: q.description || '',
           image_url: q.image_url || null,
+          question_type: q.question_type || 'multiple_choice',
+          button_text: q.button_text || 'Continuar',
+          button_url: q.button_url || '',
+          is_external_link: q.is_external_link || false,
           options: (q.quiz_options || []).sort((a: any, b: any) => a.order_index - b.order_index)
         })));
       }
@@ -180,7 +188,7 @@ const TakeQuiz = () => {
             </motion.div>
           )}
 
-          {/* QUESTION */}
+          {/* QUESTION OR MESSAGE */}
           {step === 'question' && q && (
             <motion.div key={`q-${currentQ}`}
               custom={direction}
@@ -195,25 +203,54 @@ const TakeQuiz = () => {
                   <img src={q.image_url} alt="" className="w-full h-full object-cover" />
                 </div>
               )}
+              
               <h2 className="text-3xl font-black text-slate-900 leading-tight tracking-tight text-center px-2">
                 {q.title}
               </h2>
-              <div className="space-y-3 pt-2">
-                {q.options.map((opt, i) => (
-                  <button key={opt.id}
-                    onClick={() => handleAnswer(opt)}
-                    className="group w-full flex items-center gap-4 p-5 rounded-[1.5rem] border-2 border-slate-100 bg-white hover:border-blue-500 hover:bg-blue-50/30 active:scale-[0.98] transition-all duration-200 text-left shadow-sm hover:shadow-md"
+
+              {q.question_type === 'message' ? (
+                <div className="space-y-8">
+                  {q.description && (
+                    <p className="text-lg text-slate-500 leading-relaxed text-center whitespace-pre-wrap px-4">
+                      {q.description}
+                    </p>
+                  )}
+                  <Button
+                    size="lg"
+                    className="w-full h-16 rounded-2xl text-lg font-black bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-500/20"
+                    onClick={() => {
+                      if (q.is_external_link && q.button_url) {
+                        window.open(q.button_url, '_blank');
+                      } else {
+                        if (currentQ + 1 < questions.length) {
+                          setCurrentQ(prev => prev + 1);
+                        } else {
+                          setStep('lead');
+                        }
+                      }
+                    }}
                   >
-                    <div className="w-11 h-11 rounded-2xl bg-slate-50 group-hover:bg-blue-600 flex items-center justify-center font-black text-sm text-slate-400 group-hover:text-white transition-all shrink-0">
-                      {String.fromCharCode(65 + i)}
-                    </div>
-                    <span className="text-base font-bold text-slate-700 group-hover:text-slate-900 flex-1">
-                      {opt.option_text}
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 shrink-0" />
-                  </button>
-                ))}
-              </div>
+                    {q.button_text || 'Continuar'} <ChevronRight className="w-6 h-6 ml-1" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3 pt-2">
+                  {q.options.map((opt, i) => (
+                    <button key={opt.id}
+                      onClick={() => handleAnswer(opt)}
+                      className="group w-full flex items-center gap-4 p-5 rounded-[1.5rem] border-2 border-slate-100 bg-white hover:border-blue-500 hover:bg-blue-50/30 active:scale-[0.98] transition-all duration-200 text-left shadow-sm hover:shadow-md"
+                    >
+                      <div className="w-11 h-11 rounded-2xl bg-slate-50 group-hover:bg-blue-600 flex items-center justify-center font-black text-sm text-slate-400 group-hover:text-white transition-all shrink-0">
+                        {String.fromCharCode(65 + i)}
+                      </div>
+                      <span className="text-base font-bold text-slate-700 group-hover:text-slate-900 flex-1">
+                        {opt.option_text}
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
 
