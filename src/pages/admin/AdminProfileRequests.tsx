@@ -101,7 +101,7 @@ const AdminProfileRequests = () => {
 
         try {
           await supabase.functions.invoke("send-email-notification", {
-            body: { to: userEmail, subject, htmlContent }
+            body: { to: userEmail, subject, htmlContent, senderName: "EnsinaPay" }
           });
         } catch (emailErr) {
           console.error("Erro ao enviar email de aprovação:", emailErr);
@@ -160,7 +160,7 @@ const AdminProfileRequests = () => {
 
         try {
           await supabase.functions.invoke("send-email-notification", {
-            body: { to: userEmail, subject, htmlContent }
+            body: { to: userEmail, subject, htmlContent, senderName: "EnsinaPay" }
           });
         } catch (emailErr) {
           console.error("Erro ao enviar email de rejeição:", emailErr);

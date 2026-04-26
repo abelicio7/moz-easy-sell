@@ -55,7 +55,8 @@ const Register = () => {
           body: { 
             to: email, 
             subject: "Bem-vindo à EnsinaPay! Sua jornada começa agora.", 
-            htmlContent: welcomeHtml 
+            htmlContent: welcomeHtml,
+            senderName: "EnsinaPay"
           }
         });
       } catch (e) {

@@ -104,7 +104,7 @@ const NewProduct = () => {
 
       if (user.email) {
         await supabase.functions.invoke("send-email-notification", {
-          body: { to: user.email, subject: sellerSubject, htmlContent: sellerHtml }
+          body: { to: user.email, subject: sellerSubject, htmlContent: sellerHtml, senderName: "EnsinaPay" }
         });
       }
 
@@ -129,7 +129,7 @@ const NewProduct = () => {
         for (const admin of admins) {
           if (admin.email) {
             await supabase.functions.invoke("send-email-notification", {
-              body: { to: admin.email, subject: adminSubject, htmlContent: adminHtml }
+              body: { to: admin.email, subject: adminSubject, htmlContent: adminHtml, senderName: "EnsinaPay" }
             });
           }
         }

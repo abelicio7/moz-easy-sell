@@ -109,7 +109,8 @@ const AdminUsers = () => {
             body: { 
               to: selectedUser.email, 
               subject: subject, 
-              htmlContent: htmlContent 
+              htmlContent: htmlContent,
+              senderName: "EnsinaPay"
             }
           });
         } catch (e) {

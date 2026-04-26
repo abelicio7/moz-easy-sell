@@ -140,7 +140,8 @@ const AdminProducts = () => {
             body: {
               to: selectedProduct.profiles.email,
               subject: subject,
-              htmlContent: htmlContent
+              htmlContent: htmlContent,
+              senderName: "EnsinaPay"
             }
           });
           console.log("Notificação enviada por email com sucesso.");
