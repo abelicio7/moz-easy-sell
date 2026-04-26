@@ -17,6 +17,7 @@ interface Profile {
   role: string;
   status: string;
   cpf: string;
+  email: string; // Added email field
   rejection_reason: string;
   created_at: string;
 }
@@ -70,9 +71,51 @@ const AdminUsers = () => {
 
       if (error) throw error;
 
-      // Obter o e-mail do usuário do auth.users (isso precisa ser feito via RPC ou admin, ou a gente supõe que a profile tenha o email, mas ela não tem, a menos que a gente salve. Vamos assumir que a API envia se a gente não tiver, wait, perfis não tem email)
-      // Como o perfil não tem o e-mail, e nós não podemos consultar auth.users por segurança, a melhor forma seria o backend (trigger) fazer isso, ou podemos usar o email salvo no user_metadata? Não temos acesso a ele a partir da profile.
-      // Vou adicionar uma notificação básica por agora. Se o email estiver disponível, eu envio.
+      // Send status update email
+      if (selectedUser.email) {
+        const subject = action === "approve" 
+          ? "Conta Aprovada: Bem-vindo à EnsinaPay" 
+          : "Atualização sobre seu cadastro na EnsinaPay";
+
+        const htmlContent = action === "approve"
+          ? `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+              <h2 style="color: #16a34a;">Sua conta foi aprovada! 🎉</h2>
+              <p>Olá, <strong>${selectedUser.full_name || 'Vendedor'}</strong>.</p>
+              <p>Excelente notícia! Analisamos seu cadastro e sua conta de vendedor na EnsinaPay foi **aprovada**.</p>
+              <p>Você já pode aceder ao seu painel, configurar seus produtos e começar a vender imediatamente.</p>
+              <div style="margin: 30px 0; text-align: center;">
+                <a href="${window.location.origin}/dashboard" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ir para o Dashboard</a>
+              </div>
+              <p style="font-size: 12px; color: #666;">Desejamos muito sucesso em suas vendas!</p>
+            </div>
+          `
+          : `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+              <h2 style="color: #ef4444;">Atualização de Cadastro</h2>
+              <p>Olá, <strong>${selectedUser.full_name || 'Vendedor'}</strong>.</p>
+              <p>Infelizmente, não pudemos aprovar seu cadastro na EnsinaPay neste momento.</p>
+              <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0;">
+                <p style="margin: 0; font-weight: bold; color: #991b1b;">Motivo:</p>
+                <p style="margin: 10px 0 0 0; color: #b91c1c;">${reason}</p>
+              </div>
+              <p>Você pode ajustar as informações necessárias e entrar em contato com nosso suporte para uma nova análise.</p>
+              <p style="font-size: 12px; color: #666;">Equipa EnsinaPay</p>
+            </div>
+          `;
+
+        try {
+          await supabase.functions.invoke("send-email-notification", {
+            body: { 
+              to: selectedUser.email, 
+              subject: subject, 
+              htmlContent: htmlContent 
+            }
+          });
+        } catch (e) {
+          console.error("Erro ao enviar email de status:", e);
+        }
+      }
       
       // Log action
       await supabase.from("audit_logs").insert({

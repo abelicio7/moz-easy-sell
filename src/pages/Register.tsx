@@ -31,6 +31,37 @@ const Register = () => {
     if (error) {
       toast.error(error.message);
     } else {
+      // Send Welcome Email
+      try {
+        const welcomeHtml = `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+            <h2 style="color: #000;">Bem-vindo(a) à EnsinaPay! 🚀</h2>
+            <p>Olá, <strong>${name}</strong>.</p>
+            <p>Sua conta foi criada com sucesso! Agora você faz parte da maior plataforma de infoprodutos de Moçambique.</p>
+            <p>O que você pode fazer agora:</p>
+            <ul>
+              <li>Configurar seu perfil</li>
+              <li>Cadastrar seu primeiro produto</li>
+              <li>Começar a vender via M-Pesa e E-Mola</li>
+            </ul>
+            <div style="margin: 30px 0; text-align: center;">
+              <a href="${window.location.origin}/dashboard" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Aceder ao Painel</a>
+            </div>
+            <p style="font-size: 12px; color: #666;">Se tiver qualquer dúvida, responda a este e-mail ou chame no suporte.</p>
+          </div>
+        `;
+
+        await supabase.functions.invoke("send-email-notification", {
+          body: { 
+            to: email, 
+            subject: "Bem-vindo à EnsinaPay! Sua jornada começa agora.", 
+            htmlContent: welcomeHtml 
+          }
+        });
+      } catch (e) {
+        console.error("Erro ao enviar email de boas-vindas:", e);
+      }
+
       toast.success("Conta criada com sucesso! Bem-vindo(a) à EnsinaPay.");
       navigate("/verify-2fa");
     }
