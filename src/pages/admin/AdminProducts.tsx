@@ -118,7 +118,7 @@ const AdminProducts = () => {
               <div style="margin: 30px 0; text-align: center;">
                 <a href="https://www.ensinapay.com/checkout/${selectedProduct.id}" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ver Checkout</a>
               </div>
-              <p style="font-size: 12px; color: #666;">Atenciosamente,<br>Equipa Moz Easy Sell</p>
+              <p style="font-size: 12px; color: #666;">Atenciosamente,<br>Equipa EnsinaPay</p>
             </div>
           `
           : `
@@ -131,7 +131,7 @@ const AdminProducts = () => {
                 <p style="margin: 10px 0 0 0; color: #b91c1c;">${reason}</p>
               </div>
               <p>Pode ajustar o produto no seu painel e submetê-lo novamente para análise.</p>
-              <p style="font-size: 12px; color: #666;">Atenciosamente,<br>Equipa Moz Easy Sell</p>
+              <p style="font-size: 12px; color: #666;">Atenciosamente,<br>Equipa EnsinaPay</p>
             </div>
           `;
 

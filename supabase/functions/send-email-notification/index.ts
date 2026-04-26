@@ -18,7 +18,7 @@ serve(async (req) => {
     }
 
     // Corpo da requisição deve conter os dados do email
-    const { to, subject, htmlContent, senderName = "Moz Easy Sell" } = await req.json();
+    const { to, subject, htmlContent, senderName = "EnsinaPay" } = await req.json();
 
     const response = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",

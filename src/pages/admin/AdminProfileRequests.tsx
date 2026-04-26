@@ -85,7 +85,7 @@ const AdminProfileRequests = () => {
       // Send email notification
       const userEmail = request.requested_data.email || (request.profiles as any)?.email;
       if (userEmail) {
-        const subject = "Perfil Aprovado - Moz Easy Sell";
+        const subject = "Perfil Aprovado - EnsinaPay";
         const htmlContent = `
           <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; padding: 20px;">
             <h2 style="color: #10b981;">Perfil Aprovado!</h2>
@@ -95,7 +95,7 @@ const AdminProfileRequests = () => {
             <div style="margin: 30px 0; text-align: center;">
               <a href="https://www.ensinapay.com/dashboard" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ir para o Dashboard</a>
             </div>
-            <p style="font-size: 12px; color: #666;">Atenciosamente,<br>Equipa Moz Easy Sell</p>
+            <p style="font-size: 12px; color: #666;">Atenciosamente,<br>Equipa EnsinaPay</p>
           </div>
         `;
 
@@ -143,7 +143,7 @@ const AdminProfileRequests = () => {
       // Send email notification
       const userEmail = (request.profiles as any)?.email || request.requested_data.email;
       if (userEmail) {
-        const subject = "Solicitação de Perfil Rejeitada - Moz Easy Sell";
+        const subject = "Solicitação de Perfil Rejeitada - EnsinaPay";
         const htmlContent = `
           <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; padding: 20px;">
             <h2 style="color: #ef4444;">Atualização sobre o seu perfil</h2>
@@ -154,7 +154,7 @@ const AdminProfileRequests = () => {
               <p style="margin: 10px 0 0 0; color: #b91c1c;">${reason}</p>
             </div>
             <p>Por favor, corrija os dados solicitados e submeta uma nova solicitação no seu painel.</p>
-            <p style="font-size: 12px; color: #666;">Atenciosamente,<br>Equipa Moz Easy Sell</p>
+            <p style="font-size: 12px; color: #666;">Atenciosamente,<br>Equipa EnsinaPay</p>
           </div>
         `;
 
