@@ -48,8 +48,8 @@ Deno.serve(async (req) => {
     );
 
     // Fetch up-to-date order status and details to avoid duplicate emails
-    // We join profiles via products.user_id to get seller email directly
-    const { data: order } = await supabase
+    // We try to join profiles via products.user_id to get seller email
+    const { data: order, error: orderErr } = await supabase
       .from("orders")
       .select(`
         status, customer_email, customer_name, price, customer_notified, seller_notified, 
@@ -61,10 +61,23 @@ Deno.serve(async (req) => {
       .eq("id", orderId)
       .single();
 
+    if (orderErr) {
+      console.error("Error fetching order details:", orderErr);
+    }
+
+    console.log("Order data fetched for notification check:", JSON.stringify({
+      orderId,
+      status: order?.status,
+      customer_notified: order?.customer_notified,
+      seller_notified: order?.seller_notified,
+      has_products: !!order?.products,
+      product_user_id: (order?.products as any)?.user_id
+    }));
+
     let orderStatus = order?.status || "processing";
     const debitoStatus = (statusData.status || statusData.transaction?.status || statusData.data?.status || "").toUpperCase();
     
-    console.log(`Detected status: ${debitoStatus} for order ${orderId}`);
+    console.log(`Detected provider status: ${debitoStatus} for order ${orderId}`);
 
     const isPaid = ["COMPLETED", "SUCCESS", "PAID", "SUCCESSFUL", "SETTLED", "APPROVED", "AUTHORIZED"].includes(debitoStatus);
     const isFailed = ["FAILED", "CANCELLED", "REJECTED"].includes(debitoStatus);
@@ -89,7 +102,7 @@ Deno.serve(async (req) => {
       const productRaw = order?.products;
       const product = Array.isArray(productRaw) ? productRaw[0] : productRaw;
       const productName = product?.name || "Produto Adquirido";
-      const sellerInfo = Array.isArray(product?.profiles) ? product?.profiles[0] : product?.profiles;
+      const sellerProfile = Array.isArray(product?.profiles) ? product?.profiles[0] : product?.profiles;
 
       // 2.1 NOTIFY CUSTOMER
       if (order?.customer_email && !order.customer_notified) {
@@ -132,37 +145,65 @@ Deno.serve(async (req) => {
       }
 
       // 2.2 NOTIFY SELLER
-      const sellerEmail = sellerInfo?.email;
-      const sellerName = sellerInfo?.full_name || "Vendedor";
+      if (product?.user_id && !order?.seller_notified) {
+        let sellerEmail = sellerProfile?.email;
+        let sellerName = sellerProfile?.full_name || "Vendedor";
 
-      if (sellerEmail && !order?.seller_notified) {
-        console.log(`Preparing seller notification for: ${sellerEmail}`);
-        
-        const sellerHtmlContent = `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #f0fdf4; padding: 40px 20px;">
-            <div style="background-color: #ffffff; padding: 40px; border-radius: 16px; border: 1px solid #dcfce7; text-align: center;">
-              <div style="font-size: 48px; margin-bottom: 10px;">💰</div>
-              <h2 style="color: #166534; margin: 0; font-size: 24px;">Venda Realizada!</h2>
-              <p style="color: #6b7280; font-size: 16px; margin-top: 10px;">Boas notícias, <strong>${sellerName}</strong>!</p>
-              <div style="margin: 30px 0; padding: 20px; background-color: #f8fafc; border-radius: 12px; text-align: left; border: 1px solid #e2e8f0;">
-                <p style="margin: 5px 0; color: #1e293b; font-size: 15px;"><strong>Produto:</strong> ${productName}</p>
-                <p style="margin: 5px 0; color: #1e293b; font-size: 15px;"><strong>Valor:</strong> ${Number(order.price).toFixed(2)} MT</p>
-                <p style="margin: 5px 0; color: #1e293b; font-size: 15px;"><strong>Cliente:</strong> ${order.customer_name}</p>
+        console.log(`Checking seller info. Joined Email: ${sellerEmail}, User ID: ${product.user_id}`);
+
+        // Fallback: If join didn't work, fetch from Auth Admin API
+        if (!sellerEmail) {
+          console.log("Seller email missing from join, attempting fallback via Auth Admin API...");
+          try {
+            const { data: authUser, error: authErr } = await supabase.auth.admin.getUserById(product.user_id);
+            if (authUser?.user?.email) {
+              sellerEmail = authUser.user.email;
+              sellerName = authUser.user.user_metadata?.full_name || sellerName;
+              console.log(`Fallback successful. Seller email: ${sellerEmail}`);
+            } else if (authErr) {
+              console.error("Auth Admin fallback failed:", authErr);
+            }
+          } catch (err) {
+            console.error("Fatal error in Auth Admin fallback:", err);
+          }
+        }
+
+        if (sellerEmail) {
+          console.log(`Sending seller notification to: ${sellerEmail}`);
+          
+          const sellerHtmlContent = `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #f0fdf4; padding: 40px 20px;">
+              <div style="background-color: #ffffff; padding: 40px; border-radius: 16px; border: 1px solid #dcfce7; text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 10px;">💰</div>
+                <h2 style="color: #166534; margin: 0; font-size: 24px;">Venda Realizada!</h2>
+                <p style="color: #6b7280; font-size: 16px; margin-top: 10px;">Boas notícias, <strong>${sellerName}</strong>!</p>
+                <div style="margin: 30px 0; padding: 20px; background-color: #f8fafc; border-radius: 12px; text-align: left; border: 1px solid #e2e8f0;">
+                  <p style="margin: 5px 0; color: #1e293b; font-size: 15px;"><strong>Produto:</strong> ${productName}</p>
+                  <p style="margin: 5px 0; color: #1e293b; font-size: 15px;"><strong>Valor:</strong> ${Number(order.price || 0).toFixed(2)} MT</p>
+                  <p style="margin: 5px 0; color: #1e293b; font-size: 15px;"><strong>Cliente:</strong> ${order.customer_name}</p>
+                </div>
+                <a href="https://www.ensinapay.com/dashboard/sales" style="background-color: #16a34a; color: #ffffff; padding: 14px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 14px;">Ver no Dashboard</a>
               </div>
-              <a href="https://www.ensinapay.com/dashboard/sales" style="background-color: #16a34a; color: #ffffff; padding: 14px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 14px;">Ver no Dashboard</a>
             </div>
-          </div>
-        `;
+          `;
 
-        const { error: sellerEmailErr } = await supabase.functions.invoke("send-email-notification", {
-          body: { to: sellerEmail, subject: `VENDA REALIZADA: ${productName} (MT ${Number(order.price).toFixed(2)})`, htmlContent: sellerHtmlContent, senderName: "Vendas EnsinaPay" }
-        });
+          const { error: sellerEmailErr } = await supabase.functions.invoke("send-email-notification", {
+            body: { 
+              to: sellerEmail, 
+              subject: `VENDA REALIZADA: ${productName} (MT ${Number(order.price || 0).toFixed(2)})`, 
+              htmlContent: sellerHtmlContent, 
+              senderName: "Vendas EnsinaPay" 
+            }
+          });
 
-        if (!sellerEmailErr) {
-          await supabase.from("orders").update({ seller_notified: true }).eq("id", orderId);
-          console.log("Seller notified successfully via profile email");
+          if (!sellerEmailErr) {
+            await supabase.from("orders").update({ seller_notified: true }).eq("id", orderId);
+            console.log("Seller notified successfully");
+          } else {
+            console.error("Failed to notify seller via send-email-notification:", sellerEmailErr);
+          }
         } else {
-          console.error("Failed to notify seller:", sellerEmailErr);
+          console.warn(`Could not find seller email for product owned by user ${product.user_id}`);
         }
       }
 
