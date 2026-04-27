@@ -167,6 +167,7 @@ const AdminUsers = () => {
               <thead className="text-xs uppercase bg-muted/40 border-b border-border/50">
                 <tr>
                   <th className="px-6 py-4 font-semibold text-foreground">Nome</th>
+                  <th className="px-6 py-4 font-semibold text-foreground">Email</th>
                   <th className="px-6 py-4 font-semibold text-foreground">Função</th>
                   <th className="px-6 py-4 font-semibold text-foreground">Data Cadastro</th>
                   <th className="px-6 py-4 font-semibold text-foreground">Status</th>
@@ -187,6 +188,9 @@ const AdminUsers = () => {
                     <tr key={user.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20">
                       <td className="px-6 py-4 font-medium text-foreground">
                         {user.full_name || "Sem nome"}
+                      </td>
+                      <td className="px-6 py-4">
+                        {user.email || "Não informado"}
                       </td>
                       <td className="px-6 py-4">
                         <Badge variant="outline">{user.role}</Badge>
@@ -219,6 +223,14 @@ const AdminUsers = () => {
                                 <div>
                                   <span className="text-muted-foreground block text-xs">Nome Completo</span>
                                   <span className="font-medium text-foreground">{user.full_name || "Não informado"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground block text-xs">Email</span>
+                                  <span className="font-medium text-foreground">{user.email || "Não informado"}</span>
+                                </div>
+                                <div>
+                                  <span className="text-muted-foreground block text-xs">Documento (CPF)</span>
+                                  <span className="font-medium text-foreground">{user.cpf || "Não informado"}</span>
                                 </div>
                                 <div>
                                   <span className="text-muted-foreground block text-xs">Status Atual</span>

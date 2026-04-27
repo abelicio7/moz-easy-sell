@@ -18,6 +18,7 @@ interface Product {
   description: string;
   price: number;
   delivery_type: string;
+  delivery_content: string; // Added delivery_content
   image_url: string;
   status: string;
   rejection_reason: string;
@@ -261,6 +262,20 @@ const AdminProducts = () => {
                                     <div><span className="text-muted-foreground text-xs block">Vendedor</span><span className="font-medium">{product.profiles?.full_name}</span></div>
                                   </div>
                                 </div>
+                              </div>
+                              
+                              <div className="bg-muted/30 p-4 rounded-lg border border-border/50">
+                                <Label className="text-xs uppercase text-muted-foreground mb-2 block">Conteúdo para Entrega (Entregável)</Label>
+                                <div className="bg-background p-3 rounded border text-sm font-mono break-all whitespace-pre-wrap max-h-32 overflow-y-auto">
+                                  {product.delivery_content || "Nenhum conteúdo configurado"}
+                                </div>
+                                {product.delivery_type === 'link' && product.delivery_content && (
+                                  <Button variant="link" size="sm" className="p-0 h-auto mt-2 text-xs" asChild>
+                                    <a href={product.delivery_content} target="_blank" rel="noreferrer" className="flex items-center gap-1">
+                                      Testar Link <ExternalLink className="w-3 h-3" />
+                                    </a>
+                                  </Button>
+                                )}
                               </div>
                               
                               {!action ? (
