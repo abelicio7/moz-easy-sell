@@ -133,6 +133,39 @@ const Account = () => {
       if (error) throw error;
       
       setActiveRequest(data as any);
+
+      // Notify Admins
+      try {
+        const adminSubject = `Solicitação de Alteração de Perfil: ${fullName}`;
+        const adminHtml = `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+            <h2 style="color: #000;">Nova Solicitação de Alteração de Perfil 🛠️</h2>
+            <p>O vendedor <strong>${fullName}</strong> solicitou a alteração de seus dados cadastrais.</p>
+            <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb;">
+              <p style="margin: 5px 0;"><strong>Nome Solicitado:</strong> ${fullName}</p>
+              <p style="margin: 5px 0;"><strong>Documento:</strong> ${cpf}</p>
+              <p style="margin: 5px 0;"><strong>E-mail:</strong> ${email}</p>
+            </div>
+            <div style="text-align: center; margin-top: 25px;">
+              <a href="${window.location.origin}/admin/requests" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Analisar Solicitação</a>
+            </div>
+          </div>
+        `;
+
+        const { data: admins } = await supabase.from("profiles").select("email").eq("role", "admin");
+        if (admins) {
+          for (const admin of admins) {
+            if (admin.email) {
+              await supabase.functions.invoke("send-email-notification", {
+                body: { to: admin.email, subject: adminSubject, htmlContent: adminHtml, senderName: "EnsinaPay System" }
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Erro ao notificar admins sobre alteração de perfil:", e);
+      }
+
       toast.success("Solicitação de alteração enviada com sucesso!");
     } catch (error: any) {
       toast.error(error.message || "Erro ao enviar solicitação.");
