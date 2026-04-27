@@ -15,15 +15,26 @@ import { useAuth } from "@/hooks/useAuth";
 interface Withdrawal {
   id: string;
   amount: number;
+  fee_amount: number;
+  net_amount: number;
   status: string;
   payment_method: string;
   payment_details: string;
   created_at: string;
 }
 
+interface SavedMethod {
+  id: string;
+  method_type: string;
+  account_name: string;
+  account_number: string;
+  is_default: boolean;
+}
+
 const Finance = () => {
   const { user } = useAuth();
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
+  const [savedMethods, setSavedMethods] = useState<SavedMethod[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [loading, setLoading] = useState(true);
   
@@ -31,12 +42,18 @@ const Finance = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
+  const [accountName, setAccountName] = useState("");
   const [paymentDetails, setPaymentDetails] = useState("");
+  const [selectedMethodId, setSelectedMethodId] = useState<string>("new");
+  const [saveMethod, setSaveMethod] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  const WITHDRAWAL_FEE_PERCENT = 0.10; // 10%
 
   useEffect(() => {
     if (!user) return;
     fetchFinancialData();
+    fetchSavedMethods();
   }, [user]);
 
   const fetchFinancialData = async () => {
@@ -71,6 +88,43 @@ const Finance = () => {
     setLoading(false);
   };
 
+  const fetchSavedMethods = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from("withdrawal_methods")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { descending: true });
+      
+      if (!error && data) {
+        setSavedMethods(data as SavedMethod[]);
+        // If there are methods, select the first one by default
+        if (data.length > 0) {
+          handleMethodSelect(data[0].id, data);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching saved methods:", err);
+    }
+  };
+
+  const handleMethodSelect = (id: string, methodsList = savedMethods) => {
+    setSelectedMethodId(id);
+    if (id === "new") {
+      setPaymentMethod("");
+      setPaymentDetails("");
+      setAccountName("");
+    } else {
+      const method = methodsList.find(m => m.id === id);
+      if (method) {
+        setPaymentMethod(method.method_type);
+        setPaymentDetails(method.account_number);
+        setAccountName(method.account_name);
+      }
+    }
+  };
+
   // Compute metrics
   const totalWithdrawnAndPending = withdrawals
     .filter(w => w.status === 'completed' || w.status === 'pending')
@@ -78,10 +132,13 @@ const Finance = () => {
     
   const availableBalance = totalRevenue - totalWithdrawnAndPending;
 
+  const numAmount = Number(amount) || 0;
+  const feeAmount = numAmount * WITHDRAWAL_FEE_PERCENT;
+  const netAmount = numAmount - feeAmount;
+
   const handleWithdrawalRequest = async () => {
     if (!user) return;
     
-    const numAmount = Number(amount);
     if (!numAmount || numAmount <= 0) {
       toast.error("Insira um valor válido.");
       return;
@@ -101,25 +158,37 @@ const Finance = () => {
 
     try {
       setSubmitting(true);
-      const { data, error } = await supabase
+
+      // 1. Save method if requested
+      if (selectedMethodId === "new" && saveMethod) {
+        await supabase.from("withdrawal_methods").insert({
+          user_id: user.id,
+          method_type: paymentMethod,
+          account_name: accountName,
+          account_number: paymentDetails
+        });
+      }
+
+      // 2. Register withdrawal
+      const { error } = await supabase
         .from("withdrawals")
         .insert({
           user_id: user.id,
           amount: numAmount,
+          fee_amount: feeAmount,
+          net_amount: netAmount,
           payment_method: paymentMethod,
-          payment_details: paymentDetails,
+          payment_details: `${paymentDetails} (${accountName})`,
           status: 'pending'
-        })
-        .select()
-        .single();
+        });
 
       if (error) throw error;
 
       toast.success("Solicitação de saque enviada com sucesso!");
       setModalOpen(false);
       setAmount("");
-      setPaymentDetails("");
-      fetchFinancialData(); // Refresh list and balance
+      fetchFinancialData();
+      fetchSavedMethods();
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Erro ao solicitar saque.");
@@ -143,51 +212,117 @@ const Finance = () => {
               Solicitar Saque
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Solicitação de Saque</DialogTitle>
               <DialogDescription>
-                Transfira o seu saldo disponível para a sua conta. Valor disponível: <strong className="text-primary">{availableBalance.toFixed(2)} MZN</strong>
+                Disponível para saque: <strong className="text-primary">{availableBalance.toFixed(2)} MT</strong>
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
+            
+            <div className="space-y-6 py-4">
               <div className="space-y-2">
-                <Label>Valor a sacar (MZN)</Label>
-                <Input 
-                  type="number"
-                  placeholder="Ex: 500.00" 
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  max={availableBalance}
-                  min={1}
-                />
+                <Label>Valor do Saque (MT)</Label>
+                <div className="relative">
+                   <Input 
+                    type="number"
+                    placeholder="0.00" 
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="pr-16 text-lg font-bold"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">MT</div>
+                </div>
+                {numAmount > 0 && (
+                  <div className="p-3 bg-muted/50 rounded-lg space-y-1 border border-border/50 animate-in fade-in slide-in-from-top-1">
+                    <div className="flex justify-between text-xs">
+                      <span>Subtotal:</span>
+                      <span>{numAmount.toFixed(2)} MT</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-destructive">
+                      <span>Taxa EnsinaPay (10%):</span>
+                      <span>- {feeAmount.toFixed(2)} MT</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-bold border-t border-border/50 pt-1 mt-1 text-foreground">
+                      <span>Você Receberá:</span>
+                      <span className="text-primary">{netAmount.toFixed(2)} MT</span>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="space-y-2">
-                <Label>Método de Recebimento</Label>
-                <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o método" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="M-Pesa">M-Pesa</SelectItem>
-                    <SelectItem value="E-Mola">E-Mola</SelectItem>
-                    <SelectItem value="Transferência Bancária">Transferência Bancária</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Detalhes (Número ou Conta)</Label>
-                <Input 
-                  placeholder={paymentMethod === 'Transferência Bancária' ? "O seu NIB/IBAN, Titular e Banco" : "Número de telefone"}
-                  value={paymentDetails}
-                  onChange={(e) => setPaymentDetails(e.target.value)}
-                />
-                <p className="text-[10px] text-muted-foreground mt-1">Este é o destino onde a nossa equipe fará o depósito.</p>
+
+              <div className="space-y-4 border-t pt-4">
+                <div className="space-y-2">
+                  <Label>Método de Saque</Label>
+                  <Select value={selectedMethodId} onValueChange={handleMethodSelect}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Escolha um método" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new">+ Usar novo método</SelectItem>
+                      {savedMethods.map(m => (
+                        <SelectItem key={m.id} value={m.id}>
+                          {m.method_type}: {m.account_number} ({m.account_name})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedMethodId === "new" && (
+                  <div className="space-y-4 p-4 bg-muted/30 rounded-lg border border-border/50 animate-in fade-in zoom-in-95">
+                    <div className="space-y-2">
+                      <Label className="text-xs">Tipo de Carteira</Label>
+                      <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="M-Pesa">M-Pesa</SelectItem>
+                          <SelectItem value="E-Mola">E-Mola</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-xs">Número</Label>
+                        <Input 
+                          placeholder="84/85..." 
+                          value={paymentDetails}
+                          onChange={(e) => setPaymentDetails(e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs">Titular da Conta</Label>
+                        <Input 
+                          placeholder="Nome completo" 
+                          value={accountName}
+                          onChange={(e) => setAccountName(e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2 pt-1">
+                      <input 
+                        type="checkbox" 
+                        id="save_method" 
+                        checked={saveMethod} 
+                        onChange={(e) => setSaveMethod(e.target.checked)}
+                        className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                      />
+                      <label htmlFor="save_method" className="text-xs text-muted-foreground cursor-pointer">
+                        Salvar este método para saques futuros
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setModalOpen(false)}>Cancelar</Button>
-              <Button onClick={handleWithdrawalRequest} disabled={submitting}>
+
+            <DialogFooter className="bg-muted/30 -mx-6 -mb-6 p-6 rounded-b-lg mt-2">
+              <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancelar</Button>
+              <Button onClick={handleWithdrawalRequest} disabled={submitting || numAmount <= 0} className="px-8">
                 {submitting ? "Processando..." : "Confirmar Saque"}
               </Button>
             </DialogFooter>
@@ -251,8 +386,8 @@ const Finance = () => {
             <CardContent className="text-sm text-muted-foreground space-y-4">
               <ul className="list-disc list-inside space-y-1">
                 <li><strong className="text-foreground/80">Processamento:</strong> 1-2 dias úteis, das 7:30h até 17:30h</li>
-                <li><strong className="text-foreground/80">Taxa de Saque M-Pesa:</strong> 7%</li>
-                <li><strong className="text-foreground/80">Taxa de Saque e-Mola:</strong> 7%</li>
+                <li><strong className="text-foreground/80">Taxa Administrativa:</strong> 10% fixo por saque</li>
+                <li><strong className="text-foreground/80">Canais suportados:</strong> M-Pesa e E-Mola</li>
               </ul>
               <div className="space-y-1 pt-2 border-t border-border/50">
                 <p className="flex items-start gap-2">
@@ -284,32 +419,39 @@ const Finance = () => {
                   <table className="w-full text-sm text-left text-muted-foreground">
                     <thead className="text-xs uppercase bg-muted/40 border-b border-border/50">
                       <tr>
-                        <th className="px-4 py-3 font-semibold text-foreground">Data</th>
-                        <th className="px-4 py-3 font-semibold text-foreground">Método</th>
-                        <th className="px-4 py-3 font-semibold text-foreground">Destino (Conta)</th>
-                        <th className="px-4 py-3 font-semibold text-foreground">Valor</th>
-                        <th className="px-4 py-3 font-semibold text-foreground text-right">Status</th>
+                        <th className="px-4 py-4 font-bold text-foreground">Data</th>
+                        <th className="px-4 py-4 font-bold text-foreground">Destino</th>
+                        <th className="px-4 py-4 font-bold text-foreground">Valor Bruto</th>
+                        <th className="px-4 py-4 font-bold text-foreground">Taxa (10%)</th>
+                        <th className="px-4 py-4 font-bold text-foreground">Líquido</th>
+                        <th className="px-4 py-4 font-bold text-foreground text-right">Status</th>
                       </tr>
                     </thead>
                     <tbody>
                       {withdrawals.map((w) => (
-                        <tr key={w.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors">
-                          <td className="px-4 py-3 whitespace-nowrap">
+                        <tr key={w.id} className="border-b border-border/20 last:border-0 hover:bg-muted/30 transition-colors">
+                          <td className="px-4 py-4 whitespace-nowrap text-muted-foreground">
                             {new Date(w.created_at).toLocaleDateString('pt-BR')}
                           </td>
-                          <td className="px-4 py-3 font-medium text-foreground">
+                          <td className="px-4 py-4 font-medium text-foreground">
                             {w.payment_method}
+                            <span className="block text-[10px] font-normal text-muted-foreground truncate max-w-[150px]">
+                              {w.payment_details}
+                            </span>
                           </td>
-                          <td className="px-4 py-3">
-                            {w.payment_details}
+                          <td className="px-4 py-4 font-semibold text-foreground">
+                            {Number(w.amount).toFixed(2)} MT
                           </td>
-                          <td className="px-4 py-3 font-semibold text-foreground">
-                            {Number(w.amount).toFixed(2)} MZN
+                          <td className="px-4 py-4 text-destructive/80">
+                            - {(Number(w.fee_amount) || 0).toFixed(2)} MT
                           </td>
-                          <td className="px-4 py-3 text-right">
-                            {w.status === 'completed' && <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-0"><CheckCircle2 className="w-3 h-3 mr-1" /> Concluído</Badge>}
-                            {w.status === 'pending' && <Badge className="bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 border-0"><Clock className="w-3 h-3 mr-1" /> Pendente</Badge>}
-                            {w.status === 'rejected' && <Badge variant="destructive" className="bg-red-500/10 text-red-600 hover:bg-red-500/20 border-0"><XCircle className="w-3 h-3 mr-1" /> Recusado</Badge>}
+                          <td className="px-4 py-4 font-black text-primary">
+                            {(Number(w.net_amount) || Number(w.amount)).toFixed(2)} MT
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            {w.status === 'completed' && <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-0 shadow-none"><CheckCircle2 className="w-3 h-3 mr-1" /> Pago</Badge>}
+                            {w.status === 'pending' && <Badge className="bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 border-0 shadow-none"><Clock className="w-3 h-3 mr-1" /> Pendente</Badge>}
+                            {w.status === 'rejected' && <Badge variant="destructive" className="bg-red-500/10 text-red-600 hover:bg-red-500/20 border-0 shadow-none"><XCircle className="w-3 h-3 mr-1" /> Recusado</Badge>}
                           </td>
                         </tr>
                       ))}
