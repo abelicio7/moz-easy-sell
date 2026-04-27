@@ -40,15 +40,17 @@ Deno.serve(async (req) => {
     );
 
     const statusData = await statusResponse.json();
-    console.log("Status check:", JSON.stringify(statusData));
+    console.log(`[Order ${orderId}] Debito API response:`, JSON.stringify(statusData));
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch up-to-date order status and details to avoid duplicate emails
-    // We try to join profiles via products.user_id to get seller email
+    const BREVO_API_KEY = Deno.env.get('BREVO_API_KEY');
+    const BREVO_SENDER_EMAIL = Deno.env.get("BREVO_SENDER_EMAIL") || "suporte@ensinapay.com";
+
+    // Fetch up-to-date order status and details
     const { data: order, error: orderErr } = await supabase
       .from("orders")
       .select(`
@@ -61,24 +63,19 @@ Deno.serve(async (req) => {
       .eq("id", orderId)
       .single();
 
-    if (orderErr) {
-      console.error("Error fetching order details:", orderErr);
+    if (orderErr || !order) {
+      console.error(`[Order ${orderId}] Order not found or DB error:`, orderErr);
+      return new Response(JSON.stringify({ error: "Order not found" }), { status: 404, headers: corsHeaders });
     }
 
-    console.log("Order data fetched for notification check:", JSON.stringify({
-      orderId,
-      status: order?.status,
-      customer_notified: order?.customer_notified,
-      seller_notified: order?.seller_notified,
-      has_products: !!order?.products,
-      product_user_id: (order?.products as any)?.user_id
-    }));
+    const productRaw = order?.products;
+    const product = Array.isArray(productRaw) ? productRaw[0] : productRaw;
+    const productName = product?.name || "Produto";
+    const sellerProfile = Array.isArray(product?.profiles) ? product?.profiles[0] : product?.profiles;
 
-    let orderStatus = order?.status || "processing";
+    let orderStatus = order.status;
     const debitoStatus = (statusData.status || statusData.transaction?.status || statusData.data?.status || "").toUpperCase();
     
-    console.log(`Detected provider status: ${debitoStatus} for order ${orderId}`);
-
     const isPaid = ["COMPLETED", "SUCCESS", "PAID", "SUCCESSFUL", "SETTLED", "APPROVED", "AUTHORIZED"].includes(debitoStatus);
     const isFailed = ["FAILED", "CANCELLED", "REJECTED"].includes(debitoStatus);
 
@@ -89,158 +86,137 @@ Deno.serve(async (req) => {
     }
 
     // 1. UPDATE ORDER STATUS IF CHANGED
-    if (orderStatus !== order?.status) {
-      console.log(`Updating order ${orderId} status from ${order?.status} to ${orderStatus}`);
-      await supabase
-        .from("orders")
-        .update({ status: orderStatus })
-        .eq("id", orderId);
+    if (orderStatus !== order.status) {
+      console.log(`[Order ${orderId}] Status change: ${order.status} -> ${orderStatus}`);
+      await supabase.from("orders").update({ status: orderStatus }).eq("id", orderId);
     }
 
     // 2. TRIGGER NOTIFICATIONS IF PAID
     if (orderStatus === "paid") {
-      const productRaw = order?.products;
-      const product = Array.isArray(productRaw) ? productRaw[0] : productRaw;
-      const productName = product?.name || "Produto Adquirido";
-      const sellerProfile = Array.isArray(product?.profiles) ? product?.profiles[0] : product?.profiles;
+      console.log(`[Order ${orderId}] Payment confirmed. Checking notifications...`);
 
       // 2.1 NOTIFY CUSTOMER
-      if (order?.customer_email && !order.customer_notified) {
-        console.log("Preparing customer email for:", order.customer_email);
+      if (order.customer_email && !order.customer_notified) {
+        console.log(`[Order ${orderId}] Sending delivery email to customer: ${order.customer_email}`);
         
-        const htmlContent = `
-          <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9fafb; padding: 40px 20px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <img src="https://www.ensinapay.com/logo.png" alt="EnsinaPay" style="max-height: 45px;" />
-            </div>
-            <div style="background-color: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); border: 1px solid #f3f4f6;">
-              <h2 style="color: #111827; margin-top: 0; font-size: 24px; text-align: center;">Pagamento Confirmado! 🎉</h2>
-              <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">Olá <strong>${order.customer_name?.split(" ")[0] || ''}</strong>,</p>
-              <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">Temos uma ótima notícia! O seu pagamento referente ao produto <strong>${productName}</strong> foi aprovado com sucesso.</p>
+        const customerHtml = `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9fafb; padding: 40px 20px;">
+            <div style="background-color: #ffffff; padding: 40px; border-radius: 12px; border: 1px solid #f3f4f6; text-align: center;">
+              <h2 style="color: #111827;">Pagamento Confirmado! 🎉</h2>
+              <p>Olá <strong>${order.customer_name}</strong>,</p>
+              <p>O seu pagamento para <strong>${productName}</strong> foi aprovado.</p>
               
-              <div style="background-color: #f9fafb; padding: 25px; border-radius: 8px; margin: 30px 0; border: 1px solid #e5e7eb; text-align: center;">
+              <div style="background-color: #f9fafb; padding: 25px; border-radius: 8px; margin: 30px 0; border: 1px solid #e5e7eb;">
                 ${product?.delivery_type === "link" 
-                  ? `<p style="margin: 0 0 15px 0; color: #374151; font-size: 15px;">Clique no botão abaixo para acessar o seu produto agora mesmo:</p>
-                     <a href="${product?.delivery_content || '#'}" style="background-color: #000000; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-size: 16px; letter-spacing: 0.5px;">Acessar Meu Produto</a>`
-                  : `<p style="margin: 0 0 10px 0; color: #374151; font-size: 15px; font-weight: bold;">O seu conteúdo exclusivo:</p>
-                     <div style="background-color: #ffffff; padding: 15px; border-radius: 6px; border: 1px dashed #cbd5e1; text-align: left; white-space: pre-wrap; color: #1e293b; font-size: 14px; font-family: monospace;">${product?.delivery_content || 'O conteúdo será entregue em breve.'}</div>`
+                  ? `<p>Acesse seu produto no link abaixo:</p>
+                     <a href="${product?.delivery_content || '#'}" style="background-color: #000; color: #fff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Acessar Agora</a>`
+                  : `<p>Seu conteúdo exclusivo:</p>
+                     <div style="background-color: #fff; padding: 15px; border-radius: 6px; border: 1px dashed #ccc; font-family: monospace;">${product?.delivery_content || ''}</div>`
                 }
               </div>
-              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;" />
-              <p style="color: #6b7280; font-size: 14px; text-align: center; margin: 0;">Obrigado por escolher a <strong>EnsinaPay</strong>!</p>
+              <p style="font-size: 12px; color: #6b7280;">Obrigado por escolher a <strong>EnsinaPay</strong>!</p>
             </div>
           </div>
         `;
 
-        const { error: emailErr } = await supabase.functions.invoke("send-email-notification", {
-          body: { to: order.customer_email, subject: `Seu Produto: ${productName}`, htmlContent, senderName: "Equipa EnsinaPay" }
-        });
+        try {
+          const emailRes = await fetch("https://api.brevo.com/v3/smtp/email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "api-key": BREVO_API_KEY! },
+            body: JSON.stringify({
+              sender: { name: "EnsinaPay", email: BREVO_SENDER_EMAIL },
+              to: [{ email: order.customer_email }],
+              subject: `Seu Produto: ${productName}`,
+              htmlContent: customerHtml
+            })
+          });
 
-        if (!emailErr) {
-          await supabase.from("orders").update({ customer_notified: true }).eq("id", orderId);
-          console.log("Customer notified successfully");
-        } else {
-          console.error("Failed to notify customer:", emailErr);
+          if (emailRes.ok) {
+            await supabase.from("orders").update({ customer_notified: true }).eq("id", orderId);
+            console.log(`[Order ${orderId}] Customer notified successfully.`);
+          } else {
+            console.error(`[Order ${orderId}] Brevo error (customer):`, await emailRes.text());
+          }
+        } catch (err) {
+          console.error(`[Order ${orderId}] Fatal error sending customer email:`, err);
         }
       }
 
       // 2.2 NOTIFY SELLER
-      if (product?.user_id && !order?.seller_notified) {
+      if (product?.user_id && !order.seller_notified) {
         let sellerEmail = sellerProfile?.email;
         let sellerName = sellerProfile?.full_name || "Vendedor";
 
-        console.log(`Checking seller info. Joined Email: ${sellerEmail}, User ID: ${product.user_id}`);
-
-        // Fallback: If join didn't work, fetch from Auth Admin API
         if (!sellerEmail) {
-          console.log("Seller email missing from join, attempting fallback via Auth Admin API...");
-          try {
-            const { data: authUser, error: authErr } = await supabase.auth.admin.getUserById(product.user_id);
-            if (authUser?.user?.email) {
-              sellerEmail = authUser.user.email;
-              sellerName = authUser.user.user_metadata?.full_name || sellerName;
-              console.log(`Fallback successful. Seller email: ${sellerEmail}`);
-            } else if (authErr) {
-              console.error("Auth Admin fallback failed:", authErr);
-            }
-          } catch (err) {
-            console.error("Fatal error in Auth Admin fallback:", err);
-          }
+          const { data: authUser } = await supabase.auth.admin.getUserById(product.user_id);
+          sellerEmail = authUser?.user?.email;
+          sellerName = authUser?.user?.user_metadata?.full_name || sellerName;
         }
 
         if (sellerEmail) {
-          console.log(`Sending seller notification to: ${sellerEmail}`);
+          console.log(`[Order ${orderId}] Sending sale alert to seller: ${sellerEmail}`);
           
-          const sellerHtmlContent = `
+          const sellerHtml = `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #f0fdf4; padding: 40px 20px;">
               <div style="background-color: #ffffff; padding: 40px; border-radius: 16px; border: 1px solid #dcfce7; text-align: center;">
-                <div style="font-size: 48px; margin-bottom: 10px;">💰</div>
-                <h2 style="color: #166534; margin: 0; font-size: 24px;">Venda Realizada!</h2>
-                <p style="color: #6b7280; font-size: 16px; margin-top: 10px;">Boas notícias, <strong>${sellerName}</strong>!</p>
-                <div style="margin: 30px 0; padding: 20px; background-color: #f8fafc; border-radius: 12px; text-align: left; border: 1px solid #e2e8f0;">
-                  <p style="margin: 5px 0; color: #1e293b; font-size: 15px;"><strong>Produto:</strong> ${productName}</p>
-                  <p style="margin: 5px 0; color: #1e293b; font-size: 15px;"><strong>Valor:</strong> ${Number(order.price || 0).toFixed(2)} MT</p>
-                  <p style="margin: 5px 0; color: #1e293b; font-size: 15px;"><strong>Cliente:</strong> ${order.customer_name}</p>
+                <h2 style="color: #166534;">Venda Realizada! 💰</h2>
+                <p>Boas notícias, <strong>${sellerName}</strong>!</p>
+                <div style="margin: 20px 0; padding: 20px; background-color: #f8fafc; border-radius: 12px; text-align: left;">
+                  <p><strong>Produto:</strong> ${productName}</p>
+                  <p><strong>Valor:</strong> ${Number(order.price || 0).toFixed(2)} MT</p>
+                  <p><strong>Cliente:</strong> ${order.customer_name}</p>
                 </div>
-                <a href="https://www.ensinapay.com/dashboard/sales" style="background-color: #16a34a; color: #ffffff; padding: 14px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 14px;">Ver no Dashboard</a>
+                <a href="https://www.ensinapay.com/dashboard/sales" style="background-color: #16a34a; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Ver Dashboard</a>
               </div>
             </div>
           `;
 
-          const { error: sellerEmailErr } = await supabase.functions.invoke("send-email-notification", {
-            body: { 
-              to: sellerEmail, 
-              subject: `VENDA REALIZADA: ${productName} (MT ${Number(order.price || 0).toFixed(2)})`, 
-              htmlContent: sellerHtmlContent, 
-              senderName: "Vendas EnsinaPay" 
-            }
-          });
+          try {
+            const emailRes = await fetch("https://api.brevo.com/v3/smtp/email", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", "api-key": BREVO_API_KEY! },
+              body: JSON.stringify({
+                sender: { name: "EnsinaPay", email: BREVO_SENDER_EMAIL },
+                to: [{ email: sellerEmail }],
+                subject: `VENDA REALIZADA: ${productName}`,
+                htmlContent: sellerHtml
+              })
+            });
 
-          if (!sellerEmailErr) {
-            await supabase.from("orders").update({ seller_notified: true }).eq("id", orderId);
-            console.log("Seller notified successfully");
-          } else {
-            console.error("Failed to notify seller via send-email-notification:", sellerEmailErr);
+            if (emailRes.ok) {
+              await supabase.from("orders").update({ seller_notified: true }).eq("id", orderId);
+              console.log(`[Order ${orderId}] Seller notified successfully.`);
+            }
+          } catch (err) {
+            console.error(`[Order ${orderId}] Fatal error sending seller email:`, err);
           }
-        } else {
-          console.warn(`Could not find seller email for product owned by user ${product.user_id}`);
         }
       }
 
       // 2.3 TRIGGER WEBHOOK
       try {
-        const { data: webhooks } = await supabase
-          .from("seller_integrations")
-          .select("config")
-          .eq("user_id", product.user_id)
-          .eq("integration_type", "webhook")
-          .eq("is_active", true);
-
-        if (webhooks && webhooks.length > 0 && webhooks[0].config?.url) {
-          const webhookUrl = webhooks[0].config.url;
-          console.log("Triggering webhook to:", webhookUrl);
-          const webhookPayload = { event: "payment_approved", order_id: orderId, customer_email: order.customer_email, customer_name: order.customer_name, price: order.price, product_name: productName, timestamp: new Date().toISOString() };
-          await fetch(webhookUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(webhookPayload) });
+        const { data: webhooks } = await supabase.from("seller_integrations").select("config").eq("user_id", product.user_id).eq("integration_type", "webhook").eq("is_active", true);
+        if (webhooks?.[0]?.config?.url) {
+          console.log(`[Order ${orderId}] Triggering seller webhook:`, webhooks[0].config.url);
+          await fetch(webhooks[0].config.url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ event: "payment_approved", order_id: orderId, price: order.price, product_name: productName })
+          });
         }
-      } catch (whErr) {
-        console.error("Failed to process webhook:", whErr);
-      }
+      } catch (whErr) { console.error("Webhook trigger failed:", whErr); }
     }
 
     return new Response(
       JSON.stringify({
-        status: debitoStatus || "PENDING",
+        status: debitoStatus,
         order_status: orderStatus,
-        provider_reference: statusData.provider_reference || null,
         raw_debito_data: statusData,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Status check error:", error);
-    return new Response(
-      JSON.stringify({ error: error.message || "Erro interno" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    console.error("Critical error in check-payment-status:", error);
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
   }
 });
