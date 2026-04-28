@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import LandingNav from "@/components/LandingNav";
@@ -80,6 +79,7 @@ const Index = () => {
 
       {/* HERO SECTION */}
       <section className="relative pt-20 pb-32 md:pt-32 md:pb-48 overflow-hidden">
+        {/* Background Decorations */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 overflow-hidden">
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-secondary/5 rounded-full blur-[120px]" />
           <div className="absolute bottom-[10%] right-[-10%] w-[30%] h-[30%] bg-primary/10 rounded-full blur-[100px]" />
@@ -127,6 +127,7 @@ const Index = () => {
           <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-secondary/20 rounded-full blur-3xl -z-10" />
           
           <div className="rounded-2xl overflow-hidden border border-border/50 shadow-inner">
+             {/* Simulating the dashboard look from the screenshots */}
              <div className="bg-muted/30 aspect-[16/9] md:aspect-[21/9] flex items-center justify-center relative group">
                 <div className="absolute inset-0 bg-gradient-to-tr from-secondary/10 to-transparent pointer-events-none" />
                 <img 
@@ -160,7 +161,7 @@ const Index = () => {
               </h2>
               <p className="text-lg text-muted-foreground leading-relaxed">
                 Esqueça as gambiarras, as transferências manuais e o envio de arquivos por WhatsApp. 
-                A EnsinaPay automatiza o que é chato para você focar no que importa.
+                A EnsinaPay automatiza o que é chato para você focar no que importa: <span className="text-foreground font-bold">o seu conteúdo.</span>
               </p>
               
               <div className="space-y-4">
@@ -194,17 +195,134 @@ const Index = () => {
         </div>
       </section>
 
-      {/* FOOTER */}
+      {/* PASSOS - GRID MODERNO */}
+      <section id="como-funciona" className="py-32">
+        <div className="container px-4">
+          <div className="text-center max-w-3xl mx-auto mb-20 space-y-4">
+            <h2 className="text-4xl md:text-5xl font-black text-foreground">Como funciona?</h2>
+            <p className="text-lg text-muted-foreground">O fluxo mais simples e eficiente do mercado para o seu cliente.</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {steps.map((step, i) => (
+              <div key={i} className="group p-8 rounded-3xl bg-white dark:bg-card border border-border/50 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+                <div className={`w-14 h-14 rounded-2xl ${step.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
+                  <step.icon className="w-7 h-7" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-3">{step.title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{step.desc}</p>
+                <div className="mt-6 text-[10px] font-black text-muted-foreground/30 tracking-[4px] uppercase">Passo {i+1}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURES - BENTO GRID INSPIRED */}
+      <section className="py-32 bg-secondary/5">
+        <div className="container px-4">
+          <div className="grid lg:grid-cols-3 gap-8">
+             <div className="lg:col-span-2 grid md:grid-cols-2 gap-8">
+                {features.map((f, i) => (
+                  <div key={i} className="p-8 rounded-3xl bg-white dark:bg-card border border-border/50 shadow-sm">
+                    <f.icon className="w-10 h-10 text-secondary mb-6" />
+                    <h3 className="text-2xl font-bold text-foreground mb-3">{f.title}</h3>
+                    <p className="text-muted-foreground leading-relaxed">{f.desc}</p>
+                  </div>
+                ))}
+             </div>
+             <div className="bg-gradient-to-br from-secondary to-secondary-foreground p-10 rounded-[40px] text-white flex flex-col justify-between relative overflow-hidden shadow-2xl">
+                <TrendingUp className="w-20 h-20 text-white/10 absolute -top-4 -right-4" />
+                <div>
+                  <h3 className="text-3xl font-black mb-6">Focado em Escalar.</h3>
+                  <p className="text-white/80 leading-relaxed text-lg">
+                    Não somos apenas um processador de pagamentos. Somos o seu braço direito tecnológico para escalar o seu negócio digital em Moçambique.
+                  </p>
+                </div>
+                <div className="mt-12 space-y-4">
+                  <div className="flex items-center gap-3 bg-white/10 p-3 rounded-2xl backdrop-blur-sm">
+                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                    <span className="text-sm font-bold">100% Taxa de Disponibilidade</span>
+                  </div>
+                  <div className="flex items-center gap-3 bg-white/10 p-3 rounded-2xl backdrop-blur-sm">
+                    <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                    <span className="text-sm font-bold">Suporte Prioritário via WhatsApp</span>
+                  </div>
+                </div>
+             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* TESTIMONIALS MINI / TRUST */}
+      <section className="py-32">
+        <div className="container px-4 text-center">
+          <h2 className="text-3xl font-bold text-muted-foreground/50 mb-16 uppercase tracking-[5px]">Plataforma Feita Para</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 items-center opacity-70 grayscale hover:grayscale-0 transition-all">
+             <div className="flex flex-col items-center gap-2">
+                <Users className="w-10 h-10 text-secondary" />
+                <span className="font-bold text-foreground">Criadores</span>
+             </div>
+             <div className="flex flex-col items-center gap-2">
+                <GraduationCap className="w-10 h-10 text-secondary" />
+                <span className="font-bold text-foreground">Educadores</span>
+             </div>
+             <div className="flex flex-col items-center gap-2">
+                <Briefcase className="w-10 h-10 text-secondary" />
+                <span className="font-bold text-foreground">Consultores</span>
+             </div>
+             <div className="flex flex-col items-center gap-2">
+                <BookOpen className="w-10 h-10 text-secondary" />
+                <span className="font-bold text-foreground">Autores</span>
+             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA - PREMIUM BOX */}
+      <section className="py-20 px-4">
+        <div className="container max-w-6xl p-12 md:p-24 rounded-[60px] bg-[#0f172a] text-white text-center relative overflow-hidden shadow-2xl shadow-black/40">
+           <div className="absolute inset-0 bg-gradient-to-r from-secondary/20 to-transparent pointer-events-none" />
+           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-secondary to-transparent" />
+           
+           <div className="relative z-10 space-y-10">
+              <h2 className="text-4xl md:text-6xl font-black tracking-tight leading-[1.1]">
+                A sua jornada digital <br /> <span className="text-secondary">começa aqui.</span>
+              </h2>
+              <p className="text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
+                Junte-se a centenas de moçambicanos que já estão a faturar alto vendendo produtos digitais com pagamento local.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
+                <Button size="lg" className="w-full sm:w-auto h-16 px-12 text-xl font-bold bg-secondary hover:bg-secondary/90 text-white rounded-2xl transition-all hover:scale-105" asChild>
+                  <Link to="/register">Criar minha conta grátis</Link>
+                </Button>
+              </div>
+              <p className="text-sm text-white/40">Sem taxas de manutenção. Você só paga quando vende.</p>
+           </div>
+        </div>
+      </section>
+
+      {/* FOOTER - CLEAN */}
       <footer className="py-20 border-t border-border/50">
-        <div className="container px-4 text-center space-y-4">
-          <Logo size="md" />
-          <p className="text-sm text-muted-foreground">
+        <div className="container px-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-10">
+            <div className="space-y-4 text-center md:text-left">
+              <Logo size="md" />
+              <p className="text-sm text-muted-foreground max-w-xs">
+                A plataforma líder em vendas de infoprodutos com pagamentos locais em Moçambique.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-10 text-sm font-bold text-foreground/70">
+              <Link to="/terms" className="hover:text-secondary transition-colors">Termos</Link>
+              <Link to="/privacy" className="hover:text-secondary transition-colors">Privacidade</Link>
+              <Link to="/contact" className="hover:text-secondary transition-colors">Contacto</Link>
+              <a href="#" className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted font-bold text-xs">
+                 <Globe className="w-3 h-3" /> Moçambique
+              </a>
+            </div>
+          </div>
+          <div className="mt-16 pt-8 border-t border-border/20 text-center text-xs text-muted-foreground">
             © 2026 EnsinaPay. Elevando o empreendedorismo digital moçambicano.
-          </p>
-          <div className="flex justify-center gap-6 text-xs font-bold text-muted-foreground">
-            <Link to="/terms">Termos</Link>
-            <Link to="/privacy">Privacidade</Link>
-            <Link to="/contact">Contacto</Link>
           </div>
         </div>
       </footer>
