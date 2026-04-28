@@ -94,10 +94,10 @@ const App = () => {
           <Route path="/dashboard/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
           <Route path="/dashboard/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
           <Route path="/dashboard/quizzes" element={<ProtectedRoute><QuizDashboard /></ProtectedRoute>} />
-          <Route path="/dashboard/quizzes/new" element={<ProtectedRoute><EditQuiz /></ProtectedRoute>} />
-          <Route path="/dashboard/quizzes/:id/edit" element={<ProtectedRoute><EditQuiz /></ProtectedRoute>} />
-          <Route path="/dashboard/quizzes/:id/leads" element={<ProtectedRoute><QuizLeads /></ProtectedRoute>} />
+          <Route path="/dashboard/quizzes/new" element={<ProtectedRoute><FlowBuilder /></ProtectedRoute>} />
+          <Route path="/dashboard/quizzes/:id/edit" element={<ProtectedRoute><FlowBuilder /></ProtectedRoute>} />
           <Route path="/dashboard/flows/builder" element={<ProtectedRoute><FlowBuilder /></ProtectedRoute>} />
+          <Route path="/dashboard/quizzes/:id/leads" element={<ProtectedRoute><QuizLeads /></ProtectedRoute>} />
           <Route path="/dashboard/products/new" element={<ProtectedRoute><NewProduct /></ProtectedRoute>} />
           <Route path="/dashboard/products/:id/edit" element={<ProtectedRoute><EditProduct /></ProtectedRoute>} />
           <Route path="/dashboard/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />

@@ -89,23 +89,35 @@ const FlowBuilderInstance = () => {
   const [configSlug, setConfigSlug] = useState('');
   const [configStatus, setConfigStatus] = useState('draft');
 
-  // Load flow data from Supabase
+  // Load data from Supabase (Checks both 'flows' and 'quizzes' tables for backward compatibility)
   useEffect(() => {
     const fetchFlow = async () => {
-      if (!id) return;
+      if (!id) {
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
-        const { data: flow, error: flowError } = await supabase.from('flows').select('*').eq('id', id).single();
+        // Try 'flows' table first
+        let { data: flow, error: flowError } = await supabase.from('flows').select('*').eq('id', id).single();
+        
+        // If not found in 'flows', try 'quizzes' table
         if (flowError || !flow) {
-          toast.error("Fluxo não encontrado");
-          navigate('/dashboard/quizzes');
-          return;
+          const { data: quiz, error: quizError } = await supabase.from('quizzes').select('*').eq('id', id).single();
+          if (quizError || !quiz) {
+            toast.error("Funil não encontrado");
+            navigate('/dashboard/quizzes');
+            return;
+          }
+          flow = quiz;
         }
+
         setFlowInfo(flow);
-        setConfigName(flow.name);
+        setConfigName(flow.name || flow.title || '');
         setConfigSlug(flow.slug);
         setConfigStatus(flow.status);
 
+        // Fetch Nodes & Edges
         const { data: dbNodes } = await supabase.from('flow_nodes').select('*').eq('flow_id', id);
         const { data: dbEdges } = await supabase.from('flow_edges').select('*').eq('flow_id', id);
 
@@ -129,7 +141,8 @@ const FlowBuilderInstance = () => {
           })));
         }
       } catch (err) {
-        toast.error("Erro ao carregar o fluxo");
+        console.error("Error loading flow:", err);
+        toast.error("Erro ao carregar o funil");
       } finally {
         setLoading(false);
       }
@@ -189,12 +202,20 @@ const FlowBuilderInstance = () => {
     try {
       setSaving(true);
       
-      // Update Flow Info
-      await supabase.from('flows').update({
-        name: configName,
+      // Update Metadata in the correct table
+      const targetTable = flowInfo?.title !== undefined ? 'quizzes' : 'flows';
+      const updateData: any = {
         slug: configSlug,
         status: configStatus
-      }).eq('id', id);
+      };
+      
+      if (targetTable === 'quizzes') {
+        updateData.title = configName;
+      } else {
+        updateData.name = configName;
+      }
+
+      await supabase.from(targetTable).update(updateData).eq('id', id);
 
       // Update Nodes & Edges
       await supabase.from('flow_edges').delete().eq('flow_id', id);
