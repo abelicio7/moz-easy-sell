@@ -29,7 +29,8 @@ const ELEMENT_TYPES = [
   { id: 'audio', label: 'Áudio', icon: Music, color: 'text-purple-500', bg: 'bg-purple-50' },
   { id: 'timer', label: 'Timer', icon: Timer, color: 'text-orange-500', bg: 'bg-orange-50' },
   { id: 'carousel', label: 'Carrossel', icon: LayoutGrid, color: 'text-indigo-500', bg: 'bg-indigo-50' },
-  { id: 'stripe', label: 'Stripe', icon: CreditCard, color: 'text-indigo-600', bg: 'bg-indigo-100' },
+  { id: 'mpesa', label: 'M-Pesa', icon: Smartphone, color: 'text-red-600', bg: 'bg-red-50' },
+  { id: 'emola', label: 'E-Mola', icon: Smartphone, color: 'text-yellow-600', bg: 'bg-yellow-50' },
   { id: 'image', label: 'Imagem', icon: ImageIcon, color: 'text-pink-500', bg: 'bg-pink-50' },
   { id: 'video', label: 'Vídeo', icon: Video, color: 'text-red-500', bg: 'bg-red-50' },
   { id: 'spacer', label: 'Espaçador', icon: MoveVertical, color: 'text-slate-500', bg: 'bg-slate-50' },
@@ -60,13 +61,27 @@ const VisualBuilder = ({ nodes, setNodes }: VisualBuilderProps) => {
     }
   }, [nodes, selectedNodeId]);
 
+  const addStep = () => {
+    const newNode = {
+      id: uuidv4(),
+      type: 'message',
+      position: { x: 500, y: 150 },
+      data: { 
+        label: `Nova Etapa ${nodes.length + 1}`,
+        elements: [] 
+      },
+    };
+    setNodes(nds => [...nds, newNode]);
+    setSelectedNodeId(newNode.id);
+  };
+
   const addElement = (type: string) => {
     if (!selectedNodeId) return;
 
     const newElement = {
       id: uuidv4(),
       type,
-      content: type === 'text' ? 'Novo Texto' : '',
+      content: type === 'text' ? 'Novo Texto' : (type === 'button' ? 'Quero Meu Desconto' : ''),
       styles: {
         textAlign: 'center',
         fontWeight: 'normal',
@@ -135,7 +150,11 @@ const VisualBuilder = ({ nodes, setNodes }: VisualBuilderProps) => {
               </div>
             </button>
           ))}
-          <Button variant="ghost" className="w-full mt-4 border-2 border-dashed border-slate-200 text-slate-400 rounded-2xl h-14 hover:border-primary/50 hover:text-primary transition-all font-bold">
+          <Button 
+            variant="ghost" 
+            onClick={addStep}
+            className="w-full mt-4 border-2 border-dashed border-slate-200 text-slate-400 rounded-2xl h-14 hover:border-primary/50 hover:text-primary transition-all font-bold"
+          >
             <Plus className="w-4 h-4 mr-2" /> Adicionar Etapa
           </Button>
         </div>
@@ -206,23 +225,66 @@ const VisualBuilder = ({ nodes, setNodes }: VisualBuilderProps) => {
                   }`}
                 >
                   {el.type === 'text' && (
-                    <div 
-                      className="text-slate-800 leading-relaxed"
-                      style={{ textAlign: el.styles?.textAlign || 'center' }}
-                    >
-                      {el.content}
-                    </div>
+                    <div className="text-slate-800 leading-relaxed" style={{ textAlign: el.styles?.textAlign || 'center' }}>{el.content}</div>
                   )}
                   {el.type === 'button' && (
-                    <div className="w-full py-3 px-6 bg-primary text-white rounded-xl font-bold text-center shadow-lg shadow-primary/20">
-                      {el.content || 'Quero Meu Desconto'}
+                    <div className="w-full py-3 px-6 bg-primary text-white rounded-xl font-bold text-center shadow-lg shadow-primary/20">{el.content || 'Botão de Ação'}</div>
+                  )}
+                  {el.type === 'mpesa' && (
+                    <div className="w-full py-3 px-6 bg-red-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-red-500/20">
+                      <Smartphone className="w-4 h-4" /> Pagar com M-Pesa
+                    </div>
+                  )}
+                  {el.type === 'emola' && (
+                    <div className="w-full py-3 px-6 bg-yellow-500 text-slate-900 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-yellow-500/20">
+                      <Smartphone className="w-4 h-4" /> Pagar com E-Mola
                     </div>
                   )}
                   {el.type === 'image' && (
-                    <div className="w-full aspect-video rounded-xl bg-slate-100 overflow-hidden border border-slate-200">
+                    <div className="w-full aspect-video rounded-2xl bg-slate-100 overflow-hidden border border-slate-100">
                       <img src={el.url || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=300'} className="w-full h-full object-cover" alt="" />
                     </div>
                   )}
+                  {el.type === 'video' && (
+                    <div className="w-full aspect-video rounded-2xl bg-slate-900 flex items-center justify-center relative overflow-hidden group">
+                      <Video className="w-12 h-12 text-white/20 group-hover:scale-110 transition-transform" />
+                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center"><div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center"><Plus className="w-6 h-6 text-white fill-white" /></div></div>
+                    </div>
+                  )}
+                  {el.type === 'timer' && (
+                    <div className="flex justify-center gap-2">
+                       {['00', '15', '45'].map((n, i) => (
+                         <div key={i} className="flex flex-col items-center">
+                           <div className="w-12 h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center text-xl font-black">{n}</div>
+                           <span className="text-[8px] font-bold uppercase mt-1 text-slate-400">{i === 0 ? 'Hor' : i === 1 ? 'Min' : 'Seg'}</span>
+                         </div>
+                       ))}
+                    </div>
+                  )}
+                  {el.type === 'benefits' && (
+                    <div className="space-y-2">
+                       {[1,2,3].map(i => (
+                         <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                           <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                           <span className="text-xs font-medium text-slate-600">Benefício incrível número {i}</span>
+                         </div>
+                       ))}
+                    </div>
+                  )}
+                  {el.type === 'progress' && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-end"><span className="text-[10px] font-black uppercase text-slate-400">Progresso</span><span className="text-xs font-bold text-primary">65%</span></div>
+                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden"><div className="w-[65%] h-full bg-primary" /></div>
+                    </div>
+                  )}
+                  {el.type === 'price' && (
+                    <div className="p-6 bg-slate-900 rounded-[2rem] text-center space-y-4 shadow-xl">
+                       <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Plano Anual</span>
+                       <div className="text-4xl font-black text-white">997 <span className="text-lg opacity-50">MT</span></div>
+                       <Button className="w-full rounded-xl bg-white text-black font-bold hover:bg-slate-100">Selecionar</Button>
+                    </div>
+                  )}
+                  {el.type === 'spacer' && <div className="h-10 border-x border-dashed border-slate-200 mx-auto w-1" />}
                 </div>
               ))
             )}
@@ -233,6 +295,9 @@ const VisualBuilder = ({ nodes, setNodes }: VisualBuilderProps) => {
         <div className="absolute bottom-8 right-8 flex gap-3">
            <Button className="rounded-full bg-slate-900 hover:bg-black px-6 font-bold shadow-xl">
              <Eye className="w-4 h-4 mr-2" /> Pré-visualizar
+           </Button>
+           <Button className="rounded-full bg-primary hover:bg-primary/90 px-8 font-bold shadow-xl">
+             <Save className="w-4 h-4 mr-2" /> Salvar Funil
            </Button>
         </div>
       </div>
@@ -255,7 +320,12 @@ const VisualBuilder = ({ nodes, setNodes }: VisualBuilderProps) => {
             {selectedElement ? (
               <div className="p-6 space-y-6">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-black text-xs uppercase tracking-widest text-slate-400">Editando: {selectedElement.type}</h3>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                      {React.createElement(ELEMENT_TYPES.find(t => t.id === selectedElement.type)?.icon || Settings2, { className: "w-4 h-4 text-slate-600" })}
+                    </div>
+                    <h3 className="font-black text-[10px] uppercase tracking-widest text-slate-400">Editando: {selectedElement.type}</h3>
+                  </div>
                   <Button variant="ghost" size="icon" className="text-red-500" onClick={() => {
                     setNodes(nds => nds.map(node => {
                       if (node.id === selectedNodeId) {
@@ -265,42 +335,72 @@ const VisualBuilder = ({ nodes, setNodes }: VisualBuilderProps) => {
                     }));
                     setSelectedElementId(null);
                   }}>
-                    <Plus className="w-4 h-4 rotate-45" />
+                    <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
 
                 <Separator />
 
-                {selectedElement.type === 'text' && (
+                {/* Shared Content Field */}
+                {['text', 'button', 'mpesa', 'emola', 'price'].includes(selectedElement.type) && (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-slate-500">Conteúdo do Texto</Label>
-                      <Textarea 
-                        value={selectedElement.content}
-                        onChange={(e) => updateElement(selectedElement.id, { content: e.target.value })}
-                        className="min-h-[150px] rounded-xl border-slate-200"
-                      />
+                      <Label className="text-[10px] font-black uppercase text-slate-500">Conteúdo do {selectedElement.type}</Label>
+                      {selectedElement.type === 'text' ? (
+                        <Textarea 
+                          value={selectedElement.content}
+                          onChange={(e) => updateElement(selectedElement.id, { content: e.target.value })}
+                          className="min-h-[150px] rounded-xl border-slate-200"
+                        />
+                      ) : (
+                        <Input 
+                          value={selectedElement.content}
+                          onChange={(e) => updateElement(selectedElement.id, { content: e.target.value })}
+                          className="rounded-xl border-slate-200"
+                        />
+                      )}
                     </div>
                   </div>
                 )}
 
-                {selectedElement.type === 'button' && (
+                {['image', 'video', 'audio'].includes(selectedElement.type) && (
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-slate-500">Texto do Botão</Label>
+                      <Label className="text-[10px] font-black uppercase text-slate-500">URL do Arquivo</Label>
                       <Input 
-                        value={selectedElement.content}
-                        onChange={(e) => updateElement(selectedElement.id, { content: e.target.value })}
+                        placeholder="https://..."
+                        value={selectedElement.url || ''}
+                        onChange={(e) => updateElement(selectedElement.id, { url: e.target.value })}
                         className="rounded-xl border-slate-200"
                       />
                     </div>
                   </div>
                 )}
 
+                {selectedElement.type === 'timer' && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-slate-500">Tempo em Minutos</Label>
+                      <Input 
+                        type="number"
+                        value={selectedElement.duration || 15}
+                        onChange={(e) => updateElement(selectedElement.id, { duration: e.target.value })}
+                        className="rounded-xl border-slate-200"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <Separator />
+                
                 <div className="space-y-4">
                    <div className="flex items-center justify-between">
-                      <Label className="text-[10px] font-black uppercase text-slate-500">Desativar alinhamento padrão</Label>
-                      <Switch />
+                      <Label className="text-[10px] font-black uppercase text-slate-500">Margem Superior</Label>
+                      <Input className="w-16 h-8 text-xs" type="number" defaultValue="20" />
+                   </div>
+                   <div className="flex items-center justify-between">
+                      <Label className="text-[10px] font-black uppercase text-slate-500">Animar ao Rolar</Label>
+                      <Switch defaultChecked />
                    </div>
                 </div>
               </div>
