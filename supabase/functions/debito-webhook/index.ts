@@ -62,7 +62,11 @@ Deno.serve(async (req) => {
       
       console.log("Triggering check-payment-status via webhook for final notifications...");
       await fetch(functionUrl, {
-        headers: { "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` }
+        method: 'GET',
+        headers: { 
+          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          "apikey": Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        }
       });
     }
 

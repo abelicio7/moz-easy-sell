@@ -77,16 +77,9 @@ const Register = () => {
           </div>
         `;
 
-        const { data: admins } = await supabase.from("profiles").select("email").eq("role", "admin");
-        if (admins) {
-          for (const admin of admins) {
-            if (admin.email) {
-              await supabase.functions.invoke("send-email-notification", {
-                body: { to: admin.email, subject: adminSubject, htmlContent: adminHtml, senderName: "EnsinaPay System" }
-              });
-            }
-          }
-        }
+        await supabase.functions.invoke("notify-admins", {
+          body: { subject: adminSubject, htmlContent: adminHtml }
+        });
       } catch (e) {
         console.error("Erro ao enviar notificações:", e);
       }

@@ -109,31 +109,23 @@ const NewProduct = () => {
       }
 
       // 2. Notify Admins
-      const { data: admins } = await supabase.from("profiles").select("email").eq("role", "admin");
-      if (admins && admins.length > 0) {
-        const adminSubject = `NOVO PRODUTO: ${form.name} aguardando aprovação`;
-        const adminHtml = `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px; background-color: #f9fafb;">
-            <h2 style="color: #111827;">Novo Produto para Revisão</h2>
-            <p>Um novo produto foi cadastrado e aguarda sua análise:</p>
-            <div style="background-color: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb; margin: 20px 0;">
-              <p><strong>Produto:</strong> ${form.name}</p>
-              <p><strong>Vendedor:</strong> ${user.user_metadata?.full_name || user.email}</p>
-              <p><strong>Preço:</strong> ${form.price} MT</p>
-            </div>
-            <a href="https://www.ensinapay.com/admin/products" style="display: inline-block; background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Aceder Painel Admin</a>
+      const adminSubject = `NOVO PRODUTO: ${form.name} aguardando aprovação`;
+      const adminHtml = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px; background-color: #f9fafb;">
+          <h2 style="color: #111827;">Novo Produto para Revisão</h2>
+          <p>Um novo produto foi cadastrado e aguarda sua análise:</p>
+          <div style="background-color: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb; margin: 20px 0;">
+            <p><strong>Produto:</strong> ${form.name}</p>
+            <p><strong>Vendedor:</strong> ${user.user_metadata?.full_name || user.email}</p>
+            <p><strong>Preço:</strong> ${form.price} MT</p>
           </div>
-        `;
+          <a href="${window.location.origin}/admin/products" style="display: inline-block; background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Aceder Painel Admin</a>
+        </div>
+      `;
 
-        // Send to each admin
-        for (const admin of admins) {
-          if (admin.email) {
-            await supabase.functions.invoke("send-email-notification", {
-              body: { to: admin.email, subject: adminSubject, htmlContent: adminHtml, senderName: "EnsinaPay" }
-            });
-          }
-        }
-      }
+      await supabase.functions.invoke("notify-admins", {
+        body: { subject: adminSubject, htmlContent: adminHtml }
+      });
     } catch (notifErr) {
       console.error("Error sending notifications:", notifErr);
       // Non-blocking: we still want the user to see success
