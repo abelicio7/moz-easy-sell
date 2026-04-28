@@ -285,6 +285,71 @@ const VisualBuilder = ({ nodes, setNodes }: VisualBuilderProps) => {
                     </div>
                   )}
                   {el.type === 'spacer' && <div className="h-10 border-x border-dashed border-slate-200 mx-auto w-1" />}
+                  {el.type === 'audio' && (
+                    <div className="w-full p-4 bg-slate-100 rounded-2xl flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white"><Music className="w-5 h-5" /></div>
+                      <div className="flex-1 h-1 bg-slate-300 rounded-full overflow-hidden"><div className="w-1/3 h-full bg-primary" /></div>
+                      <span className="text-[10px] font-bold text-slate-500">2:45</span>
+                    </div>
+                  )}
+                  {el.type === 'carousel' && (
+                    <div className="w-full aspect-[4/5] rounded-3xl bg-slate-100 flex items-center justify-center relative overflow-hidden group border-2 border-dashed border-slate-200">
+                      <LayoutGrid className="w-12 h-12 text-slate-300" />
+                      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1">
+                        {[1,2,3].map(i => <div key={i} className={`w-1.5 h-1.5 rounded-full ${i===1?'bg-primary':'bg-slate-300'}`} />)}
+                      </div>
+                    </div>
+                  )}
+                  {el.type === 'accordion' && (
+                    <div className="space-y-2">
+                       {[1,2].map(i => (
+                         <div key={i} className="p-4 bg-white rounded-xl border border-slate-100 flex justify-between items-center shadow-sm">
+                           <span className="text-xs font-bold text-slate-700">Dúvida Frequente {i}</span>
+                           <Plus className="w-4 h-4 text-slate-400" />
+                         </div>
+                       ))}
+                    </div>
+                  )}
+                  {el.type === 'quiz' && (
+                    <div className="space-y-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                       <p className="text-xs font-bold text-slate-800 text-center">Pergunta do Quiz?</p>
+                       <div className="space-y-2">
+                         {[1,2].map(i => <div key={i} className="p-3 bg-white rounded-xl border border-slate-200 text-xs font-medium text-center hover:border-primary transition-colors">Opção {i}</div>)}
+                       </div>
+                    </div>
+                  )}
+                  {el.type === 'form' && (
+                    <div className="space-y-3 p-2">
+                       <Input placeholder="Seu Nome" className="rounded-xl h-12 bg-slate-50 border-slate-100" readOnly />
+                       <Input placeholder="Seu WhatsApp" className="rounded-xl h-12 bg-slate-50 border-slate-100" readOnly />
+                       <Button className="w-full h-12 rounded-xl font-bold bg-primary">Enviar Dados</Button>
+                    </div>
+                  )}
+                  {el.type === 'feedback' && (
+                    <div className="flex flex-col items-center gap-3 py-4">
+                       <div className="flex gap-1">
+                         {[1,2,3,4,5].map(i => <MessageSquare key={i} className={`w-6 h-6 ${i<5 ? 'text-amber-400 fill-amber-400' : 'text-slate-200'}`} />)}
+                       </div>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Avaliação dos Clientes</p>
+                    </div>
+                  )}
+                  {el.type === 'circular' && (
+                    <div className="flex flex-col items-center py-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                       <div className="w-32 h-32 rounded-full border-[12px] border-slate-100 relative flex items-center justify-center">
+                          <div className="w-full h-full rounded-full border-[12px] border-primary border-t-transparent border-r-transparent absolute -rotate-45" />
+                          <span className="text-2xl font-black text-slate-800">75%</span>
+                       </div>
+                    </div>
+                  )}
+                  {el.type === 'chart' && (
+                    <div className="h-40 w-full bg-white rounded-3xl border border-slate-100 p-6 flex items-end justify-between gap-2 shadow-sm">
+                       {[40, 70, 45, 90, 60].map((h, i) => (
+                         <div key={i} className="flex-1 bg-primary/10 rounded-t-lg relative group">
+                            <div className="absolute bottom-0 w-full bg-primary rounded-t-lg transition-all" style={{ height: `${h}%` }} />
+                         </div>
+                       ))}
+                    </div>
+                  )}
                 </div>
               ))
             )}
