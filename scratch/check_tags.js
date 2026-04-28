@@ -1,10 +1,20 @@
-const fs = require('fs');
+
+import fs from 'fs';
+
 const content = fs.readFileSync('c:/Users/User/Downloads/moz-easy-sell-main (1)/moz-easy-sell/src/pages/Index.tsx', 'utf8');
+const lines = content.split('\n');
 
-const divOpen = (content.match(/<div/g) || []).length;
-const divClose = (content.match(/<\/div>/g) || []).length;
-const sectionOpen = (content.match(/<section/g) || []).length;
-const sectionClose = (content.match(/<\/section>/g) || []).length;
-
-console.log(`Divs: Open ${divOpen}, Close ${divClose}`);
-console.log(`Sections: Open ${sectionOpen}, Close ${sectionClose}`);
+let balance = 0;
+lines.forEach((line, i) => {
+  const openDivs = (line.match(/<div/g) || []).length;
+  const closeDivs = (line.match(/<\/div>/g) || []).length;
+  const selfClosingDivs = (line.match(/<div[^>]*\/>/g) || []).length;
+  
+  balance += openDivs - closeDivs - selfClosingDivs;
+  
+  if (balance < 0) {
+    console.log(`NEGATIVE BALANCE at line ${i + 1}: ${line.trim()}`);
+    balance = 0; // reset to find more
+  }
+});
+console.log('Final balance:', balance);
