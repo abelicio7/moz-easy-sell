@@ -91,6 +91,54 @@ const AdminWithdrawals = () => {
       });
 
       toast.success(`Saque ${action === "approve" ? 'concluído' : 'rejeitado'} com sucesso.`);
+
+      // Send Email Notification to Seller
+      if (selectedItem.profiles?.email) {
+        const subject = action === "approve" 
+          ? "Saque Concluído - EnsinaPay" 
+          : "Atualização sobre seu Pedido de Saque - EnsinaPay";
+        
+        const htmlContent = action === "approve"
+          ? `
+            <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; padding: 20px;">
+              <h2 style="color: #10b981;">Seu saque foi processado! 💸</h2>
+              <p>Olá, <strong>${selectedItem.profiles.full_name}</strong>.</p>
+              <p>O seu pedido de saque no valor de <strong>${selectedItem.amount.toFixed(2)} MT</strong> foi concluído com sucesso.</p>
+              <p>O valor já foi transferido para o seu <strong>${selectedItem.payment_method}</strong> (${selectedItem.payment_details}).</p>
+              <div style="margin: 30px 0; text-align: center;">
+                <a href="${window.location.origin}/dashboard/finance" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ver meu Saldo</a>
+              </div>
+              <p style="font-size: 12px; color: #666;">Obrigado por vender com a EnsinaPay!</p>
+            </div>
+          `
+          : `
+            <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; padding: 20px;">
+              <h2 style="color: #ef4444;">Atualização sobre seu saque</h2>
+              <p>Olá, <strong>${selectedItem.profiles.full_name}</strong>.</p>
+              <p>Infelizmente, o seu pedido de saque no valor de <strong>${selectedItem.amount.toFixed(2)} MT</strong> foi rejeitado.</p>
+              <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0;">
+                <p style="margin: 0; font-weight: bold; color: #991b1b;">Motivo da rejeição:</p>
+                <p style="margin: 10px 0 0 0; color: #b91c1c;">${reason}</p>
+              </div>
+              <p>O valor foi devolvido ao seu saldo disponível. Você pode solicitar um novo saque corrigindo as informações necessárias.</p>
+              <p style="font-size: 12px; color: #666;">Equipa EnsinaPay</p>
+            </div>
+          `;
+
+        try {
+          await supabase.functions.invoke("send-email-notification", {
+            body: { 
+              to: selectedItem.profiles.email, 
+              subject, 
+              htmlContent,
+              senderName: "EnsinaPay Financeiro"
+            }
+          });
+        } catch (e) {
+          console.error("Erro ao enviar notificação de saque:", e);
+        }
+      }
+
       setSelectedItem(null);
       setReason("");
       fetchWithdrawals();

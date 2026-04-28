@@ -47,143 +47,78 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch order details
-    const { data: order, error: orderErr } = await supabase
-      .from("orders")
-      .select(`
-        status, customer_email, customer_name, price, customer_notified, seller_notified, 
-        products(
-          name, delivery_type, delivery_content, user_id,
-          profiles(email, full_name)
-        )
-      `)
-      .eq("id", orderId)
-      .single();
-
-    if (orderErr || !order) {
-      console.error(`[Order ${orderId}] Failed to fetch order:`, orderErr);
-      return new Response(JSON.stringify({ error: "Order not found" }), { status: 404, headers: corsHeaders });
-    }
-
-    const product = Array.isArray(order.products) ? order.products[0] : order.products;
-    const productName = product?.name || "Produto";
-    const sellerProfile = Array.isArray(product?.profiles) ? product?.profiles[0] : product?.profiles;
-
-    const debitoStatus = (statusData.status || statusData.transaction?.status || statusData.data?.status || "").toUpperCase();
-    const isPaid = ["COMPLETED", "SUCCESS", "PAID", "SUCCESSFUL", "SETTLED", "APPROVED", "AUTHORIZED"].includes(debitoStatus);
-    const isFailed = ["FAILED", "CANCELLED", "REJECTED"].includes(debitoStatus);
-
-    let currentStatus = order.status;
-    if (isPaid) currentStatus = "paid";
-    else if (isFailed) currentStatus = "failed";
-
-    // 1. Update status if changed
-    if (currentStatus !== order.status) {
-      console.log(`[Order ${orderId}] Updating status: ${order.status} -> ${currentStatus}`);
-      await supabase.from("orders").update({ status: currentStatus }).eq("id", orderId);
-    }
-
-    // 2. Notifications
-    if (currentStatus === "paid") {
-      console.log(`[Order ${orderId}] Processing notifications for paid order...`);
-
-      // 2.1 Customer Notification (Product Delivery)
-      if (order.customer_email && !order.customer_notified) {
-        console.log(`[Order ${orderId}] Delivering product to: ${order.customer_email}`);
-        
-        const customerHtml = `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9fafb; padding: 40px 20px;">
-            <div style="background-color: #ffffff; padding: 40px; border-radius: 12px; border: 1px solid #f3f4f6; text-align: center;">
-              <h2 style="color: #111827;">Pagamento Confirmado! 🎉</h2>
-              <p>Olá <strong>${order.customer_name}</strong>,</p>
-              <p>Seu pagamento para o produto <strong>${productName}</strong> foi aprovado.</p>
-              
-              <div style="background-color: #f9fafb; padding: 25px; border-radius: 8px; margin: 30px 0; border: 1px solid #e5e7eb;">
-                ${product?.delivery_type === "link" 
-                  ? `<p>Acesse seu produto clicando abaixo:</p>
-                     <a href="${product?.delivery_content || '#'}" style="background-color: #000; color: #fff; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Acessar Produto</a>`
-                  : `<p>Seu conteúdo exclusivo:</p>
-                     <div style="background-color: #fff; padding: 15px; border-radius: 6px; border: 1px dashed #ccc; font-family: monospace; white-space: pre-wrap;">${product?.delivery_content || ''}</div>`
-                }
-              </div>
-              <p style="font-size: 12px; color: #6b7280;">Obrigado por escolher a <strong>EnsinaPay</strong>!</p>
-            </div>
-          </div>
-        `;
-
-        const { error: emailErr } = await supabase.functions.invoke("send-email-notification", {
-          body: { to: order.customer_email, subject: `Seu Produto: ${productName}`, htmlContent: customerHtml, senderName: "EnsinaPay" }
+    // Helper to process an order (status update + notifications)
+    const processOrder = async (id: string, debitoRef: string, forceData?: any) => {
+      console.log(`[Background Process] Checking Order ${id}...`);
+      
+      let data = forceData;
+      if (!data) {
+        const res = await fetch(`${DEBITO_BASE_URL}/transactions/${debitoRef}/status`, {
+          headers: { "Authorization": `Bearer ${PAYMENT_API_TOKEN}`, "Accept": "application/json" }
         });
-
-        if (!emailErr) {
-          await supabase.from("orders").update({ customer_notified: true }).eq("id", orderId);
-          console.log(`[Order ${orderId}] Customer notified.`);
-        } else {
-          console.error(`[Order ${orderId}] Failed to notify customer:`, emailErr);
-        }
+        data = await res.json();
       }
 
-      // 2.2 Seller Notification (Sale Alert)
-      if (product?.user_id && !order.seller_notified) {
-        let sellerEmail = sellerProfile?.email;
-        let sellerName = sellerProfile?.full_name || "Vendedor";
+      const { data: ord } = await supabase.from("orders").select(`*, products(*, profiles(*))`).eq("id", id).single();
+      if (!ord) return null;
 
-        // Fallback for seller info
-        if (!sellerEmail) {
-          const { data: authUser } = await supabase.auth.admin.getUserById(product.user_id);
-          sellerEmail = authUser?.user?.email;
-          sellerName = authUser?.user?.user_metadata?.full_name || sellerName;
+      const dStatus = (data.status || data.transaction?.status || data.data?.status || "").toUpperCase();
+      const isP = ["COMPLETED", "SUCCESS", "PAID", "SUCCESSFUL", "SETTLED", "APPROVED", "AUTHORIZED"].includes(dStatus);
+      const isF = ["FAILED", "CANCELLED", "REJECTED"].includes(dStatus);
+
+      let newS = ord.status;
+      if (isP) newS = "paid";
+      else if (isF) newS = "failed";
+
+      if (newS !== ord.status) {
+        await supabase.from("orders").update({ status: newS }).eq("id", id);
+      }
+
+      if (newS === "paid") {
+        const prod = Array.isArray(ord.products) ? ord.products[0] : ord.products;
+        
+        // Notify Customer
+        if (ord.customer_email && !ord.customer_notified) {
+          const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#fff;padding:20px;border:1px solid #eee;border-radius:12px;"><h2>Pagamento Aprovado!</h2><p>Olá <strong>${ord.customer_name}</strong>, seu acesso para <strong>${prod?.name}</strong> está liberado:</p><div style="background:#f9fafb;padding:20px;border-radius:8px;margin:20px 0;text-align:center;">${prod?.delivery_type === 'link' ? `<a href="${prod?.delivery_content}" style="background:#000;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px;font-weight:bold;">Acessar Produto</a>` : `<p>Conteúdo: ${prod?.delivery_content}</p>`}</div></div>`;
+          await supabase.functions.invoke("send-email-notification", { body: { to: ord.customer_email, subject: `Seu Produto: ${prod?.name}`, htmlContent: html } });
+          await supabase.from("orders").update({ customer_notified: true }).eq("id", id);
         }
 
-        if (sellerEmail) {
-          console.log(`[Order ${orderId}] Notifying seller: ${sellerEmail}`);
-          const sellerHtml = `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #f0fdf4; padding: 40px 20px;">
-              <div style="background-color: #ffffff; padding: 40px; border-radius: 16px; border: 1px solid #dcfce7; text-align: center;">
-                <h2 style="color: #166534;">Nova Venda Realizada! 💰</h2>
-                <p>Parabéns, <strong>${sellerName}</strong>!</p>
-                <div style="margin: 20px 0; padding: 20px; background-color: #f8fafc; border-radius: 12px; text-align: left; border: 1px solid #e2e8f0;">
-                  <p><strong>Produto:</strong> ${productName}</p>
-                  <p><strong>Valor:</strong> ${Number(order.price || 0).toFixed(2)} MT</p>
-                  <p><strong>Cliente:</strong> ${order.customer_name}</p>
-                </div>
-                <a href="${Deno.env.get("PUBLIC_URL") || 'https://www.ensinapay.com'}/dashboard/sales" style="background-color: #16a34a; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Ver Dashboard</a>
-              </div>
-            </div>
-          `;
-
-          const { error: sellerErr } = await supabase.functions.invoke("send-email-notification", {
-            body: { to: sellerEmail, subject: `VENDA REALIZADA: ${productName}`, htmlContent: sellerHtml, senderName: "Vendas EnsinaPay" }
-          });
-
-          if (!sellerErr) {
-            await supabase.from("orders").update({ seller_notified: true }).eq("id", orderId);
-            console.log(`[Order ${orderId}] Seller notified.`);
+        // Notify Seller
+        if (prod?.user_id && !ord.seller_notified) {
+          let sEmail = prod.profiles?.email;
+          if (!sEmail) { const { data: aU } = await supabase.auth.admin.getUserById(prod.user_id); sEmail = aU?.user?.email; }
+          if (sEmail) {
+            const sHtml = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#f0fdf4;padding:20px;border-radius:16px;text-align:center;"><h2>Venda Realizada! 💰</h2><p>Produto: ${prod?.name}<br>Valor: ${ord.price} MT<br>Cliente: ${ord.customer_name}</p></div>`;
+            await supabase.functions.invoke("send-email-notification", { body: { to: sEmail, subject: `VENDA: ${prod?.name}`, htmlContent: sHtml } });
+            await supabase.from("orders").update({ seller_notified: true }).eq("id", id);
           }
         }
       }
+      return { status: dStatus, order_status: newS };
+    };
 
-      // 2.3 Webhook Trigger
-      try {
-        const { data: webhooks } = await supabase.from("seller_integrations").select("config").eq("user_id", product.user_id).eq("integration_type", "webhook").eq("is_active", true);
-        if (webhooks?.[0]?.config?.url) {
-          await fetch(webhooks[0].config.url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ event: "payment_approved", order_id: orderId, price: order.price, product_name: productName })
-          });
-        }
-      } catch (whErr) { console.error("Webhook failure:", whErr); }
-    }
+    // 1. Process the requested order
+    const result = await processOrder(orderId, debitoReference, statusData);
 
-    return new Response(
-      JSON.stringify({
-        status: debitoStatus,
-        order_status: currentStatus,
-        raw_debito_data: statusData,
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    // 2. "Parasitic Polling": Process the OLDEST pending order to catch orphaned payments
+    try {
+      const { data: orphaned } = await supabase
+        .from("orders")
+        .select("id, debito_reference")
+        .eq("status", "processing")
+        .neq("id", orderId)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (orphaned && orphaned.debito_reference) {
+        console.log(`[Parasitic Polling] Auto-checking orphaned order: ${orphaned.id}`);
+        await processOrder(orphaned.id, orphaned.debito_reference);
+      }
+    } catch (e) { console.error("Parasitic polling failed:", e); }
+
+    return new Response(JSON.stringify(result), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     console.error("Critical error in check-payment-status:", error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
