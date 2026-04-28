@@ -137,9 +137,9 @@ const VisualBuilder = ({ nodes, setNodes }: VisualBuilderProps) => {
   };
 
   return (
-    <div className="flex h-full bg-[#F8FAFC] overflow-hidden">
+    <div className="flex h-full bg-[#F8FAFC] overflow-hidden flex-col lg:flex-row">
       {/* SIDEBAR STEPS */}
-      <div className="w-64 bg-white border-r flex flex-col shrink-0">
+      <div className="hidden lg:flex w-64 bg-white border-r flex-col shrink-0">
         <div className="p-5 border-b bg-slate-50/50">
           <h3 className="text-[10px] font-black uppercase tracking-[2px] text-slate-400">Estrutura do Funil</h3>
         </div>
@@ -176,7 +176,7 @@ const VisualBuilder = ({ nodes, setNodes }: VisualBuilderProps) => {
       </div>
 
       {/* PALETTE */}
-      <div className="w-64 bg-white border-r flex flex-col shrink-0 shadow-sm z-10">
+      <div className="hidden xl:flex w-64 bg-white border-r flex-col shrink-0 shadow-sm z-10">
         <div className="p-5 border-b">
           <h3 className="text-[10px] font-black uppercase tracking-[2px] text-slate-400">Elementos</h3>
         </div>
@@ -197,8 +197,8 @@ const VisualBuilder = ({ nodes, setNodes }: VisualBuilderProps) => {
       </div>
 
       {/* MOBILE PREVIEW */}
-      <div className="flex-1 flex flex-col items-center justify-center p-12 overflow-y-auto bg-slate-50 relative">
-        <div className="w-[360px] h-[720px] bg-white rounded-[3.5rem] border-[12px] border-slate-900 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] relative overflow-hidden flex flex-col scale-90 lg:scale-100 transition-transform">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 lg:p-12 overflow-y-auto bg-slate-50 relative">
+        <div className="w-[300px] sm:w-[360px] h-[600px] sm:h-[720px] bg-white rounded-[3.5rem] border-[12px] border-slate-900 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] relative overflow-hidden flex flex-col scale-75 sm:scale-90 xl:scale-100 transition-all origin-center">
           <div className="h-7 w-40 bg-slate-900 absolute top-0 left-1/2 -translate-x-1/2 rounded-b-[1.5rem] z-30" />
           
           <div className="flex-1 overflow-y-auto scrollbar-hide bg-white relative">
@@ -239,7 +239,7 @@ const VisualBuilder = ({ nodes, setNodes }: VisualBuilderProps) => {
                     )}
                     {el.type === 'timer' && (
                       <div className="flex justify-center gap-3 py-4">
-                        {['00', '15', '42'].map((unit, i) => (
+                        {['00', (el.duration || '15'), '00'].map((unit, i) => (
                           <div key={i} className="flex flex-col items-center">
                             <div className="w-12 h-12 bg-slate-900 text-white rounded-lg flex items-center justify-center font-black text-lg">{unit}</div>
                             <span className="text-[8px] font-black uppercase text-slate-400 mt-1">{['HOR', 'MIN', 'SEG'][i]}</span>
@@ -271,7 +271,11 @@ const VisualBuilder = ({ nodes, setNodes }: VisualBuilderProps) => {
                     {el.type === 'video' && (
                       <div className="w-full aspect-video rounded-xl bg-slate-900 flex items-center justify-center relative overflow-hidden shadow-2xl">
                          <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 z-10"><Video className="w-6 h-6 text-white fill-white" /></div>
-                         <img src="https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=400" className="absolute inset-0 w-full h-full object-cover opacity-40" alt="" />
+                         {el.url ? (
+                           <div className="absolute inset-0 bg-slate-800 flex items-center justify-center text-[10px] text-white opacity-60 font-black uppercase p-4 text-center">Vídeo URL: {el.url}</div>
+                         ) : (
+                           <img src="https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=400" className="absolute inset-0 w-full h-full object-cover opacity-40" alt="" />
+                         )}
                       </div>
                     )}
                     {el.type === 'spacer' && <div className="h-8 w-full border-y border-dashed border-slate-100" />}
@@ -288,8 +292,8 @@ const VisualBuilder = ({ nodes, setNodes }: VisualBuilderProps) => {
                     )}
                     {el.type === 'price' && (
                       <div className="text-center py-4">
-                         <span className="text-[10px] font-black uppercase text-slate-400 line-through mr-2">99.00 MT</span>
-                         <div className="text-3xl font-black text-slate-900">49.00 <span className="text-sm">MT</span></div>
+                         <span className="text-[10px] font-black uppercase text-slate-400 line-through mr-2">{el.oldPrice || '99.00'} MT</span>
+                         <div className="text-3xl font-black text-slate-900">{el.newPrice || '49.00'} <span className="text-sm">MT</span></div>
                       </div>
                     )}
                     {el.type === 'form' && (
@@ -338,7 +342,7 @@ const VisualBuilder = ({ nodes, setNodes }: VisualBuilderProps) => {
       </div>
 
       {/* PROPERTIES */}
-      <div className="w-80 bg-white border-l flex flex-col shrink-0">
+      <div className="hidden md:flex w-80 bg-white border-l flex-col shrink-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
           <div className="p-4 border-b">
             <TabsList className="w-full bg-slate-100 rounded-xl p-1">
@@ -355,15 +359,89 @@ const VisualBuilder = ({ nodes, setNodes }: VisualBuilderProps) => {
                 </div>
                 <Separator />
                 {selectedElement.type === 'text' && (
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-slate-500">Conteúdo</Label>
-                    <Textarea value={selectedElement.content} onChange={(e) => updateElement(selectedElement.id, { content: e.target.value })} className="min-h-[150px] rounded-xl" />
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-slate-500">Conteúdo do Texto</Label>
+                      <Textarea 
+                        value={selectedElement.content}
+                        onChange={(e) => updateElement(selectedElement.id, { content: e.target.value })}
+                        className="min-h-[120px] rounded-xl border-slate-200"
+                        placeholder="Digite seu texto aqui..."
+                      />
+                    </div>
                   </div>
                 )}
+
+                {(selectedElement.type === 'image' || selectedElement.type === 'video') && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-slate-500">URL da Mídia</Label>
+                      <Input 
+                        value={selectedElement.url || ''}
+                        onChange={(e) => updateElement(selectedElement.id, { url: e.target.value })}
+                        className="rounded-xl border-slate-200"
+                        placeholder="https://..."
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {selectedElement.type === 'button' && (
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-slate-500">Texto do Botão</Label>
-                    <Input value={selectedElement.content} onChange={(e) => updateElement(selectedElement.id, { content: e.target.value })} className="rounded-xl" />
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-slate-500">Texto do Botão</Label>
+                      <Input 
+                        value={selectedElement.content}
+                        onChange={(e) => updateElement(selectedElement.id, { content: e.target.value })}
+                        className="rounded-xl border-slate-200"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-slate-500">Link de Destino</Label>
+                      <Input 
+                        value={selectedElement.url || ''}
+                        onChange={(e) => updateElement(selectedElement.id, { url: e.target.value })}
+                        className="rounded-xl border-slate-200"
+                        placeholder="Ex: https://wa.me/..."
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {selectedElement.type === 'timer' && (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-slate-500">Tempo (Minutos)</Label>
+                      <Input 
+                        type="number"
+                        value={selectedElement.duration || 15}
+                        onChange={(e) => updateElement(selectedElement.id, { duration: e.target.value })}
+                        className="rounded-xl border-slate-200"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {selectedElement.type === 'price' && (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-slate-500">De (Antigo)</Label>
+                        <Input 
+                          value={selectedElement.oldPrice || '99.00'}
+                          onChange={(e) => updateElement(selectedElement.id, { oldPrice: e.target.value })}
+                          className="rounded-xl border-slate-200"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-slate-500">Por (Novo)</Label>
+                        <Input 
+                          value={selectedElement.newPrice || '49.00'}
+                          onChange={(e) => updateElement(selectedElement.id, { newPrice: e.target.value })}
+                          className="rounded-xl border-slate-200"
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
                 <div className="flex items-center justify-between pt-4 border-t">
