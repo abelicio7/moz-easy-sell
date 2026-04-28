@@ -3,7 +3,7 @@ import {
   Type, Music, Timer, LayoutGrid, CreditCard, Image as ImageIcon, 
   Video, MoveVertical, List, CheckCircle, DollarSign, MousePointer2,
   HelpCircle, BarChart, UserPlus, MessageSquare, PieChart, TrendingUp,
-  Plus, Save, Eye, ChevronLeft, Settings2, Palette
+  Plus, Save, Eye, ChevronLeft, Settings2, Palette, Smartphone, Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
