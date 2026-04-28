@@ -91,6 +91,24 @@
   }
 }
 
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-xl;
+  }
+  
+  .premium-shadow {
+    box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.08);
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -98,5 +116,6 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Satoshi', 'Manrope', sans-serif;
   }
 }

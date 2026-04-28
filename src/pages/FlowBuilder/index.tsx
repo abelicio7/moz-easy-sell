@@ -42,6 +42,7 @@ import { StartNode, ResultNode } from './nodes/BaseNodes';
 // Tab Views
 import LeadsView from './LeadsView';
 import AnalyticsView from './AnalyticsView';
+import VisualBuilder from './VisualBuilder';
 
 const nodeTypes: NodeTypes = {
   start: StartNode,
@@ -80,7 +81,7 @@ const FlowBuilderInstance = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [flowInfo, setFlowInfo] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState('builder');
+  const [activeTab, setActiveTab] = useState('visual');
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
   // Flow Config States
@@ -248,18 +249,21 @@ const FlowBuilderInstance = () => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="hidden md:block">
-          <TabsList className="bg-slate-100/50 p-1 rounded-full border border-slate-200">
-            <TabsTrigger value="builder" className="rounded-full px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600">
-              <LayoutDashboard className="w-4 h-4 mr-2" /> Construtor
+          <TabsList className="bg-slate-100/50 p-1 rounded-xl border border-slate-200">
+            <TabsTrigger value="visual" className="rounded-lg px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 font-bold">
+              <Eye className="w-4 h-4 mr-2" /> Editar Funil
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="rounded-full px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600">
-              <GitBranch className="w-4 h-4 mr-2" /> Analytics
+            <TabsTrigger value="analytics" className="rounded-lg px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 font-bold">
+              <GitBranch className="w-4 h-4 mr-2" /> Resultados
             </TabsTrigger>
-            <TabsTrigger value="leads" className="rounded-full px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600">
+            <TabsTrigger value="builder" className="rounded-lg px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 font-bold">
+              <Zap className="w-4 h-4 mr-2" /> Fluxo
+            </TabsTrigger>
+            <TabsTrigger value="config" className="rounded-lg px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 font-bold">
+              <Settings className="w-4 h-4 mr-2" /> Configurações
+            </TabsTrigger>
+            <TabsTrigger value="leads" className="rounded-lg px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600 font-bold">
               <Users className="w-4 h-4 mr-2" /> Leads
-            </TabsTrigger>
-            <TabsTrigger value="config" className="rounded-full px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600">
-              <Settings className="w-4 h-4 mr-2" /> Config
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -277,6 +281,10 @@ const FlowBuilderInstance = () => {
 
       <div className="flex flex-1 overflow-hidden relative">
         <Tabs value={activeTab} className="w-full h-full flex flex-col">
+          <TabsContent value="visual" className="flex-1 h-full m-0 p-0 flex overflow-hidden">
+            <VisualBuilder nodes={nodes} setNodes={setNodes} />
+          </TabsContent>
+
           <TabsContent value="builder" className="flex-1 h-full m-0 p-0 flex overflow-hidden">
             <div className="flex-1 h-full relative z-0" ref={reactFlowWrapper}>
               <ReactFlow
