@@ -355,6 +355,7 @@ const VisualBuilder = ({ nodes, setNodes }: VisualBuilderProps) => {
             )}
           </div>
         </div>
+      </div>
         
         {/* Floating Controls */}
         <div className="absolute bottom-8 right-8 flex gap-3">
