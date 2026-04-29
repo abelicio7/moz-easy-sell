@@ -124,33 +124,86 @@ const AdminDashboard = () => {
                 size="sm" 
                 variant="outline" 
                 className="w-full border-dashed"
-                onClick={async () => {
-                  const { data, error } = await supabase.functions.invoke("notify-admins", {
-                    body: { 
-                      subject: "🚀 Teste de Conectividade - EnsinaPay", 
-                      htmlContent: `
-                        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                          <h2 style="color: #16a34a;">Sistema Operacional!</h2>
-                          <p>Este é um e-mail de teste para confirmar que as notificações da <strong>EnsinaPay</strong> estão configuradas corretamente.</p>
-                          <p><strong>Hora do Teste:</strong> ${new Date().toLocaleString('pt-BR')}</p>
-                          <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
-                          <p style="font-size: 12px; color: #666;">Se você recebeu isto, as notificações para novos vendedores e produtos estão prontas.</p>
-                        </div>
-                      ` 
+              <div className="flex flex-col gap-2">
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="w-full border-dashed"
+                  onClick={async () => {
+                    const { data, error } = await supabase.functions.invoke("notify-admins", {
+                      body: { 
+                        subject: "🚀 Teste de Conectividade - EnsinaPay", 
+                        htmlContent: `
+                          <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                            <h2 style="color: #16a34a;">Sistema Operacional!</h2>
+                            <p>Este é um e-mail de teste para confirmar que as notificações da <strong>EnsinaPay</strong> estão configuradas corretamente.</p>
+                            <p><strong>Hora do Teste:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+                            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+                            <p style="font-size: 12px; color: #666;">Se você recebeu isto, as notificações para novos vendedores e produtos estão prontas.</p>
+                          </div>
+                        ` 
+                      }
+                    });
+                    
+                    if (error || data?.success === false) {
+                      const msg = error?.message || data?.error || "Erro desconhecido";
+                      toast.error("Erro ao testar: " + msg);
+                    } else {
+                      toast.success("E-mail de teste enviado!");
                     }
-                  });
-                  
-                  if (error || data?.success === false) {
-                    const msg = error?.message || data?.error || "Erro desconhecido";
-                    console.error("Erro no teste:", msg);
-                    toast.error("Erro ao testar: " + msg);
-                  } else {
-                    toast.success("E-mail de teste enviado! Verifique sua caixa de entrada.");
-                  }
-                }}
-              >
-                Testar Notificações
-              </Button>
+                  }}
+                >
+                  Testar Conectividade
+                </Button>
+
+                <Button 
+                  size="sm" 
+                  variant="default" 
+                  className="w-full font-bold bg-green-600 hover:bg-green-700"
+                  onClick={async () => {
+                    const toastId = toast.loading("Simulando venda e enviando e-mails...");
+                    try {
+                      // 1. Get current user email for the mock sale
+                      const { data: { user } } = await supabase.auth.getUser();
+                      const myEmail = user?.email || "abeliciosimoney@gmail.com";
+
+                      // 2. Invoke check-payment-status with a "mock" mode
+                      // We'll trigger a direct call to the notification logic
+                      const { data, error } = await supabase.functions.invoke("send-email-notification", {
+                        body: { 
+                          to: myEmail, 
+                          subject: "💸 VENDA REALIZADA: Produto de Teste", 
+                          htmlContent: `
+                            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 12px; background-color: #f0fdf4; border: 1px solid #bbf7d0;">
+                              <div style="text-align: center; margin-bottom: 20px;">
+                                <h1 style="color: #166534; margin: 0;">Venda Realizada! (TESTE) 💰</h1>
+                                <p style="color: #166534; font-weight: bold;">Este é um teste do novo sistema de notificações premium.</p>
+                              </div>
+                              <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #dcfce7;">
+                                <p style="margin: 5px 0; color: #666; font-size: 14px;">Produto:</p>
+                                <p style="margin: 0 0 15px 0; font-weight: bold; font-size: 18px; color: #111827;">Ebook: Como Vender Online em Moçambique</p>
+                                <div style="border-top: 1px solid #eee; padding-top: 15px;">
+                                  <p style="margin: 5px 0; font-size: 14px;"><strong>Valor:</strong> 1.500,00 MT</p>
+                                  <p style="margin: 5px 0; font-size: 14px;"><strong>Cliente:</strong> Cliente de Teste EnsinaPay</p>
+                                </div>
+                              </div>
+                            </div>
+                          `,
+                          senderName: "EnsinaPay Vendas"
+                        }
+                      });
+
+                      if (error || data?.success === false) throw new Error(error?.message || data?.error);
+                      
+                      toast.success("Simulação concluída! Verifique o seu e-mail.", { id: toastId });
+                    } catch (err: any) {
+                      toast.error("Erro na simulação: " + err.message, { id: toastId });
+                    }
+                  }}
+                >
+                  Simular Venda (Teste)
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
