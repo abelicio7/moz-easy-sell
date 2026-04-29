@@ -112,6 +112,10 @@ Deno.serve(async (req) => {
                 </div>
                 
                 <p style="text-align: center; font-size: 14px; color: #6b7280; margin-top: 30px;">
+                  Pode aceder a todos os seus produtos em qualquer altura em:<br/>
+                  <a href="https://ensinapay.com/biblioteca" style="color: #10b981; font-weight: bold; text-decoration: none;">ensinapay.com/biblioteca</a>
+                </p>
+                <p style="text-align: center; font-size: 14px; color: #6b7280; margin-top: 10px;">
                   Se tiver alguma dúvida, responda a este e-mail ou contacte o suporte.
                 </p>
               </div>
@@ -170,6 +174,9 @@ Deno.serve(async (req) => {
                   <div style="text-align: center; margin-top: 40px;">
                     <a href="https://ensinapay.com/dashboard/sales" style="display: inline-block; background-color: #10b981; color: #000000; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 16px; text-transform: uppercase;">Ver Minhas Vendas</a>
                   </div>
+                  <p style="text-align: center; font-size: 12px; color: #4b5563; margin-top: 20px;">
+                    Sua biblioteca centralizada: <a href="https://ensinapay.com/biblioteca" style="color: #10b981; text-decoration: none;">ensinapay.com/biblioteca</a>
+                  </p>
                 </div>
                 <div style="background-color: #000000; padding: 20px; text-align: center; font-size: 12px; color: #4b5563;">
                   &copy; ${new Date().getFullYear()} EnsinaPay. Todos os direitos reservados.
