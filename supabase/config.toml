@@ -1,4 +1,4 @@
-project_id = "tegpzkxbnrqzlmzbwrsp"
+project_id = "ekprysxfgkafpwjbocab"
 [functions.handle-2fa]
 enabled = true
 verify_jwt = true
