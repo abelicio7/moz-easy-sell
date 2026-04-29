@@ -120,10 +120,6 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-black text-foreground mb-2">Email</div>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                className="w-full border-dashed"
               <div className="flex flex-col gap-2">
                 <Button 
                   size="sm" 
