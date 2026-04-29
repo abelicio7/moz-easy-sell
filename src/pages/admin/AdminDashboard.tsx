@@ -202,11 +202,12 @@ const AdminDashboard = () => {
                         }
                       });
 
-                      if (error || data?.success === false) throw new Error(error?.message || data?.error);
+                      if (error || data?.success === false) throw new Error(error?.message || data?.error || "Erro no envio");
                       toast.success("E-mail estilo Hotmart enviado!", { id: toastId });
                     } catch (err: any) {
                       toast.error("Erro na simulação: " + err.message, { id: toastId });
                     }
+                  }}
                 >
                   Simular Venda (Teste)
                 </Button>
