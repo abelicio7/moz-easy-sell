@@ -165,7 +165,7 @@ const AdminDashboard = () => {
                       const hotmartStyleHtml = `
                         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #111827; border-radius: 0 0 16px 16px; overflow: hidden; color: #ffffff;">
                           <div style="background-color: #f3f4f6; padding: 30px; text-align: center;">
-                            <img src="https://tegpzkxbnrqzlmzbwrsp.supabase.co/storage/v1/object/public/quiz-images/logo-placeholder.png" alt="EnsinaPay" style="height: 40px;">
+                            <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 40px;">
                           </div>
                           <div style="padding: 40px 30px;">
                             <p style="font-size: 18px; color: #d1d5db; margin-bottom: 10px;">Parabéns!</p>
@@ -183,11 +183,14 @@ const AdminDashboard = () => {
                               
                               <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Nome:</span> Cliente de Teste</p>
                               <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Email:</span> <a href="#" style="color: #10b981; text-decoration: none;">cliente@teste.com</a></p>
+                              <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">WhatsApp:</span> <a href="#" style="color: #10b981; text-decoration: none;">841234567</a></p>
+                              <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Método:</span> <span style="font-weight: bold;">M-PESA</span></p>
+                              <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Data:</span> ${new Date().toLocaleString('pt-MZ')}</p>
                               <p style="margin: 0 0 20px 0; font-size: 15px;"><span style="color: #9ca3af;">ID:</span> EP999999</p>
                             </div>
                             
                             <div style="text-align: center; margin-top: 40px;">
-                              <a href="#" style="display: inline-block; background-color: #10b981; color: #000000; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 16px; text-transform: uppercase;">Aceder ao Painel</a>
+                              <a href="https://ensinapay.com/dashboard/sales" style="display: inline-block; background-color: #10b981; color: #000000; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 16px; text-transform: uppercase;">Ver Minhas Vendas</a>
                             </div>
                           </div>
                         </div>

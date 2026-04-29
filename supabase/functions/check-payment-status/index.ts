@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
             const sellerHtml = `
               <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #111827; border-radius: 0 0 16px 16px; overflow: hidden; color: #ffffff;">
                 <div style="background-color: #f3f4f6; padding: 30px; text-align: center;">
-                  <img src="https://tegpzkxbnrqzlmzbwrsp.supabase.co/storage/v1/object/public/quiz-images/logo-placeholder.png" alt="EnsinaPay" style="height: 40px;">
+                  <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 40px;">
                 </div>
                 <div style="padding: 40px 30px;">
                   <p style="font-size: 18px; color: #d1d5db; margin-bottom: 10px;">Parabéns!</p>
@@ -135,15 +135,18 @@ Deno.serve(async (req) => {
                     
                     <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Nome:</span> ${ord.customer_name}</p>
                     <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Email:</span> <a href="mailto:${ord.customer_email}" style="color: #10b981; text-decoration: none;">${ord.customer_email}</a></p>
+                    ${ord.customer_phone ? `<p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">WhatsApp:</span> <a href="https://wa.me/${ord.customer_phone.replace(/\D/g, '')}" style="color: #10b981; text-decoration: none;">${ord.customer_phone}</a></p>` : ''}
+                    <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Método:</span> <span style="text-transform: uppercase; font-weight: bold;">${ord.payment_method || 'M-Pesa'}</span></p>
+                    <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Data:</span> ${new Date(ord.created_at).toLocaleString('pt-MZ')}</p>
                     <p style="margin: 0 0 20px 0; font-size: 15px;"><span style="color: #9ca3af;">ID:</span> ${ord.id.substring(0, 8).toUpperCase()}</p>
                     
                     <div style="border-top: 1px solid #374151; padding-top: 20px;">
-                      <p style="margin: 0; font-size: 14px; font-weight: bold; color: #ffffff;">Valor Pago Pelo Comprador: <span style="color: #10b981;">${ord.price} MT</span></p>
+                      <p style="margin: 0; font-size: 14px; font-weight: bold; color: #ffffff;">Valor Pago Pelo Comprador: <span style="color: #10b981;">${ord.price.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</span></p>
                     </div>
                   </div>
                   
                   <div style="text-align: center; margin-top: 40px;">
-                    <a href="${Deno.env.get("PUBLIC_SITE_URL") || 'https://ensinapay.com'}/dashboard" style="display: inline-block; background-color: #10b981; color: #000000; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 16px; text-transform: uppercase;">Aceder ao Painel</a>
+                    <a href="https://ensinapay.com/dashboard/sales" style="display: inline-block; background-color: #10b981; color: #000000; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 16px; text-transform: uppercase;">Ver Minhas Vendas</a>
                   </div>
                 </div>
                 <div style="background-color: #000000; padding: 20px; text-align: center; font-size: 12px; color: #4b5563;">
