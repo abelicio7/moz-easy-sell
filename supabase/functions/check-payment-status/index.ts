@@ -77,21 +77,84 @@ Deno.serve(async (req) => {
       if (newS === "paid") {
         const prod = Array.isArray(ord.products) ? ord.products[0] : ord.products;
         
-        // Notify Customer
+        // --- 1. NOTIFY CUSTOMER (Premium Delivery Email) ---
         if (ord.customer_email && !ord.customer_notified) {
-          const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#fff;padding:20px;border:1px solid #eee;border-radius:12px;"><h2>Pagamento Aprovado!</h2><p>Olá <strong>${ord.customer_name}</strong>, seu acesso para <strong>${prod?.name}</strong> está liberado:</p><div style="background:#f9fafb;padding:20px;border-radius:8px;margin:20px 0;text-align:center;">${prod?.delivery_type === 'link' ? `<a href="${prod?.delivery_content}" style="background:#000;color:#fff;padding:12px 24px;text-decoration:none;border-radius:6px;font-weight:bold;">Acessar Produto</a>` : `<p>Conteúdo: ${prod?.delivery_content}</p>`}</div></div>`;
-          await supabase.functions.invoke("send-email-notification", { body: { to: ord.customer_email, subject: `Seu Produto: ${prod?.name}`, htmlContent: html } });
+          const customerHtml = `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 12px; background-color: #fff;">
+              <div style="text-align: center; margin-bottom: 20px;">
+                <h1 style="color: #16a34a; margin: 0;">Pagamento Confirmado! 🎉</h1>
+                <p style="color: #666;">Olá, ${ord.customer_name}. Seu acesso já está liberado.</p>
+              </div>
+              <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
+                <h3 style="margin-top: 0; color: #111827;">${prod?.name}</h3>
+                <p style="font-size: 14px; color: #4b5563;">${prod?.description || ""}</p>
+                <div style="margin-top: 20px; text-align: center;">
+                  ${prod?.delivery_type === 'link' 
+                    ? `<a href="${prod?.delivery_content}" style="display: inline-block; background-color: #000; color: #fff; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">Aceder ao Produto</a>`
+                    : `<div style="background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px; font-family: monospace;">${prod?.delivery_content}</div>`
+                  }
+                </div>
+              </div>
+              <p style="font-size: 12px; color: #9ca3af; text-align: center;">Dúvidas? Entre em contacto com o suporte do vendedor.</p>
+            </div>
+          `;
+          
+          await supabase.functions.invoke("send-email-notification", { 
+            body: { to: ord.customer_email, subject: `Sua compra de "${prod?.name}" foi aprovada!`, htmlContent: customerHtml, senderName: "EnsinaPay" } 
+          });
           await supabase.from("orders").update({ customer_notified: true }).eq("id", id);
         }
 
-        // Notify Seller
+        // --- 2. NOTIFY SELLER (Premium Sale Alert) ---
         if (prod?.user_id && !ord.seller_notified) {
           let sEmail = prod.profiles?.email;
-          if (!sEmail) { const { data: aU } = await supabase.auth.admin.getUserById(prod.user_id); sEmail = aU?.user?.email; }
+          if (!sEmail) { 
+            const { data: aU } = await supabase.auth.admin.getUserById(prod.user_id); 
+            sEmail = aU?.user?.email; 
+          }
+          
           if (sEmail) {
-            const sHtml = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#f0fdf4;padding:20px;border-radius:16px;text-align:center;"><h2>Venda Realizada! 💰</h2><p>Produto: ${prod?.name}<br>Valor: ${ord.price} MT<br>Cliente: ${ord.customer_name}</p></div>`;
-            await supabase.functions.invoke("send-email-notification", { body: { to: sEmail, subject: `VENDA: ${prod?.name}`, htmlContent: sHtml } });
+            const sellerHtml = `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 12px; background-color: #f0fdf4; border: 1px solid #bbf7d0;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                  <h1 style="color: #166534; margin: 0;">Venda Realizada! 💰</h1>
+                  <p style="color: #166534; font-weight: bold;">Você acabou de ganhar dinheiro na EnsinaPay.</p>
+                </div>
+                <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #dcfce7;">
+                  <p style="margin: 5px 0; color: #666; font-size: 14px;">Produto:</p>
+                  <p style="margin: 0 0 15px 0; font-weight: bold; font-size: 18px; color: #111827;">${prod?.name}</p>
+                  
+                  <div style="border-top: 1px solid #eee; padding-top: 15px;">
+                    <p style="margin: 5px 0; font-size: 14px;"><strong>Valor:</strong> ${ord.price} MT</p>
+                    <p style="margin: 5px 0; font-size: 14px;"><strong>Cliente:</strong> ${ord.customer_name}</p>
+                  </div>
+                </div>
+                <div style="text-align: center; margin-top: 25px;">
+                  <a href="${Deno.env.get("PUBLIC_SITE_URL") || 'https://ensinapay.com'}/dashboard" style="display: inline-block; background-color: #166534; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ver no Dashboard</a>
+                </div>
+              </div>
+            `;
+            
+            await supabase.functions.invoke("send-email-notification", { 
+              body: { to: sEmail, subject: `💸 VENDA REALIZADA: ${prod?.name}`, htmlContent: sellerHtml, senderName: "EnsinaPay Vendas" } 
+            });
             await supabase.from("orders").update({ seller_notified: true }).eq("id", id);
+
+            // --- 3. NOTIFY SYSTEM ADMIN (Monitoring) ---
+            await supabase.functions.invoke("notify-admins", {
+              body: {
+                subject: `📈 NOVA VENDA NO SISTEMA: ${ord.price} MT`,
+                htmlContent: `
+                  <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                    <h3>Relatório de Venda Instantâneo</h3>
+                    <p><strong>Produto:</strong> ${prod?.name}</p>
+                    <p><strong>Valor:</strong> ${ord.price} MT</p>
+                    <p><strong>Vendedor:</strong> ${prod.profiles?.full_name || 'Vendedor'}</p>
+                    <p><strong>Comprador:</strong> ${ord.customer_name} (${ord.customer_email})</p>
+                  </div>
+                `
+              }
+            });
           }
         }
       }
