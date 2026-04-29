@@ -19,19 +19,29 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Fetch all admin emails
-    const { data: admins, error: adminErr } = await supabase
-      .from("profiles")
-      .select("email")
-      .eq("role", "admin");
+    // 1. Check for a dedicated Admin Notification Email in environment variables
+    const directAdminEmail = Deno.env.get("ADMIN_NOTIFICATION_EMAIL");
+    let adminEmails: string[] = [];
 
-    if (adminErr) throw adminErr;
-    if (!admins || admins.length === 0) {
+    if (directAdminEmail) {
+      adminEmails = directAdminEmail.split(",").map(e => e.trim());
+    } else {
+      // Fallback: Fetch all admin emails from the profiles table
+      const { data: admins, error: adminErr } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("role", "admin");
+
+      if (!adminErr && admins) {
+        adminEmails = admins.map(a => a.email).filter(Boolean);
+      }
+    }
+
+    if (adminEmails.length === 0) {
       console.log("No admins found to notify.");
       return new Response(JSON.stringify({ success: true, message: "No admins found" }), { headers: corsHeaders });
     }
 
-    const adminEmails = admins.map(a => a.email).filter(Boolean);
     console.log(`Sending admin notifications to: ${adminEmails.join(", ")}`);
 
     for (const email of adminEmails) {
