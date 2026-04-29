@@ -13,16 +13,11 @@ import Products from "./pages/Products";
 
 import NewProduct from "./pages/NewProduct";
 import EditProduct from "./pages/EditProduct";
-import FlowBuilder from "./pages/FlowBuilder";
 
 import Orders from "./pages/Orders";
 import Sales from "./pages/Sales";
 import Integrations from "./pages/Integrations";
 import Finance from "./pages/Finance";
-import QuizDashboard from "./pages/quizzes/QuizDashboard";
-import EditQuiz from "./pages/quizzes/EditQuiz";
-import TakeQuiz from "./pages/quizzes/TakeQuiz";
-import QuizLeads from "./pages/quizzes/QuizLeads";
 import Checkout from "./pages/Checkout";
 import PaymentInstructions from "./pages/PaymentInstructions";
 import ThankYou from "./pages/ThankYou";
@@ -93,11 +88,6 @@ const App = () => {
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/dashboard/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />
           <Route path="/dashboard/products" element={<ProtectedRoute><Products /></ProtectedRoute>} />
-          <Route path="/dashboard/quizzes" element={<ProtectedRoute><QuizDashboard /></ProtectedRoute>} />
-          <Route path="/dashboard/quizzes/new" element={<ProtectedRoute><FlowBuilder /></ProtectedRoute>} />
-          <Route path="/dashboard/quizzes/:id/edit" element={<ProtectedRoute><FlowBuilder /></ProtectedRoute>} />
-          <Route path="/dashboard/flows/builder" element={<ProtectedRoute><FlowBuilder /></ProtectedRoute>} />
-          <Route path="/dashboard/quizzes/:id/leads" element={<ProtectedRoute><QuizLeads /></ProtectedRoute>} />
           <Route path="/dashboard/products/new" element={<ProtectedRoute><NewProduct /></ProtectedRoute>} />
           <Route path="/dashboard/products/:id/edit" element={<ProtectedRoute><EditProduct /></ProtectedRoute>} />
           <Route path="/dashboard/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
