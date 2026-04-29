@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
-import { Package, ShoppingCart, LogOut, Menu, X, BarChart3, LayoutTemplate, Puzzle, Wallet, ShieldAlert, TrendingUp, UserCircle, Trash2 } from "lucide-react";
+import { Package, ShoppingCart, LogOut, Menu, X, BarChart3, LayoutTemplate, Puzzle, Wallet, ShieldAlert, TrendingUp, UserCircle, Trash2, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -120,6 +120,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     { to: "/dashboard/orders", label: "Pedidos", icon: ShoppingCart },
     { to: "/dashboard/sales", label: "Minhas Vendas", icon: TrendingUp },
     { to: "/dashboard/finance", label: "Financeiro", icon: Wallet },
+    { to: "/dashboard/affiliates", label: "Afiliados", icon: Users },
     { to: "/dashboard/integrations", label: "Integrações", icon: Puzzle },
   ];
   

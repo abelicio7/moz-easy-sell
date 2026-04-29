@@ -202,6 +202,38 @@ Deno.serve(async (req) => {
                 .eq("email", ord.customer_email.toLowerCase().trim())
                 .eq("product_id", ord.product_id);
             }
+
+            // --- 5. CALCULATE AND RECORD COMMISSIONS ---
+            const PLATFORM_FEE_PERCENT = 0.05; // 5%
+            const platformFee = ord.price * PLATFORM_FEE_PERCENT;
+            
+            let affiliateCommission = 0;
+            if (ord.affiliate_id) {
+              const { data: offer } = await supabase
+                .from("affiliate_offers")
+                .select("commission_percent")
+                .eq("product_id", ord.product_id)
+                .eq("is_active", true)
+                .maybeSingle();
+              
+              if (offer) {
+                affiliateCommission = ord.price * (Number(offer.commission_percent) / 100);
+              }
+            }
+
+            const sellerNet = ord.price - platformFee - affiliateCommission;
+
+            // Record Splits
+            const splits = [
+              { order_id: ord.id, user_id: null, amount: platformFee, user_type: 'platform' },
+              { order_id: ord.id, user_id: prod.user_id, amount: sellerNet, user_type: 'seller' }
+            ];
+
+            if (affiliateCommission > 0 && ord.affiliate_id) {
+              splits.push({ order_id: ord.id, user_id: ord.affiliate_id, amount: affiliateCommission, user_type: 'affiliate' });
+            }
+
+            await supabase.from("commissions").insert(splits);
           }
         }
       }

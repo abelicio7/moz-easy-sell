@@ -17,12 +17,24 @@ const EditProduct = () => {
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", price: "", delivery_type: "link", delivery_content: "", support_whatsapp: "" });
+  const [form, setForm] = useState({ 
+    name: "", 
+    description: "", 
+    price: "", 
+    delivery_type: "link", 
+    delivery_content: "", 
+    support_whatsapp: "",
+    allow_affiliates: false,
+    commission_percent: "20"
+  });
 
   useEffect(() => {
     const fetchProduct = async () => {
       const { data } = await supabase.from("products").select("*").eq("id", id).single();
       if (data) {
+        // Also fetch affiliate offer
+        const { data: offer } = await supabase.from("affiliate_offers").select("*").eq("product_id", id).maybeSingle();
+
         setForm({
           name: data.name,
           description: data.description || "",
@@ -30,6 +42,8 @@ const EditProduct = () => {
           delivery_type: data.delivery_type,
           delivery_content: data.delivery_content,
           support_whatsapp: data.support_whatsapp || "",
+          allow_affiliates: offer?.is_active || false,
+          commission_percent: String(offer?.commission_percent || "20")
         });
         if (data.image_url) setImagePreview(data.image_url);
       }
@@ -87,9 +101,26 @@ const EditProduct = () => {
       ...(imageUrl !== undefined ? { image_url: imageUrl } : {}),
     };
 
-    const { error } = await supabase.from("products").update(updateData).eq("id", id!);
+    const { error: productError } = await supabase.from("products").update(updateData).eq("id", id!);
+    
+    if (!productError) {
+      // Manage affiliate offer
+      if (form.allow_affiliates) {
+        await supabase.from("affiliate_offers").upsert({
+          product_id: id,
+          commission_percent: parseFloat(form.commission_percent),
+          is_active: true
+        }, { onConflict: 'product_id' });
+      } else {
+        // Disable affiliation
+        await supabase.from("affiliate_offers")
+          .update({ is_active: false })
+          .eq("product_id", id!);
+      }
+    }
+
     setLoading(false);
-    if (error) {
+    if (productError) {
       toast.error("Erro ao atualizar");
     } else {
       toast.success("Produto atualizado!");
@@ -160,6 +191,35 @@ const EditProduct = () => {
                 <Textarea value={form.delivery_content} onChange={(e) => setForm({ ...form, delivery_content: e.target.value })} required />
               ) : (
                 <Input value={form.delivery_content} onChange={(e) => setForm({ ...form, delivery_content: e.target.value })} required />
+              )}
+            </div>
+
+            <div className="pt-4 border-t border-border">
+              <h3 className="text-sm font-bold mb-4">Programa de Afiliados</h3>
+              <div className="flex items-center gap-2 mb-4">
+                <input 
+                  type="checkbox" 
+                  id="allow_affiliates"
+                  checked={form.allow_affiliates}
+                  onChange={(e) => setForm({ ...form, allow_affiliates: e.target.checked })}
+                  className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <Label htmlFor="allow_affiliates" className="cursor-pointer">Permitir que outros vendam este produto</Label>
+              </div>
+
+              {form.allow_affiliates && (
+                <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                  <Label>Comissão do Afiliado (%) *</Label>
+                  <Input 
+                    type="number" 
+                    min="1" 
+                    max="90" 
+                    value={form.commission_percent} 
+                    onChange={(e) => setForm({ ...form, commission_percent: e.target.value })}
+                    required
+                  />
+                  <p className="text-[10px] text-muted-foreground italic">Recomendado: 20% a 50% para atrair bons afiliados.</p>
+                </div>
               )}
             </div>
             <div className="flex gap-3 pt-2">

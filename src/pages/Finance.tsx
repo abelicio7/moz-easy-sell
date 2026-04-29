@@ -60,14 +60,17 @@ const Finance = () => {
     if (!user) return;
     setLoading(true);
 
-    // Fetch all paid orders for this user to calculate total generated revenue
-    const { data: orders } = await supabase
-      .from("orders")
-      .select("price, products!inner(user_id)")
-      .eq("products.user_id", user.id)
-      .eq("status", "paid");
+    // Fetch all commissions for this user (both as seller and affiliate)
+    const { data: commissionData, error: commError } = await supabase
+      .from("commissions")
+      .select("amount")
+      .eq("user_id", user.id);
 
-    const revenue = (orders || []).reduce((sum, order) => sum + (order.price || 0), 0);
+    if (commError) {
+      console.error("Error fetching commissions:", commError);
+    }
+
+    const revenue = (commissionData || []).reduce((sum, comm) => sum + Number(comm.amount), 0);
     setTotalRevenue(revenue);
 
     // Fetch withdrawals safely handling missing table structure if migration not run yet
