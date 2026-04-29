@@ -185,6 +185,32 @@ const Finance = () => {
       if (error) throw error;
 
       toast.success("Solicitação de saque enviada com sucesso!");
+      
+      // Notify Admins about the withdrawal request
+      try {
+        await supabase.functions.invoke("notify-admins", {
+          body: { 
+            subject: `💰 NOVO PEDIDO DE SAQUE: ${numAmount} MT`, 
+            htmlContent: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+                <h2 style="color: #111827;">Novo Pedido de Saque 💰</h2>
+                <p>Um vendedor solicitou um levantamento de fundos:</p>
+                <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb; margin: 20px 0;">
+                  <p><strong>Vendedor:</strong> ${user.user_metadata?.full_name || user.email}</p>
+                  <p><strong>Valor Bruto:</strong> ${numAmount} MT</p>
+                  <p><strong>Valor Líquido (após taxas):</strong> ${netAmount} MT</p>
+                  <p><strong>Método:</strong> ${paymentMethod}</p>
+                  <p><strong>Dados:</strong> ${paymentDetails} (${accountName})</p>
+                </div>
+                <a href="${window.location.origin}/admin/withdrawals" style="display: inline-block; background-color: #000; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Aceder Painel de Saques</a>
+              </div>
+            `
+          }
+        });
+      } catch (notifErr) {
+        console.error("Error notifying admin about withdrawal:", notifErr);
+      }
+
       setModalOpen(false);
       setAmount("");
       fetchFinancialData();
