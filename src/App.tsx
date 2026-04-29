@@ -95,7 +95,6 @@ const App = () => {
           <Route path="/dashboard/integrations" element={<ProtectedRoute><Integrations /></ProtectedRoute>} />
           <Route path="/dashboard/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
 
-          <Route path="/quiz/:slug" element={<TakeQuiz />} />
           <Route path="/checkout/:productId" element={<Checkout />} />
           <Route path="/checkout/:productId/payment" element={<PaymentInstructions />} />
           <Route path="/thank-you" element={<ThankYou />} />
