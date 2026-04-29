@@ -39,6 +39,7 @@ const Checkout = () => {
     const params = new URLSearchParams(window.location.search);
     const emailParam = params.get("email");
     const nameParam = params.get("name");
+    const affCode = params.get("aff");
     
     if (emailParam || nameParam) {
       setForm(prev => ({
@@ -46,6 +47,29 @@ const Checkout = () => {
         email: emailParam || prev.email,
         name: nameParam || prev.name
       }));
+    }
+
+    if (affCode) {
+      const trackAffiliate = async () => {
+        try {
+          const { data } = await supabase
+            .from("affiliate_links")
+            .select("user_id")
+            .eq("code", affCode)
+            .maybeSingle();
+          
+          if (data) {
+            localStorage.setItem("ensina_aff_id", data.user_id);
+            localStorage.setItem("ensina_aff_expiry", (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
+            
+            // Increment click count (optional but good)
+            await supabase.rpc('increment_affiliate_clicks', { aff_code: affCode });
+          }
+        } catch (e) {
+          console.error("Affiliate tracking error:", e);
+        }
+      };
+      trackAffiliate();
     }
   }, []);
 
