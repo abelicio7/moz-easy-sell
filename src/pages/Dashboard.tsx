@@ -44,10 +44,11 @@ const Dashboard = () => {
   useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
-      const [{ data: prods }, { data: orders }, { data: withdrawals }] = await Promise.all([
+      const [{ data: prods }, { data: orders }, { data: withdrawals }, { data: commissions }] = await Promise.all([
         supabase.from("products").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("orders").select("*, products!inner(user_id)").eq("products.user_id", user.id),
         supabase.from("withdrawals").select("amount, status").eq("user_id", user.id),
+        supabase.from("commissions").select("amount").eq("user_id", user.id),
       ]);
       setProducts(prods || []);
       const allOrders = orders || [];
@@ -70,7 +71,9 @@ const Dashboard = () => {
           : 0;
       });
 
-      const revenue = allOrders.filter((o: any) => o.status === "paid").reduce((sum: number, o: any) => sum + (o.price || 0), 0);
+      // Use commissions for real revenue (Net)
+      const totalNetRevenue = (commissions || []).reduce((sum, comm) => sum + Number(comm.amount), 0);
+      
       const totalWithdrawnAndPending = allWithdrawals
         .filter((w: any) => w.status === "completed" || w.status === "pending")
         .reduce((sum: number, w: any) => sum + Number(w.amount), 0);
@@ -79,8 +82,8 @@ const Dashboard = () => {
         total: allOrders.length,
         pending: allOrders.filter((o: any) => o.status === "pending").length,
         paid: allOrders.filter((o: any) => o.status === "paid").length,
-        revenue,
-        availableBalance: revenue - totalWithdrawnAndPending,
+        revenue: totalNetRevenue,
+        availableBalance: totalNetRevenue - totalWithdrawnAndPending,
         methodStats
       });
       setLoading(false);
