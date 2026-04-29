@@ -262,12 +262,50 @@ const AdminDashboard = () => {
 
                       if (error || data?.success === false) throw new Error(error?.message || data?.error || "Erro no envio");
                       toast.success("E-mail do cliente enviado!", { id: toastId });
-                    } catch (err: any) {
-                      toast.error("Erro na simulação: " + err.message, { id: toastId });
                     }
                   }}
                 >
                   Simular E-mail Comprador
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="w-full font-bold text-orange-600 border-orange-200 hover:bg-orange-50"
+                  onClick={async () => {
+                    const toastId = toast.loading("Simulando recuperação de carrinho...");
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      const myEmail = user?.email || "abeliciosimoney@gmail.com";
+                      
+                      // 1. Create a "fake" abandoned cart from 2 hours ago
+                      const twoHoursAgo = new Date();
+                      twoHoursAgo.setHours(twoHoursAgo.getHours() - 2);
+
+                      // Get any product ID to link
+                      const { data: prods } = await supabase.from("products").select("id").limit(1);
+                      if (!prods || prods.length === 0) throw new Error("Nenhum produto cadastrado para o teste.");
+
+                      // Upsert a test cart
+                      await supabase.from("carts").upsert({
+                        email: myEmail,
+                        customer_name: "Teste Recuperação",
+                        product_id: prods[0].id,
+                        status: "pending",
+                        created_at: twoHoursAgo.toISOString(),
+                        contacted_at: null // Ensure it's not yet contacted
+                      }, { onConflict: 'email, product_id' });
+
+                      // 2. Trigger the recovery function
+                      const { data, error } = await supabase.functions.invoke("abandoned-cart-recovery");
+
+                      if (error) throw error;
+                      toast.success("E-mail de recuperação enviado!", { id: toastId });
+                    } catch (err: any) {
+                      toast.error("Erro no teste: " + err.message, { id: toastId });
+                    }
+                  }}
+                >
+                  Testar Recuperação de Carrinho
                 </Button>
               </div>
             </CardContent>
