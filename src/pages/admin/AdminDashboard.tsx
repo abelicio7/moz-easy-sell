@@ -236,7 +236,12 @@ const AdminDashboard = () => {
                             <div style="background-color: #1f2937; padding: 25px; border-radius: 12px; border: 1px solid #374151; margin-bottom: 30px;">
                               <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin: 0 0 15px 0;">Detalhes do Pedido:</h3>
                               <p style="margin: 0 0 5px 0; font-size: 16px; font-weight: bold; color: #10b981;">Ebook: Sucesso em Moçambique</p>
-                              <p style="margin: 0; font-size: 14px; color: #9ca3af;">Valor: 1.500,00 MT</p>
+                              <p style="margin: 0 0 15px 0; font-size: 14px; color: #9ca3af;">Valor: 1.500,00 MT</p>
+                              
+                              <div style="border-top: 1px solid #374151; padding-top: 15px; margin-top: 15px;">
+                                <p style="margin: 0 0 10px 0; font-size: 13px; color: #9ca3af; text-transform: uppercase;">Dúvidas sobre o produto?</p>
+                                <a href="#" style="display: inline-block; background-color: transparent; color: #10b981; border: 1px solid #10b981; padding: 8px 15px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px;">Falar com Vendedor</a>
+                              </div>
                             </div>
                             
                             <div style="text-align: center;">

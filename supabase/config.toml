@@ -9,3 +9,25 @@ entrypoint = "./functions/handle-2fa/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/handle-2fa/*.html" ]
+
+[functions.send-library-code]
+enabled = true
+verify_jwt = true
+import_map = "./functions/send-library-code/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/send-library-code/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/send-library-code/*.html" ]
+
+[functions.verify-library-code]
+enabled = true
+verify_jwt = true
+import_map = "./functions/verify-library-code/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/verify-library-code/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/verify-library-code/*.html" ]

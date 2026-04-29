@@ -36,7 +36,7 @@ import AdminProducts from "./pages/admin/AdminProducts";
 import AdminWithdrawals from "./pages/admin/AdminWithdrawals";
 import AdminProfileRequests from "./pages/admin/AdminProfileRequests";
 import Account from "./pages/Account";
-
+import Library from "./pages/Library";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -98,6 +98,7 @@ const App = () => {
           <Route path="/checkout/:productId" element={<Checkout />} />
           <Route path="/checkout/:productId/payment" element={<PaymentInstructions />} />
           <Route path="/thank-you" element={<ThankYou />} />
+          <Route path="/biblioteca" element={<Library />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/contact" element={<Contact />} />

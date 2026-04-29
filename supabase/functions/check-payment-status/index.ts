@@ -79,7 +79,12 @@ Deno.serve(async (req) => {
         
         // --- 1. NOTIFY CUSTOMER (Premium Access Email) ---
         if (ord.customer_email && !ord.customer_notified) {
-          const deliveryUrl = `${Deno.env.get("PUBLIC_SITE_URL") || 'https://ensinapay.com'}/thank-you?orderId=${ord.id}`;
+          // Intelligent Delivery Link: Direct if link, otherwise Thank You page
+          const isDirectLink = prod?.delivery_type === 'link' && prod?.delivery_content?.startsWith('http');
+          const deliveryUrl = isDirectLink 
+            ? prod.delivery_content 
+            : `${Deno.env.get("PUBLIC_SITE_URL") || 'https://ensinapay.com'}/thank-you?orderId=${ord.id}`;
+
           const customerHtml = `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #111827; border-radius: 0 0 16px 16px; overflow: hidden; color: #ffffff;">
               <div style="background-color: #f3f4f6; padding: 30px; text-align: center;">
@@ -92,7 +97,14 @@ Deno.serve(async (req) => {
                 <div style="background-color: #1f2937; padding: 25px; border-radius: 12px; border: 1px solid #374151; margin-bottom: 30px;">
                   <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin: 0 0 15px 0;">Detalhes do Pedido:</h3>
                   <p style="margin: 0 0 5px 0; font-size: 16px; font-weight: bold; color: #10b981;">${prod?.name}</p>
-                  <p style="margin: 0; font-size: 14px; color: #9ca3af;">Valor: ${ord.price.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</p>
+                  <p style="margin: 0 0 15px 0; font-size: 14px; color: #9ca3af;">Valor: ${ord.price.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</p>
+                  
+                  ${prod.profiles?.phone ? `
+                    <div style="border-top: 1px solid #374151; padding-top: 15px; margin-top: 15px;">
+                      <p style="margin: 0 0 10px 0; font-size: 13px; color: #9ca3af; text-transform: uppercase;">Dúvidas sobre o produto?</p>
+                      <a href="https://wa.me/${prod.profiles.phone.replace(/\D/g, '')}" style="display: inline-block; background-color: transparent; color: #10b981; border: 1px solid #10b981; padding: 8px 15px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px;">Falar com Vendedor</a>
+                    </div>
+                  ` : ''}
                 </div>
                 
                 <div style="text-align: center;">
