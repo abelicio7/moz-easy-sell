@@ -57,17 +57,17 @@ serve(async (req) => {
 
       if (invokeErr) {
         console.error(`Error invoking email for ${email}:`, invokeErr);
-        return new Response(JSON.stringify({ error: `Falha ao disparar e-mail para ${email}: ${invokeErr.message}` }), { 
+        return new Response(JSON.stringify({ success: false, error: `Falha ao disparar e-mail para ${email}: ${invokeErr.message}` }), { 
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 500 
+          status: 200 
         });
       }
       
-      if (data?.error) {
+      if (data?.success === false) {
         console.error(`Email API error for ${email}:`, data.error);
-        return new Response(JSON.stringify({ error: `Erro no Brevo (${email}): ${data.error}` }), { 
+        return new Response(JSON.stringify({ success: false, error: `Erro no Brevo (${email}): ${data.error}` }), { 
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 500 
+          status: 200 
         });
       }
     }
@@ -79,9 +79,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Notify Admins error:", error);
-    return new Response(JSON.stringify({ error: error.message }), { 
+    return new Response(JSON.stringify({ success: false, error: error.message }), { 
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 400 
+      status: 200 
     });
   }
 })

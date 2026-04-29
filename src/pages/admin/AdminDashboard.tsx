@@ -125,7 +125,7 @@ const AdminDashboard = () => {
                 variant="outline" 
                 className="w-full border-dashed"
                 onClick={async () => {
-                  const { error } = await supabase.functions.invoke("notify-admins", {
+                  const { data, error } = await supabase.functions.invoke("notify-admins", {
                     body: { 
                       subject: "🚀 Teste de Conectividade - EnsinaPay", 
                       htmlContent: `
@@ -139,9 +139,11 @@ const AdminDashboard = () => {
                       ` 
                     }
                   });
-                  if (error) {
-                    console.error(error);
-                    toast.error("Erro ao testar: " + error.message);
+                  
+                  if (error || data?.success === false) {
+                    const msg = error?.message || data?.error || "Erro desconhecido";
+                    console.error("Erro no teste:", msg);
+                    toast.error("Erro ao testar: " + msg);
                   } else {
                     toast.success("E-mail de teste enviado! Verifique sua caixa de entrada.");
                   }
