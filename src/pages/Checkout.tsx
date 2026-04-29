@@ -96,12 +96,12 @@ const Checkout = () => {
         setLoading(false);
         return;
       }
-      if (!productData) {
-        setDebugError(`Produto com ID ${productId} não existe no BD.`);
+      if (!productData || productData.status !== 'approved') {
         setProduct(null);
         setLoading(false);
         return;
       }
+
       setProduct(productData as any);
 
       if (productData?.user_id) {
@@ -253,8 +253,17 @@ const Checkout = () => {
 
   if (!product) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-muted-foreground">Produto não encontrado</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 text-center">
+        <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-6">
+          <Package className="w-10 h-10 text-muted-foreground/40" />
+        </div>
+        <h1 className="text-2xl font-bold mb-2">Produto Indisponível</h1>
+        <p className="text-muted-foreground max-w-xs mx-auto">
+          Este produto não está mais disponível para compra ou ainda está aguardando aprovação.
+        </p>
+        <Button variant="outline" className="mt-8 rounded-xl" onClick={() => navigate('/')}>
+          Voltar para Início
+        </Button>
       </div>
     );
   }
