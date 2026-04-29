@@ -71,7 +71,10 @@ const Dashboard = () => {
           : 0;
       });
 
-      // Use commissions for real revenue (Net)
+      // 1. Gross Revenue (History from orders) - For "True" history
+      const grossRevenue = allOrders.filter((o: any) => o.status === "paid").reduce((sum: number, o: any) => sum + (o.price || 0), 0);
+
+      // 2. Net Revenue (Real earnings from commissions) - For balance
       const totalNetRevenue = (commissions || []).reduce((sum, comm) => sum + Number(comm.amount), 0);
       
       const totalWithdrawnAndPending = allWithdrawals
@@ -82,7 +85,7 @@ const Dashboard = () => {
         total: allOrders.length,
         pending: allOrders.filter((o: any) => o.status === "pending").length,
         paid: allOrders.filter((o: any) => o.status === "paid").length,
-        revenue: totalNetRevenue,
+        revenue: grossRevenue, // Showing gross history here as requested
         availableBalance: totalNetRevenue - totalWithdrawnAndPending,
         methodStats
       });
