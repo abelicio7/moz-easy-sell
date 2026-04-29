@@ -77,30 +77,40 @@ Deno.serve(async (req) => {
       if (newS === "paid") {
         const prod = Array.isArray(ord.products) ? ord.products[0] : ord.products;
         
-        // --- 1. NOTIFY CUSTOMER (Premium Delivery Email) ---
+        // --- 1. NOTIFY CUSTOMER (Premium Access Email) ---
         if (ord.customer_email && !ord.customer_notified) {
+          const deliveryUrl = `${Deno.env.get("PUBLIC_SITE_URL") || 'https://ensinapay.com'}/thank-you?orderId=${ord.id}`;
           const customerHtml = `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 12px; background-color: #fff;">
-              <div style="text-align: center; margin-bottom: 20px;">
-                <h1 style="color: #16a34a; margin: 0;">Pagamento Confirmado! 🎉</h1>
-                <p style="color: #666;">Olá, ${ord.customer_name}. Seu acesso já está liberado.</p>
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #111827; border-radius: 0 0 16px 16px; overflow: hidden; color: #ffffff;">
+              <div style="background-color: #f3f4f6; padding: 30px; text-align: center;">
+                <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 40px;">
               </div>
-              <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; padding: 20px; border-radius: 8px; margin-bottom: 25px;">
-                <h3 style="margin-top: 0; color: #111827;">${prod?.name}</h3>
-                <p style="font-size: 14px; color: #4b5563;">${prod?.description || ""}</p>
-                <div style="margin-top: 20px; text-align: center;">
-                  ${prod?.delivery_type === 'link' 
-                    ? `<a href="${prod?.delivery_content}" style="display: inline-block; background-color: #000; color: #fff; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">Aceder ao Produto</a>`
-                    : `<div style="background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px; font-family: monospace;">${prod?.delivery_content}</div>`
-                  }
+              <div style="padding: 40px 30px;">
+                <h1 style="font-size: 24px; font-weight: 800; color: #ffffff; margin: 0 0 10px 0;">Obrigado pela sua compra! 🚀</h1>
+                <p style="font-size: 16px; color: #d1d5db; margin-bottom: 30px;">O seu pagamento foi confirmado e o seu acesso já está disponível.</p>
+                
+                <div style="background-color: #1f2937; padding: 25px; border-radius: 12px; border: 1px solid #374151; margin-bottom: 30px;">
+                  <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin: 0 0 15px 0;">Detalhes do Pedido:</h3>
+                  <p style="margin: 0 0 5px 0; font-size: 16px; font-weight: bold; color: #10b981;">${prod?.name}</p>
+                  <p style="margin: 0; font-size: 14px; color: #9ca3af;">Valor: ${ord.price.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</p>
                 </div>
+                
+                <div style="text-align: center;">
+                  <a href="${deliveryUrl}" style="display: inline-block; background-color: #10b981; color: #000000; padding: 18px 45px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">Aceder ao Conteúdo</a>
+                </div>
+                
+                <p style="text-align: center; font-size: 14px; color: #6b7280; margin-top: 30px;">
+                  Se tiver alguma dúvida, responda a este e-mail ou contacte o suporte.
+                </p>
               </div>
-              <p style="font-size: 12px; color: #9ca3af; text-align: center;">Dúvidas? Entre em contacto com o suporte do vendedor.</p>
+              <div style="background-color: #000000; padding: 20px; text-align: center; font-size: 12px; color: #4b5563;">
+                &copy; ${new Date().getFullYear()} EnsinaPay. Todos os direitos reservados.
+              </div>
             </div>
           `;
           
           await supabase.functions.invoke("send-email-notification", { 
-            body: { to: ord.customer_email, subject: `Sua compra de "${prod?.name}" foi aprovada!`, htmlContent: customerHtml, senderName: "EnsinaPay" } 
+            body: { to: ord.customer_email, subject: `✅ Seu acesso chegou: ${prod?.name}`, htmlContent: customerHtml, senderName: "EnsinaPay" } 
           });
           await supabase.from("orders").update({ customer_notified: true }).eq("id", id);
         }
