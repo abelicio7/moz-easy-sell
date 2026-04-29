@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Users, Package, Banknote, ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -113,14 +114,40 @@ const AdminDashboard = () => {
           <Card className="border-border/50 bg-card hover:border-primary/50 transition-all">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                Alterações de Perfil
-                <Users className="w-4 h-4 text-purple-500" />
+                Sistema de Alertas
+                <ShieldCheck className="w-4 h-4 text-purple-500" />
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black text-foreground mb-2">-</div>
-              <Button size="sm" variant="outline" className="w-full" asChild>
-                <Link to="/admin/requests">Ver Solicitações</Link>
+              <div className="text-3xl font-black text-foreground mb-2">Email</div>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="w-full border-dashed"
+                onClick={async () => {
+                  const { error } = await supabase.functions.invoke("notify-admins", {
+                    body: { 
+                      subject: "🚀 Teste de Conectividade - EnsinaPay", 
+                      htmlContent: `
+                        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                          <h2 style="color: #16a34a;">Sistema Operacional!</h2>
+                          <p>Este é um e-mail de teste para confirmar que as notificações da <strong>EnsinaPay</strong> estão configuradas corretamente.</p>
+                          <p><strong>Hora do Teste:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+                          <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+                          <p style="font-size: 12px; color: #666;">Se você recebeu isto, as notificações para novos vendedores e produtos estão prontas.</p>
+                        </div>
+                      ` 
+                    }
+                  });
+                  if (error) {
+                    console.error(error);
+                    toast.error("Erro ao testar: " + error.message);
+                  } else {
+                    toast.success("E-mail de teste enviado! Verifique sua caixa de entrada.");
+                  }
+                }}
+              >
+                Testar Notificações
               </Button>
             </CardContent>
           </Card>
