@@ -185,6 +185,11 @@ const Checkout = () => {
 
     try {
       const orderId = crypto.randomUUID();
+      
+      // Get affiliate from storage
+      const affId = localStorage.getItem("ensina_aff_id");
+      const affExpiry = localStorage.getItem("ensina_aff_expiry");
+      const isAffValid = affId && affExpiry && parseInt(affExpiry) > Date.now();
 
       const { error } = await supabase.from("orders").insert({
         id: orderId,
@@ -195,6 +200,7 @@ const Checkout = () => {
         payment_method: form.payment_method,
         price: product.price,
         status: "pending",
+        affiliate_id: isAffValid ? affId : null
       });
 
       if (error) {
