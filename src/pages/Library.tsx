@@ -16,8 +16,14 @@ const Library = () => {
   const [purchases, setPurchases] = useState<any[]>([]);
   const [authenticatedEmail, setAuthenticatedEmail] = useState("");
 
-  // Check if already authenticated in this session
+  // Check if already authenticated or has email in URL
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const emailParam = params.get("email");
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+
     const savedEmail = sessionStorage.getItem("library_email");
     if (savedEmail) {
       setAuthenticatedEmail(savedEmail);

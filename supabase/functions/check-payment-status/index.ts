@@ -79,11 +79,8 @@ Deno.serve(async (req) => {
         
         // --- 1. NOTIFY CUSTOMER (Premium Access Email) ---
         if (ord.customer_email && !ord.customer_notified) {
-          // Intelligent Delivery Link: Direct if link, otherwise Thank You page
-          const isDirectLink = prod?.delivery_type === 'link' && prod?.delivery_content?.startsWith('http');
-          const deliveryUrl = isDirectLink 
-            ? prod.delivery_content 
-            : `${Deno.env.get("PUBLIC_SITE_URL") || 'https://ensinapay.com'}/thank-you?orderId=${ord.id}`;
+          // Point to the Library for a consolidated experience
+          const deliveryUrl = `${Deno.env.get("PUBLIC_SITE_URL") || 'https://ensinapay.com'}/biblioteca?email=${encodeURIComponent(ord.customer_email)}`;
 
           const customerHtml = `
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #111827; border-radius: 0 0 16px 16px; overflow: hidden; color: #ffffff;">
