@@ -33,10 +33,64 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       
       if (data?.role === "admin") {
         setIsAdmin(true);
+
+        // Real-time notifications for Admins
+        const channel = supabase
+          .channel('admin-notifications')
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'products' },
+            (payload) => {
+              if (payload.new.status === 'pending') {
+                toast("📦 Novo Produto Registado", {
+                  description: `O produto "${payload.new.name}" aguarda aprovação.`,
+                  action: {
+                    label: "Ver",
+                    onClick: () => navigate("/admin/products"),
+                  },
+                });
+              }
+            }
+          )
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'profiles' },
+            (payload) => {
+              if (payload.new.status === 'pending') {
+                toast("👤 Novo Vendedor Registado", {
+                  description: `${payload.new.full_name || 'Um novo vendedor'} aguarda aprovação.`,
+                  action: {
+                    label: "Ver",
+                    onClick: () => navigate("/admin/users"),
+                  },
+                });
+              }
+            }
+          )
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'withdrawals' },
+            (payload) => {
+              if (payload.new.status === 'pending') {
+                toast("💰 Novo Pedido de Saque", {
+                  description: `Um pedido de ${payload.new.amount} MT foi solicitado.`,
+                  action: {
+                    label: "Ver",
+                    onClick: () => navigate("/admin/withdrawals"),
+                  },
+                });
+              }
+            }
+          )
+          .subscribe();
+
+        return () => {
+          supabase.removeChannel(channel);
+        };
       }
     };
     checkAdmin();
-  }, []);
+  }, [navigate]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
