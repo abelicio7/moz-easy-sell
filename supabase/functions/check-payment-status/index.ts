@@ -193,6 +193,15 @@ Deno.serve(async (req) => {
                 htmlContent: sellerHtml.replace("Parabéns!", "Nova Venda Registada!").replace("Você recebeu:", "O vendedor recebeu:")
               }
             });
+
+            // --- 4. MARK CART AS RECOVERED ---
+            if (ord.customer_email) {
+              await supabase
+                .from("carts")
+                .update({ status: "recovered" })
+                .eq("email", ord.customer_email.toLowerCase().trim())
+                .eq("product_id", ord.product_id);
+            }
           }
         }
       }
@@ -217,6 +226,12 @@ Deno.serve(async (req) => {
         console.log(`[Parasitic Polling] Auto-checking orphaned order: ${orphaned.id}`);
         await processOrder(orphaned.id, orphaned.debito_reference);
       }
+
+      // --- 3. AUTO-TRIGGER CART RECOVERY (Parasitic Cron) ---
+      // This ensures that even without a formal cron job, the recovery emails are sent
+      // whenever there is activity in the payment status function.
+      console.log(`[Parasitic Cron] Triggering abandoned cart recovery...`);
+      await supabase.functions.invoke("abandoned-cart-recovery");
     } catch (e) { console.error("Parasitic polling failed:", e); }
 
     return new Response(JSON.stringify(result), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });

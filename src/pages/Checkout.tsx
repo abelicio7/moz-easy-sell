@@ -36,6 +36,20 @@ const Checkout = () => {
   });
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const emailParam = params.get("email");
+    const nameParam = params.get("name");
+    
+    if (emailParam || nameParam) {
+      setForm(prev => ({
+        ...prev,
+        email: emailParam || prev.email,
+        name: nameParam || prev.name
+      }));
+    }
+  }, []);
+
+  useEffect(() => {
     const fetchProductAndPixel = async () => {
       const { data: productData, error: productError } = await supabase
         .from("products")
@@ -105,6 +119,21 @@ const Checkout = () => {
     };
     fetchProductAndPixel();
   }, [productId]);
+
+  const handleCaptureCart = async () => {
+    if (!product || !form.email || !form.email.includes("@")) return;
+    
+    try {
+      await supabase.from("carts").upsert({
+        email: form.email.toLowerCase().trim(),
+        customer_name: form.name,
+        product_id: product.id,
+        status: "pending"
+      }, { onConflict: 'email, product_id' });
+    } catch (e) {
+      console.error("Cart capture error:", e);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -234,6 +263,7 @@ const Checkout = () => {
                       placeholder="Digite seu nome completo"
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      onBlur={handleCaptureCart}
                       required
                       className="bg-background/50 border-border"
                     />
@@ -247,6 +277,7 @@ const Checkout = () => {
                       placeholder="seu@email.com"
                       value={form.email}
                       onChange={(e) => setForm({ ...form, email: e.target.value })}
+                      onBlur={handleCaptureCart}
                       required
                       className="bg-background/50 border-border"
                     />
