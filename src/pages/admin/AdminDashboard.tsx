@@ -157,45 +157,56 @@ const AdminDashboard = () => {
                   variant="default" 
                   className="w-full font-bold bg-green-600 hover:bg-green-700"
                   onClick={async () => {
-                    const toastId = toast.loading("Simulando venda e enviando e-mails...");
+                    const toastId = toast.loading("Simulando venda...");
                     try {
-                      // 1. Get current user email for the mock sale
                       const { data: { user } } = await supabase.auth.getUser();
                       const myEmail = user?.email || "abeliciosimoney@gmail.com";
+                      
+                      const hotmartStyleHtml = `
+                        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #111827; border-radius: 0 0 16px 16px; overflow: hidden; color: #ffffff;">
+                          <div style="background-color: #f3f4f6; padding: 30px; text-align: center;">
+                            <img src="https://tegpzkxbnrqzlmzbwrsp.supabase.co/storage/v1/object/public/quiz-images/logo-placeholder.png" alt="EnsinaPay" style="height: 40px;">
+                          </div>
+                          <div style="padding: 40px 30px;">
+                            <p style="font-size: 18px; color: #d1d5db; margin-bottom: 10px;">Parabéns!</p>
+                            <h2 style="font-size: 22px; font-weight: 800; color: #ffffff; margin: 0 0 30px 0; line-height: 1.2;">
+                              Você acabou de vender uma cópia do produto <span style="text-transform: uppercase; color: #10b981;">Ebook: Sucesso em Moçambique</span>!
+                            </h2>
+                            
+                            <p style="font-size: 16px; color: #10b981; margin-bottom: 5px; font-weight: 600;">Você recebeu:</p>
+                            <h1 style="font-size: 48px; font-weight: 900; color: #10b981; margin: 0 0 40px 0;">
+                              1.500,00 MT
+                            </h1>
+                            
+                            <div style="background-color: #1f2937; padding: 25px; border-radius: 12px; border: 1px solid #374151;">
+                              <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin: 0 0 20px 0;">Dados da Transação:</h3>
+                              
+                              <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Nome:</span> Cliente de Teste</p>
+                              <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Email:</span> <a href="#" style="color: #10b981; text-decoration: none;">cliente@teste.com</a></p>
+                              <p style="margin: 0 0 20px 0; font-size: 15px;"><span style="color: #9ca3af;">ID:</span> EP999999</p>
+                            </div>
+                            
+                            <div style="text-align: center; margin-top: 40px;">
+                              <a href="#" style="display: inline-block; background-color: #10b981; color: #000000; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 16px; text-transform: uppercase;">Aceder ao Painel</a>
+                            </div>
+                          </div>
+                        </div>
+                      `;
 
-                      // 2. Invoke check-payment-status with a "mock" mode
-                      // We'll trigger a direct call to the notification logic
                       const { data, error } = await supabase.functions.invoke("send-email-notification", {
                         body: { 
                           to: myEmail, 
-                          subject: "💸 VENDA REALIZADA: Produto de Teste", 
-                          htmlContent: `
-                            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 12px; background-color: #f0fdf4; border: 1px solid #bbf7d0;">
-                              <div style="text-align: center; margin-bottom: 20px;">
-                                <h1 style="color: #166534; margin: 0;">Venda Realizada! (TESTE) 💰</h1>
-                                <p style="color: #166534; font-weight: bold;">Este é um teste do novo sistema de notificações premium.</p>
-                              </div>
-                              <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #dcfce7;">
-                                <p style="margin: 5px 0; color: #666; font-size: 14px;">Produto:</p>
-                                <p style="margin: 0 0 15px 0; font-weight: bold; font-size: 18px; color: #111827;">Ebook: Como Vender Online em Moçambique</p>
-                                <div style="border-top: 1px solid #eee; padding-top: 15px;">
-                                  <p style="margin: 5px 0; font-size: 14px;"><strong>Valor:</strong> 1.500,00 MT</p>
-                                  <p style="margin: 5px 0; font-size: 14px;"><strong>Cliente:</strong> Cliente de Teste EnsinaPay</p>
-                                </div>
-                              </div>
-                            </div>
-                          `,
+                          subject: "💸 VENDA REALIZADA (TESTE ESTILO HOTMART)", 
+                          htmlContent: hotmartStyleHtml,
                           senderName: "EnsinaPay Vendas"
                         }
                       });
 
                       if (error || data?.success === false) throw new Error(error?.message || data?.error);
-                      
-                      toast.success("Simulação concluída! Verifique o seu e-mail.", { id: toastId });
+                      toast.success("E-mail estilo Hotmart enviado!", { id: toastId });
                     } catch (err: any) {
                       toast.error("Erro na simulação: " + err.message, { id: toastId });
                     }
-                  }}
                 >
                   Simular Venda (Teste)
                 </Button>

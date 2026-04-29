@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
           await supabase.from("orders").update({ customer_notified: true }).eq("id", id);
         }
 
-        // --- 2. NOTIFY SELLER (Premium Sale Alert) ---
+        // --- 2. NOTIFY SELLER (Hotmart Style Alert) ---
         if (prod?.user_id && !ord.seller_notified) {
           let sEmail = prod.profiles?.email;
           if (!sEmail) { 
@@ -115,22 +115,39 @@ Deno.serve(async (req) => {
           
           if (sEmail) {
             const sellerHtml = `
-              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 12px; background-color: #f0fdf4; border: 1px solid #bbf7d0;">
-                <div style="text-align: center; margin-bottom: 20px;">
-                  <h1 style="color: #166534; margin: 0;">Venda Realizada! 💰</h1>
-                  <p style="color: #166534; font-weight: bold;">Você acabou de ganhar dinheiro na EnsinaPay.</p>
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #111827; border-radius: 0 0 16px 16px; overflow: hidden; color: #ffffff;">
+                <div style="background-color: #f3f4f6; padding: 30px; text-align: center;">
+                  <img src="https://tegpzkxbnrqzlmzbwrsp.supabase.co/storage/v1/object/public/quiz-images/logo-placeholder.png" alt="EnsinaPay" style="height: 40px;">
                 </div>
-                <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #dcfce7;">
-                  <p style="margin: 5px 0; color: #666; font-size: 14px;">Produto:</p>
-                  <p style="margin: 0 0 15px 0; font-weight: bold; font-size: 18px; color: #111827;">${prod?.name}</p>
+                <div style="padding: 40px 30px;">
+                  <p style="font-size: 18px; color: #d1d5db; margin-bottom: 10px;">Parabéns!</p>
+                  <h2 style="font-size: 22px; font-weight: 800; color: #ffffff; margin: 0 0 30px 0; line-height: 1.2;">
+                    Você acabou de vender uma cópia do produto <span style="text-transform: uppercase; color: #10b981;">${prod?.name}</span>!
+                  </h2>
                   
-                  <div style="border-top: 1px solid #eee; padding-top: 15px;">
-                    <p style="margin: 5px 0; font-size: 14px;"><strong>Valor:</strong> ${ord.price} MT</p>
-                    <p style="margin: 5px 0; font-size: 14px;"><strong>Cliente:</strong> ${ord.customer_name}</p>
+                  <p style="font-size: 16px; color: #10b981; margin-bottom: 5px; font-weight: 600;">Você recebeu:</p>
+                  <h1 style="font-size: 48px; font-weight: 900; color: #10b981; margin: 0 0 40px 0;">
+                    ${ord.price.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}
+                  </h1>
+                  
+                  <div style="background-color: #1f2937; padding: 25px; border-radius: 12px; border: 1px solid #374151;">
+                    <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin: 0 0 20px 0;">Dados da Transação:</h3>
+                    
+                    <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Nome:</span> ${ord.customer_name}</p>
+                    <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Email:</span> <a href="mailto:${ord.customer_email}" style="color: #10b981; text-decoration: none;">${ord.customer_email}</a></p>
+                    <p style="margin: 0 0 20px 0; font-size: 15px;"><span style="color: #9ca3af;">ID:</span> ${ord.id.substring(0, 8).toUpperCase()}</p>
+                    
+                    <div style="border-top: 1px solid #374151; padding-top: 20px;">
+                      <p style="margin: 0; font-size: 14px; font-weight: bold; color: #ffffff;">Valor Pago Pelo Comprador: <span style="color: #10b981;">${ord.price} MT</span></p>
+                    </div>
+                  </div>
+                  
+                  <div style="text-align: center; margin-top: 40px;">
+                    <a href="${Deno.env.get("PUBLIC_SITE_URL") || 'https://ensinapay.com'}/dashboard" style="display: inline-block; background-color: #10b981; color: #000000; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 16px; text-transform: uppercase;">Aceder ao Painel</a>
                   </div>
                 </div>
-                <div style="text-align: center; margin-top: 25px;">
-                  <a href="${Deno.env.get("PUBLIC_SITE_URL") || 'https://ensinapay.com'}/dashboard" style="display: inline-block; background-color: #166534; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ver no Dashboard</a>
+                <div style="background-color: #000000; padding: 20px; text-align: center; font-size: 12px; color: #4b5563;">
+                  &copy; ${new Date().getFullYear()} EnsinaPay. Todos os direitos reservados.
                 </div>
               </div>
             `;
@@ -140,19 +157,11 @@ Deno.serve(async (req) => {
             });
             await supabase.from("orders").update({ seller_notified: true }).eq("id", id);
 
-            // --- 3. NOTIFY SYSTEM ADMIN (Monitoring) ---
+            // --- 3. NOTIFY SYSTEM ADMIN (Hotmart Style Monitoring) ---
             await supabase.functions.invoke("notify-admins", {
               body: {
-                subject: `📈 NOVA VENDA NO SISTEMA: ${ord.price} MT`,
-                htmlContent: `
-                  <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                    <h3>Relatório de Venda Instantâneo</h3>
-                    <p><strong>Produto:</strong> ${prod?.name}</p>
-                    <p><strong>Valor:</strong> ${ord.price} MT</p>
-                    <p><strong>Vendedor:</strong> ${prod.profiles?.full_name || 'Vendedor'}</p>
-                    <p><strong>Comprador:</strong> ${ord.customer_name} (${ord.customer_email})</p>
-                  </div>
-                `
+                subject: `📈 NOVA VENDA: ${ord.price} MT`,
+                htmlContent: sellerHtml.replace("Parabéns!", "Nova Venda Registada!").replace("Você recebeu:", "O vendedor recebeu:")
               }
             });
           }
