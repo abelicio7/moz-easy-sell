@@ -45,17 +45,30 @@ serve(async (req) => {
     console.log(`Sending admin notifications to: ${adminEmails.join(", ")}`);
 
     for (const email of adminEmails) {
-      try {
-        await supabase.functions.invoke("send-email-notification", {
-          body: { 
-            to: email, 
-            subject: subject, 
-            htmlContent: htmlContent, 
-            senderName: "EnsinaPay System" 
-          }
+      console.log(`Attempting to notify: ${email}`);
+      const { data, error: invokeErr } = await supabase.functions.invoke("send-email-notification", {
+        body: { 
+          to: email, 
+          subject: subject, 
+          htmlContent: htmlContent, 
+          senderName: "EnsinaPay System" 
+        }
+      });
+
+      if (invokeErr) {
+        console.error(`Error invoking email for ${email}:`, invokeErr);
+        return new Response(JSON.stringify({ error: `Falha ao disparar e-mail para ${email}: ${invokeErr.message}` }), { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 500 
         });
-      } catch (err) {
-        console.error(`Failed to notify admin ${email}:`, err);
+      }
+      
+      if (data?.error) {
+        console.error(`Email API error for ${email}:`, data.error);
+        return new Response(JSON.stringify({ error: `Erro no Brevo (${email}): ${data.error}` }), { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 500 
+        });
       }
     }
 
