@@ -204,8 +204,9 @@ Deno.serve(async (req) => {
             }
 
             // --- 5. CALCULATE AND RECORD COMMISSIONS ---
-            const PLATFORM_FEE_PERCENT = 0.05; // 5%
-            const platformFee = ord.price * PLATFORM_FEE_PERCENT;
+            // New Rule: Platform takes 0% on sales, only 10% on withdrawals.
+            const PLATFORM_FEE_PERCENT = 0; 
+            const platformFee = 0;
             
             let affiliateCommission = 0;
             if (ord.affiliate_id) {
@@ -221,11 +222,10 @@ Deno.serve(async (req) => {
               }
             }
 
-            const sellerNet = ord.price - platformFee - affiliateCommission;
+            const sellerNet = ord.price - affiliateCommission;
 
             // Record Splits
             const splits = [
-              { order_id: ord.id, user_id: null, amount: platformFee, user_type: 'platform' },
               { order_id: ord.id, user_id: prod.user_id, amount: sellerNet, user_type: 'seller' }
             ];
 
@@ -233,6 +233,7 @@ Deno.serve(async (req) => {
               splits.push({ order_id: ord.id, user_id: ord.affiliate_id, amount: affiliateCommission, user_type: 'affiliate' });
             }
 
+            // Note: We don't need to insert a 0 amount split for platform anymore.
             await supabase.from("commissions").insert(splits);
           }
         }

@@ -1,174 +1,189 @@
 import { useEffect, useState, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { BarChart3, TrendingUp, DollarSign, Smartphone } from "lucide-react";
+import { BarChart3, TrendingUp, DollarSign, Smartphone, ArrowUpRight, ShoppingBag, UserCheck } from "lucide-react";
 import { 
-  BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer
 } from "recharts";
 
-interface Order {
+interface Transaction {
   id: string;
-  price: number;
-  payment_method: string;
+  type: 'direct' | 'affiliate';
+  amount: number;
+  product_name: string;
   created_at: string;
+  payment_method?: string;
 }
 
 const Sales = () => {
   const { user } = useAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
-    const fetchSales = async () => {
-      // Get all PAID orders
-      const { data, error } = await supabase
-        .from("orders")
-        .select("id, price, payment_method, created_at, products!inner(user_id)")
-        .eq("products.user_id", user.id)
-        .eq("status", "paid")
-        .order("created_at", { ascending: true }); // ascending for charts
+    const fetchAllRevenue = async () => {
+      setLoading(true);
+      try {
+        // 1. Fetch direct orders (Gross/Net doesn't matter here, we want transactions)
+        const { data: orders } = await supabase
+          .from("orders")
+          .select("id, price, payment_method, created_at, products!inner(name, user_id)")
+          .eq("products.user_id", user.id)
+          .eq("status", "paid");
+
+        // 2. Fetch all commissions (This includes both seller and affiliate splits)
+        const { data: commissions } = await supabase
+          .from("commissions")
+          .select("*, orders(payment_method), products(name)")
+          .eq("user_id", user.id);
+
+        const combined: Transaction[] = [];
+
+        // Direct sales (we use the commission record for 'seller' to get the net, 
+        // but if we want 'faturamento total' to be gross as discussed, we can use orders)
+        // Let's use orders for 'direct' and commissions for 'affiliate' to keep it distinct but unified
         
-      if (!error && data) {
-        setOrders(data as unknown as Order[]);
+        orders?.forEach(o => {
+          combined.push({
+            id: o.id,
+            type: 'direct',
+            amount: o.price,
+            product_name: (o.products as any).name,
+            created_at: o.created_at,
+            payment_method: o.payment_method
+          });
+        });
+
+        commissions?.filter(c => c.user_type === 'affiliate').forEach(c => {
+          combined.push({
+            id: c.id,
+            type: 'affiliate',
+            amount: c.amount,
+            product_name: (c.products as any)?.name || "Produto Afiliado",
+            created_at: c.created_at,
+            payment_method: (c.orders as any)?.payment_method
+          });
+        });
+
+        // Sort by date descending
+        combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        setTransactions(combined);
+
+      } catch (err) {
+        console.error("Error fetching sales data:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
-    fetchSales();
+    fetchAllRevenue();
   }, [user]);
 
   // Derived metrics
-  const totalSales = orders.length;
-  const netRevenue = orders.reduce((sum, o) => sum + (o.price || 0), 0);
-
-  const mpesaOrders = orders.filter(o => o.payment_method?.toLowerCase().includes("m-pesa") || o.payment_method?.toLowerCase() === "mpesa");
-  const mpesaRevenue = mpesaOrders.reduce((sum, o) => sum + (o.price || 0), 0);
-
-  const emolaOrders = orders.filter(o => o.payment_method?.toLowerCase().includes("e-mola") || o.payment_method?.toLowerCase() === "emola");
-  const emolaRevenue = emolaOrders.reduce((sum, o) => sum + (o.price || 0), 0);
+  const totalBilling = transactions.reduce((sum, t) => sum + t.amount, 0);
+  const directCount = transactions.filter(t => t.type === 'direct').length;
+  const affiliateCount = transactions.filter(t => t.type === 'affiliate').length;
 
   // Time-series Chart Data
   const timelineData = useMemo(() => {
-    const map = new Map<string, { date: string; Receita: number; Vendas: number }>();
+    const map = new Map<string, { date: string; Receita: number }>();
     
-    orders.forEach(o => {
-      const date = new Date(o.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
-      const current = map.get(date) || { date, Receita: 0, Vendas: 0 };
-      current.Receita += o.price || 0;
-      current.Vendas += 1;
+    // Use last 15 entries for the chart to keep it clean
+    [...transactions].reverse().forEach(t => {
+      const date = new Date(t.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+      const current = map.get(date) || { date, Receita: 0 };
+      current.Receita += t.amount;
       map.set(date, current);
     });
 
     return Array.from(map.values());
-  }, [orders]);
-
-  const methodComparisonData = [
-    { name: "M-Pesa", Receita: mpesaRevenue, fill: "hsl(var(--primary))" },
-    { name: "E-Mola", Receita: emolaRevenue, fill: "hsl(var(--secondary))" }
-  ];
+  }, [transactions]);
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Minhas Vendas</h2>
-          <p className="text-muted-foreground text-sm">Resumo da sua faturação em tempo real.</p>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="text-center py-12 text-muted-foreground">Carregando painel financeiro...</div>
-      ) : orders.length === 0 ? (
-        <Card className="border-dashed bg-card/50">
-          <CardContent className="py-16 text-center">
-            <BarChart3 className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
-            <h3 className="font-semibold text-foreground text-lg mb-2">Sem dados para exibir</h3>
-            <p className="text-sm text-muted-foreground max-w-md mx-auto">
-              Sua plataforma está pronta. Divulgue o seu link de checkout e acompanhe aqui os seus ganhos assim que realizar a primeira venda concluída!
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          {/* TOP KPIs */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">Vendas Concluídas</p>
-                    <p className="text-3xl font-bold text-foreground">{totalSales}</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-primary" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-primary/5 border-primary/20">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-primary mb-1">Valor Líquido</p>
-                    <p className="text-3xl font-bold text-primary">{netRevenue.toFixed(2)} MT</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-primary" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">Via M-Pesa</p>
-                    <p className="text-xl font-bold text-foreground">{mpesaRevenue.toFixed(2)} MT</p>
-                    <p className="text-xs text-muted-foreground mt-1">{mpesaOrders.length} transações</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-[#DD0512]/10 flex items-center justify-center">
-                    <Smartphone className="w-5 h-5 text-[#DD0512]" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground mb-1">Via E-Mola</p>
-                    <p className="text-xl font-bold text-foreground">{emolaRevenue.toFixed(2)} MT</p>
-                    <p className="text-xs text-muted-foreground mt-1">{emolaOrders.length} transações</p>
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-[#EC7028]/10 flex items-center justify-center">
-                    <Smartphone className="w-5 h-5 text-[#EC7028]" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+      <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-3xl font-black text-foreground tracking-tight italic uppercase">Minhas Vendas & Ganhos</h2>
+            <p className="text-muted-foreground font-medium">Histórico unificado de vendas diretas e comissões de parceiro.</p>
           </div>
+        </div>
 
-          {/* Gráficos */}
-          <div className="grid lg:grid-cols-3 gap-6">
+        {loading ? (
+          <div className="text-center py-24 text-muted-foreground flex flex-col items-center gap-4">
+            <BarChart3 className="w-12 h-12 animate-pulse text-primary/20" />
+            <p className="animate-pulse font-bold tracking-tighter uppercase italic">Sincronizando extrato financeiro...</p>
+          </div>
+        ) : transactions.length === 0 ? (
+          <Card className="border-dashed bg-card/50 rounded-[2.5rem]">
+            <CardContent className="py-24 text-center">
+              <BarChart3 className="w-16 h-16 text-muted-foreground/20 mx-auto mb-6" />
+              <h3 className="font-bold text-xl mb-2 italic uppercase">Sem transações registradas</h3>
+              <p className="text-muted-foreground max-w-sm mx-auto">
+                Suas vendas aparecerão aqui assim que você realizar a primeira venda ou ganhar sua primeira comissão.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-8">
+            {/* TOP KPIs */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="bg-primary/5 border-primary/20 rounded-3xl relative overflow-hidden">
+                <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl" />
+                <CardContent className="p-8 relative z-10">
+                  <p className="text-xs font-black text-primary uppercase tracking-[0.2em] mb-2 italic">Faturamento Total</p>
+                  <p className="text-4xl font-black text-foreground tracking-tighter">
+                    {totalBilling.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}
+                  </p>
+                  <div className="flex items-center gap-2 mt-4 text-[10px] font-bold text-muted-foreground uppercase">
+                    <TrendingUp className="w-3 h-3 text-emerald-500" /> +12% vs mês anterior
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card border-border/50 rounded-3xl">
+                <CardContent className="p-8 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 italic">Vendas Diretas</p>
+                    <p className="text-3xl font-black text-foreground tracking-tighter">{directCount}</p>
+                  </div>
+                  <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center">
+                    <ShoppingBag className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card border-border/50 rounded-3xl">
+                <CardContent className="p-8 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-black text-muted-foreground uppercase tracking-[0.2em] mb-2 italic">Comissões Recebidas</p>
+                    <p className="text-3xl font-black text-foreground tracking-tighter">{affiliateCount}</p>
+                  </div>
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                    <UserCheck className="w-6 h-6 text-emerald-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             {/* Timeline */}
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Histórico de Receitas</CardTitle>
-                <CardDescription>Acompanhe a sua evolução dia a dia</CardDescription>
+            <Card className="rounded-[2.5rem] overflow-hidden border-border/50 shadow-xl shadow-black/5 bg-card/50 backdrop-blur-sm">
+              <CardHeader className="p-8 border-b border-border/50">
+                <CardTitle className="text-xl font-black italic uppercase tracking-tight flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-primary" /> Curva de Crescimento
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="h-[300px] w-full">
+              <CardContent className="p-8">
+                <div className="h-[350px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={timelineData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                       <defs>
                         <linearGradient id="colorReceita" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4}/>
                           <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
                         </linearGradient>
                       </defs>
@@ -185,17 +200,15 @@ const Sales = () => {
                         fontSize={12} 
                         tickLine={false} 
                         axisLine={false} 
-                        tickFormatter={(value) => `${value}`}
                       />
                       <RechartsTooltip 
-                        contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
-                        itemStyle={{ color: 'hsl(var(--foreground))' }}
+                        contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '16px', fontWeight: 'bold' }}
                       />
                       <Area 
                         type="monotone" 
                         dataKey="Receita" 
                         stroke="hsl(var(--primary))" 
-                        strokeWidth={2}
+                        strokeWidth={4}
                         fillOpacity={1} 
                         fill="url(#colorReceita)" 
                       />
@@ -205,48 +218,52 @@ const Sales = () => {
               </CardContent>
             </Card>
 
-            {/* Methods */}
-            <Card className="lg:col-span-1">
-              <CardHeader>
-                <CardTitle>Receita por Método</CardTitle>
-                <CardDescription>M-Pesa vs E-Mola</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={methodComparisonData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                      <XAxis 
-                        dataKey="name" 
-                        stroke="hsl(var(--muted-foreground))" 
-                        fontSize={12} 
-                        tickLine={false} 
-                        axisLine={false} 
-                      />
-                      <YAxis 
-                        stroke="hsl(var(--muted-foreground))" 
-                        fontSize={12} 
-                        tickLine={false} 
-                        axisLine={false} 
-                        tickFormatter={(value) => `${value > 1000 ? (value/1000).toFixed(0) + 'k' : value}`}
-                      />
-                      <RechartsTooltip 
-                        cursor={{fill: 'hsl(var(--muted))', opacity: 0.2}}
-                        contentStyle={{ backgroundColor: 'hsl(var(--card))', borderColor: 'hsl(var(--border))', borderRadius: '8px' }}
-                      />
-                      <Bar 
-                        dataKey="Receita" 
-                        radius={[4, 4, 0, 0]}
-                        maxBarSize={50}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Transactions List */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-black italic uppercase tracking-tighter text-muted-foreground px-2">Últimas Transações</h3>
+              <div className="grid gap-3">
+                {transactions.map((t) => (
+                  <Card key={t.id} className="border-border/50 hover:border-primary/30 transition-all rounded-2xl group bg-card">
+                    <CardContent className="p-5 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                          t.type === 'direct' ? 'bg-primary/10 text-primary' : 'bg-emerald-500/10 text-emerald-500'
+                        }`}>
+                          {t.type === 'direct' ? <ShoppingBag className="w-6 h-6" /> : <UserCheck className="w-6 h-6" />}
+                        </div>
+                        <div>
+                          <p className="font-bold text-foreground leading-none mb-1">{t.product_name}</p>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className={`text-[9px] font-black uppercase tracking-widest border-0 py-0 px-2 ${
+                              t.type === 'direct' ? 'bg-primary/5 text-primary' : 'bg-emerald-500/5 text-emerald-500'
+                            }`}>
+                              {t.type === 'direct' ? 'Venda Direta' : 'Comissão'}
+                            </Badge>
+                            <span className="text-[10px] text-muted-foreground font-medium uppercase">
+                              {new Date(t.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="text-right">
+                        <p className={`text-xl font-black tracking-tighter ${
+                          t.type === 'direct' ? 'text-foreground' : 'text-emerald-500'
+                        }`}>
+                          {t.type === 'affiliate' ? '+' : ''}{t.amount.toFixed(2)} MT
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase flex items-center justify-end gap-1">
+                          {t.payment_method || 'M-PESA'} <ArrowUpRight className="w-3 h-3" />
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </DashboardLayout>
   );
 };

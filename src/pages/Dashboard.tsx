@@ -71,10 +71,15 @@ const Dashboard = () => {
           : 0;
       });
 
-      // 1. Gross Revenue (History from orders) - For "True" history
-      const grossRevenue = allOrders.filter((o: any) => o.status === "paid").reduce((sum: number, o: any) => sum + (o.price || 0), 0);
+      // 1. Total Billing (Own Gross Sales + Affiliate Commissions Net)
+      const ownGrossRevenue = allOrders.filter((o: any) => o.status === "paid").reduce((sum: number, o: any) => sum + (o.price || 0), 0);
+      const affiliateRevenue = (commissions || [])
+        .filter((c: any) => c.user_type === 'affiliate')
+        .reduce((sum, c) => sum + Number(c.amount), 0);
 
-      // 2. Net Revenue (Real earnings from commissions) - For balance
+      const totalBilling = ownGrossRevenue + affiliateRevenue;
+
+      // 2. Net Revenue (Real earnings from ALL sources) - For balance
       const totalNetRevenue = (commissions || []).reduce((sum, comm) => sum + Number(comm.amount), 0);
       
       const totalWithdrawnAndPending = allWithdrawals
@@ -85,7 +90,7 @@ const Dashboard = () => {
         total: allOrders.length,
         pending: allOrders.filter((o: any) => o.status === "pending").length,
         paid: allOrders.filter((o: any) => o.status === "paid").length,
-        revenue: grossRevenue, // Showing gross history here as requested
+        revenue: totalBilling, 
         availableBalance: totalNetRevenue - totalWithdrawnAndPending,
         methodStats
       });
