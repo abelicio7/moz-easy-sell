@@ -103,18 +103,12 @@ const Index = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
-              <Button size="lg" className="w-full sm:w-auto h-16 px-10 text-lg font-bold bg-secondary hover:bg-secondary/90 text-white shadow-xl shadow-secondary/20 rounded-2xl group" asChild>
-                <Link to="/register">
-                  Criar minha conta agora
-                  <ArrowRight className="w-5 h-5 ml-2 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="ghost" className="w-full sm:w-auto h-16 px-8 text-lg font-bold rounded-2xl border border-transparent hover:border-border hover:bg-white/50" asChild>
-                <a href="#como-funciona" className="flex items-center gap-2">
-                  <MousePointer2 className="w-5 h-5" />
-                  Ver demonstração
-                </a>
-              </Button>
+              <Link to="/register">
+                <Button size="lg" className="h-14 px-8 text-lg font-bold rounded-2xl bg-secondary hover:bg-secondary/90 shadow-xl shadow-secondary/20 group">
+                  Vender agora
+                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
