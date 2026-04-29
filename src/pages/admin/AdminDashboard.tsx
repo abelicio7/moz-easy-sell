@@ -214,6 +214,56 @@ const AdminDashboard = () => {
                 >
                   Simular Venda (Teste)
                 </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="w-full font-bold text-blue-600 border-blue-200 hover:bg-blue-50"
+                  onClick={async () => {
+                    const toastId = toast.loading("Simulando e-mail do cliente...");
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser();
+                      const myEmail = user?.email || "abeliciosimoney@gmail.com";
+                      
+                      const customerStyleHtml = `
+                        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #111827; border-radius: 0 0 16px 16px; overflow: hidden; color: #ffffff;">
+                          <div style="background-color: #f3f4f6; padding: 30px; text-align: center;">
+                            <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 40px;">
+                          </div>
+                          <div style="padding: 40px 30px;">
+                            <h1 style="font-size: 24px; font-weight: 800; color: #ffffff; margin: 0 0 10px 0;">Obrigado pela sua compra! 🚀</h1>
+                            <p style="font-size: 16px; color: #d1d5db; margin-bottom: 30px;">O seu pagamento foi confirmado e o seu acesso já está disponível.</p>
+                            
+                            <div style="background-color: #1f2937; padding: 25px; border-radius: 12px; border: 1px solid #374151; margin-bottom: 30px;">
+                              <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin: 0 0 15px 0;">Detalhes do Pedido:</h3>
+                              <p style="margin: 0 0 5px 0; font-size: 16px; font-weight: bold; color: #10b981;">Ebook: Sucesso em Moçambique</p>
+                              <p style="margin: 0; font-size: 14px; color: #9ca3af;">Valor: 1.500,00 MT</p>
+                            </div>
+                            
+                            <div style="text-align: center;">
+                              <a href="https://ensinapay.com/thank-you" style="display: inline-block; background-color: #10b981; color: #000000; padding: 18px 45px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">Aceder ao Conteúdo</a>
+                            </div>
+                          </div>
+                        </div>
+                      `;
+
+                      const { data, error } = await supabase.functions.invoke("send-email-notification", {
+                        body: { 
+                          to: myEmail, 
+                          subject: "✅ Seu acesso chegou: Ebook Sucesso", 
+                          htmlContent: customerStyleHtml,
+                          senderName: "EnsinaPay"
+                        }
+                      });
+
+                      if (error || data?.success === false) throw new Error(error?.message || data?.error || "Erro no envio");
+                      toast.success("E-mail do cliente enviado!", { id: toastId });
+                    } catch (err: any) {
+                      toast.error("Erro na simulação: " + err.message, { id: toastId });
+                    }
+                  }}
+                >
+                  Simular E-mail Comprador
+                </Button>
               </div>
             </CardContent>
           </Card>
