@@ -5,10 +5,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Nova infraestrutura da Debito Pay via Supabase Edge Functions
 const DEBITO_BASE_URL = "https://gyqoaningqhurhvdugne.supabase.co/functions/v1";
-const WALLET_IDS: Record<string, number> = {
-  mpesa: 334838,
-  emola: 226725,
+const WALLET_CODES: Record<string, string> = {
+  mpesa: "23798",
+  emola: "71535",
 };
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 25000): Promise<Response> {
@@ -22,11 +23,13 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 2
   }
 }
 
-async function callDebitoWithRetry(url: string, options: RequestInit, retries = 2): Promise<{ response: Response; text: string }> {
+async function callDebitoOrchestrator(options: RequestInit, retries = 2): Promise<{ response: Response; text: string }> {
   let lastError: Error | null = null;
+  const url = `${DEBITO_BASE_URL}/payment-orchestrator`;
+  
   for (let i = 0; i <= retries; i++) {
     try {
-      console.log(`Débito attempt ${i + 1}/${retries + 1}`);
+      console.log(`Débito Pay attempt ${i + 1}/${retries + 1}`);
       const response = await fetchWithTimeout(url, options);
       const text = await response.text();
       return { response, text };
@@ -59,32 +62,29 @@ Deno.serve(async (req) => {
       );
     }
 
-    const walletId = WALLET_IDS[payment_method];
-    if (!walletId) {
+    const walletCode = WALLET_CODES[payment_method];
+    if (!walletCode) {
       return new Response(
         JSON.stringify({ error: "Método de pagamento inválido. Use 'mpesa' ou 'emola'" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const cleanPhone = phone.replace(/\D/g, "").replace(/^258/, "").replace(/^\+258/, "");
-    if (cleanPhone.length < 9) {
-      return new Response(
-        JSON.stringify({ error: "Número de telefone inválido. Use formato: 84xxxxxxx" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Clean phone and ensure Mozambican prefix
+    let cleanPhone = phone.replace(/\D/g, "");
+    if (cleanPhone.startsWith("258")) {
+      cleanPhone = "+" + cleanPhone;
+    } else if (cleanPhone.length === 9) {
+      cleanPhone = "+258" + cleanPhone;
     }
 
-    const endpoint = payment_method === "mpesa" ? "c2b/mpesa" : "c2b/emola";
-    const debitoUrl = `${DEBITO_BASE_URL}/wallets/${walletId}/${endpoint}`;
-
-    console.log(`Initiating ${payment_method} payment: ${debitoUrl}`);
+    console.log(`Initiating ${payment_method} payment for Order ${order_id} via Orchestrator`);
 
     let responseText: string;
     let debitoResponse: Response;
 
     try {
-      const result = await callDebitoWithRetry(debitoUrl, {
+      const result = await callDebitoOrchestrator({
         method: "POST",
         headers: {
           "Authorization": `Bearer ${PAYMENT_API_TOKEN}`,
@@ -92,9 +92,14 @@ Deno.serve(async (req) => {
           "Accept": "application/json",
         },
         body: JSON.stringify({
-          msisdn: cleanPhone,
+          action: "process",
+          payment_method: payment_method,
+          wallet_code: walletCode,
           amount: Number(amount),
-          reference_description: `EnsinaPay - ${product_name || "Produto"}`.substring(0, 32),
+          currency: "MZN",
+          phone: cleanPhone,
+          source: "gateway",
+          source_id: order_id
         }),
       });
       debitoResponse = result.response;
@@ -107,25 +112,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log("Débito raw response:", debitoResponse.status, responseText.substring(0, 500));
+    console.log("Débito Pay Response:", debitoResponse.status, responseText.substring(0, 500));
 
     let debitoData: any;
     try {
       debitoData = JSON.parse(responseText);
     } catch {
       return new Response(
-        JSON.stringify({ error: "Serviço de pagamento retornou resposta inválida. Tente novamente." }),
+        JSON.stringify({ error: "Serviço de pagamento retornou resposta inválida." }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!debitoResponse.ok) {
+    if (!debitoResponse.ok || !debitoData.success) {
       return new Response(
         JSON.stringify({
-          error: debitoData.message || "Erro ao processar pagamento",
+          error: debitoData.message || debitoData.error || "Erro ao processar pagamento",
           details: debitoData.errors || null,
         }),
-        { status: debitoResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: debitoResponse.status === 200 ? 400 : debitoResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -134,10 +139,13 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Map new payment_id to debito_reference for backward compatibility
+    const paymentId = debitoData.payment_id || debitoData.id;
+
     await supabase
       .from("orders")
       .update({
-        debito_reference: debitoData.debito_reference,
+        debito_reference: paymentId,
         status: "processing",
       })
       .eq("id", order_id);
@@ -145,9 +153,9 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        debito_reference: debitoData.debito_reference,
-        status: debitoData.status,
-        transaction_id: debitoData.transaction_id,
+        debito_reference: paymentId,
+        status: "pending",
+        payment_id: paymentId
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

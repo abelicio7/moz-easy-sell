@@ -24,23 +24,10 @@ Deno.serve(async (req) => {
 
     if (!debitoReference || !orderId) {
       return new Response(
-        JSON.stringify({ error: "debito_reference e order_id são obrigatórios" }),
+        JSON.stringify({ error: "debito_reference (payment_id) e order_id são obrigatórios" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const statusResponse = await fetch(
-      `${DEBITO_BASE_URL}/transactions/${debitoReference}/status`,
-      {
-        headers: {
-          "Authorization": `Bearer ${PAYMENT_API_TOKEN}`,
-          "Accept": "application/json",
-        },
-      }
-    );
-
-    const statusData = await statusResponse.json();
-    console.log(`[Order ${orderId}] Debito API Status:`, JSON.stringify(statusData));
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -49,22 +36,38 @@ Deno.serve(async (req) => {
 
     // Helper to process an order (status update + notifications)
     const processOrder = async (id: string, debitoRef: string, forceData?: any) => {
-      console.log(`[Background Process] Checking Order ${id}...`);
+      console.log(`[Background Process] Checking Order ${id} (Ref: ${debitoRef})...`);
       
       let data = forceData;
       if (!data) {
-        const res = await fetch(`${DEBITO_BASE_URL}/transactions/${debitoRef}/status`, {
-          headers: { "Authorization": `Bearer ${PAYMENT_API_TOKEN}`, "Accept": "application/json" }
-        });
-        data = await res.json();
+        try {
+          const res = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {
+            method: "POST",
+            headers: { 
+              "Authorization": `Bearer ${PAYMENT_API_TOKEN}`, 
+              "Content-Type": "application/json",
+              "Accept": "application/json"
+            },
+            body: JSON.stringify({
+              action: "check-status",
+              payment_id: debitoRef
+            })
+          });
+          data = await res.json();
+          console.log(`[Status API Response for ${id}]:`, JSON.stringify(data));
+        } catch (fetchErr) {
+          console.error(`Failed to fetch status for ${id}:`, fetchErr.message);
+          return null;
+        }
       }
 
       const { data: ord } = await supabase.from("orders").select(`*, products(*, profiles(*))`).eq("id", id).single();
       if (!ord) return null;
 
-      const dStatus = (data.status || data.transaction?.status || data.data?.status || "").toUpperCase();
-      const isP = ["COMPLETED", "SUCCESS", "PAID", "SUCCESSFUL", "SETTLED", "APPROVED", "AUTHORIZED"].includes(dStatus);
-      const isF = ["FAILED", "CANCELLED", "REJECTED"].includes(dStatus);
+      // New Status Logic from Orchestrator API
+      const apiStatus = (data.payment?.status || "").toUpperCase();
+      const isP = ["SUCCESS", "PAID", "COMPLETED", "SETTLED", "APPROVED"].includes(apiStatus);
+      const isF = ["FAILED", "CANCELLED", "REJECTED", "EXPIRED"].includes(apiStatus);
 
       let newS = ord.status;
       if (isP) newS = "paid";
@@ -79,7 +82,6 @@ Deno.serve(async (req) => {
         
         // --- 1. NOTIFY CUSTOMER (Premium Access Email) ---
         if (ord.customer_email && !ord.customer_notified) {
-          // Point to the Library for a consolidated experience
           const deliveryUrl = `${Deno.env.get("PUBLIC_SITE_URL") || 'https://ensinapay.com'}/biblioteca?email=${encodeURIComponent(ord.customer_email)}`;
 
           const customerHtml = `
@@ -90,34 +92,17 @@ Deno.serve(async (req) => {
               <div style="padding: 40px 30px;">
                 <h1 style="font-size: 24px; font-weight: 800; color: #ffffff; margin: 0 0 10px 0;">Obrigado pela sua compra! 🚀</h1>
                 <p style="font-size: 16px; color: #d1d5db; margin-bottom: 30px;">O seu pagamento foi confirmado e o seu acesso já está disponível.</p>
-                
                 <div style="background-color: #1f2937; padding: 25px; border-radius: 12px; border: 1px solid #374151; margin-bottom: 30px;">
                   <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin: 0 0 15px 0;">Detalhes do Pedido:</h3>
                   <p style="margin: 0 0 5px 0; font-size: 16px; font-weight: bold; color: #10b981;">${prod?.name}</p>
                   <p style="margin: 0 0 15px 0; font-size: 14px; color: #9ca3af;">Valor: ${ord.price.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</p>
-                  
-                  ${prod.profiles?.phone ? `
-                    <div style="border-top: 1px solid #374151; padding-top: 15px; margin-top: 15px;">
-                      <p style="margin: 0 0 10px 0; font-size: 13px; color: #9ca3af; text-transform: uppercase;">Dúvidas sobre o produto?</p>
-                      <a href="https://wa.me/${prod.profiles.phone.replace(/\D/g, '')}" style="display: inline-block; background-color: transparent; color: #10b981; border: 1px solid #10b981; padding: 8px 15px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px;">Falar com Vendedor</a>
-                    </div>
-                  ` : ''}
                 </div>
-                
                 <div style="text-align: center;">
                   <a href="${deliveryUrl}" style="display: inline-block; background-color: #10b981; color: #000000; padding: 18px 45px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">Aceder ao Conteúdo</a>
                 </div>
-                
                 <p style="text-align: center; font-size: 14px; color: #6b7280; margin-top: 30px;">
-                  Pode aceder a todos os seus produtos em qualquer altura em:<br/>
-                  <a href="https://ensinapay.com/biblioteca" style="color: #10b981; font-weight: bold; text-decoration: none;">ensinapay.com/biblioteca</a>
+                  Pode aceder a todos os seus produtos em <a href="https://ensinapay.com/biblioteca" style="color: #10b981; font-weight: bold; text-decoration: none;">ensinapay.com/biblioteca</a>
                 </p>
-                <p style="text-align: center; font-size: 14px; color: #6b7280; margin-top: 10px;">
-                  Se tiver alguma dúvida, responda a este e-mail ou contacte o suporte.
-                </p>
-              </div>
-              <div style="background-color: #000000; padding: 20px; text-align: center; font-size: 12px; color: #4b5563;">
-                &copy; ${new Date().getFullYear()} EnsinaPay. Todos os direitos reservados.
               </div>
             </div>
           `;
@@ -128,7 +113,7 @@ Deno.serve(async (req) => {
           await supabase.from("orders").update({ customer_notified: true }).eq("id", id);
         }
 
-        // --- 2. NOTIFY SELLER (Hotmart Style Alert) ---
+        // --- 2. NOTIFY SELLER ---
         if (prod?.user_id && !ord.seller_notified) {
           let sEmail = prod.profiles?.email;
           if (!sEmail) { 
@@ -138,46 +123,11 @@ Deno.serve(async (req) => {
           
           if (sEmail) {
             const sellerHtml = `
-              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #111827; border-radius: 0 0 16px 16px; overflow: hidden; color: #ffffff;">
-                <div style="background-color: #f3f4f6; padding: 30px; text-align: center;">
-                  <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 40px;">
-                </div>
-                <div style="padding: 40px 30px;">
-                  <p style="font-size: 18px; color: #d1d5db; margin-bottom: 10px;">Parabéns!</p>
-                  <h2 style="font-size: 22px; font-weight: 800; color: #ffffff; margin: 0 0 30px 0; line-height: 1.2;">
-                    Você acabou de vender uma cópia do produto <span style="text-transform: uppercase; color: #10b981;">${prod?.name}</span>!
-                  </h2>
-                  
-                  <p style="font-size: 16px; color: #10b981; margin-bottom: 5px; font-weight: 600;">Você recebeu:</p>
-                  <h1 style="font-size: 48px; font-weight: 900; color: #10b981; margin: 0 0 40px 0;">
-                    ${ord.price.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}
-                  </h1>
-                  
-                  <div style="background-color: #1f2937; padding: 25px; border-radius: 12px; border: 1px solid #374151;">
-                    <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin: 0 0 20px 0;">Dados da Transação:</h3>
-                    
-                    <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Nome:</span> ${ord.customer_name}</p>
-                    <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Email:</span> <a href="mailto:${ord.customer_email}" style="color: #10b981; text-decoration: none;">${ord.customer_email}</a></p>
-                    ${ord.customer_phone ? `<p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">WhatsApp:</span> <a href="https://wa.me/${ord.customer_phone.replace(/\D/g, '')}" style="color: #10b981; text-decoration: none;">${ord.customer_phone}</a></p>` : ''}
-                    <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Método:</span> <span style="text-transform: uppercase; font-weight: bold;">${ord.payment_method || 'M-Pesa'}</span></p>
-                    <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Data:</span> ${new Date(ord.created_at).toLocaleString('pt-MZ')}</p>
-                    <p style="margin: 0 0 20px 0; font-size: 15px;"><span style="color: #9ca3af;">ID:</span> ${ord.id.substring(0, 8).toUpperCase()}</p>
-                    
-                    <div style="border-top: 1px solid #374151; padding-top: 20px;">
-                      <p style="margin: 0; font-size: 14px; font-weight: bold; color: #ffffff;">Valor Pago Pelo Comprador: <span style="color: #10b981;">${ord.price.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</span></p>
-                    </div>
-                  </div>
-                  
-                  <div style="text-align: center; margin-top: 40px;">
-                    <a href="https://ensinapay.com/dashboard/sales" style="display: inline-block; background-color: #10b981; color: #000000; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 16px; text-transform: uppercase;">Ver Minhas Vendas</a>
-                  </div>
-                  <p style="text-align: center; font-size: 12px; color: #4b5563; margin-top: 20px;">
-                    Sua biblioteca centralizada: <a href="https://ensinapay.com/biblioteca" style="color: #10b981; text-decoration: none;">ensinapay.com/biblioteca</a>
-                  </p>
-                </div>
-                <div style="background-color: #000000; padding: 20px; text-align: center; font-size: 12px; color: #4b5563;">
-                  &copy; ${new Date().getFullYear()} EnsinaPay. Todos os direitos reservados.
-                </div>
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #111827; border-radius: 16px; overflow: hidden; color: #ffffff; padding: 40px 30px;">
+                <h2 style="font-size: 22px; font-weight: 800; color: #10b981;">Venda Realizada! 💸</h2>
+                <p style="font-size: 16px; color: #d1d5db;">Você acabou de vender o produto <b>${prod?.name}</b>.</p>
+                <h1 style="font-size: 48px; font-weight: 900; color: #10b981; margin: 20px 0;">${ord.price.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</h1>
+                <p style="font-size: 14px; color: #9ca3af;">Comprador: ${ord.customer_name} (${ord.customer_email})</p>
               </div>
             `;
             
@@ -186,84 +136,35 @@ Deno.serve(async (req) => {
             });
             await supabase.from("orders").update({ seller_notified: true }).eq("id", id);
 
-            // --- 3. NOTIFY SYSTEM ADMIN (Hotmart Style Monitoring) ---
-            await supabase.functions.invoke("notify-admins", {
-              body: {
-                subject: `📈 NOVA VENDA: ${ord.price} MT`,
-                htmlContent: sellerHtml.replace("Parabéns!", "Nova Venda Registada!").replace("Você recebeu:", "O vendedor recebeu:")
-              }
-            });
-
-            // --- 4. MARK CART AS RECOVERED ---
-            if (ord.customer_email) {
-              await supabase
-                .from("carts")
-                .update({ status: "recovered" })
-                .eq("email", ord.customer_email.toLowerCase().trim())
-                .eq("product_id", ord.product_id);
-            }
-
             // --- 5. CALCULATE AND RECORD COMMISSIONS ---
-            // New Rule: Platform takes 0% on sales, only 10% on withdrawals.
-            const PLATFORM_FEE_PERCENT = 0; 
-            const platformFee = 0;
-            
             let affiliateCommission = 0;
             if (ord.affiliate_id) {
-              const { data: offer } = await supabase
-                .from("affiliate_offers")
-                .select("commission_percent")
-                .eq("product_id", ord.product_id)
-                .eq("is_active", true)
-                .maybeSingle();
-              
-              if (offer) {
-                affiliateCommission = ord.price * (Number(offer.commission_percent) / 100);
-              }
+              const { data: offer } = await supabase.from("affiliate_offers").select("commission_percent").eq("product_id", ord.product_id).eq("is_active", true).maybeSingle();
+              if (offer) affiliateCommission = ord.price * (Number(offer.commission_percent) / 100);
             }
 
             const sellerNet = ord.price - affiliateCommission;
-
-            // Record Splits
-            const splits = [
-              { order_id: ord.id, user_id: prod.user_id, amount: sellerNet, user_type: 'seller' }
-            ];
-
+            const splits = [{ order_id: ord.id, user_id: prod.user_id, amount: sellerNet, user_type: 'seller' }];
             if (affiliateCommission > 0 && ord.affiliate_id) {
               splits.push({ order_id: ord.id, user_id: ord.affiliate_id, amount: affiliateCommission, user_type: 'affiliate' });
             }
-
-            // Note: We don't need to insert a 0 amount split for platform anymore.
             await supabase.from("commissions").insert(splits);
           }
         }
       }
-      return { status: dStatus, order_status: newS };
+      return { status: apiStatus, order_status: newS };
     };
 
     // 1. Process the requested order
-    const result = await processOrder(orderId, debitoReference, statusData);
+    const result = await processOrder(orderId, debitoReference);
 
-    // 2. "Parasitic Polling": Process the OLDEST pending order to catch orphaned payments
+    // 2. "Parasitic Polling": Process the OLDEST pending order
     try {
-      const { data: orphaned } = await supabase
-        .from("orders")
-        .select("id, debito_reference")
-        .eq("status", "processing")
-        .neq("id", orderId)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
+      const { data: orphaned } = await supabase.from("orders").select("id, debito_reference").eq("status", "processing").neq("id", orderId).order("created_at", { ascending: true }).limit(1).maybeSingle();
       if (orphaned && orphaned.debito_reference) {
         console.log(`[Parasitic Polling] Auto-checking orphaned order: ${orphaned.id}`);
         await processOrder(orphaned.id, orphaned.debito_reference);
       }
-
-      // --- 3. AUTO-TRIGGER CART RECOVERY (Parasitic Cron) ---
-      // This ensures that even without a formal cron job, the recovery emails are sent
-      // whenever there is activity in the payment status function.
-      console.log(`[Parasitic Cron] Triggering abandoned cart recovery...`);
       await supabase.functions.invoke("abandoned-cart-recovery");
     } catch (e) { console.error("Parasitic polling failed:", e); }
 
