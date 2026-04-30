@@ -44,13 +44,12 @@ Deno.serve(async (req) => {
           const res = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {
             method: "POST",
             headers: { 
-              "Authorization": `Bearer ${PAYMENT_API_TOKEN}`, 
               "Content-Type": "application/json",
               "Accept": "application/json"
             },
             body: JSON.stringify({
               action: "check-status",
-              api_key: PAYMENT_API_TOKEN,
+              api_key: PAYMENT_API_TOKEN.replace("Bearer ", "").trim(),
               backend_transaction: true,
               payment_id: debitoRef
             })

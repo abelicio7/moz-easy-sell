@@ -87,13 +87,12 @@ Deno.serve(async (req) => {
       const result = await callDebitoOrchestrator({
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${PAYMENT_API_TOKEN}`,
           "Content-Type": "application/json",
           "Accept": "application/json",
         },
         body: JSON.stringify({
           action: "process",
-          api_key: PAYMENT_API_TOKEN,
+          api_key: PAYMENT_API_TOKEN.replace("Bearer ", "").trim(),
           backend_transaction: true,
           payment_method: payment_method,
           wallet_code: walletCode,
