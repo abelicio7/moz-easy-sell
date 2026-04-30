@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DEBITO_BASE_URL = "https://my.debito.co.mz/api/v1";
+const DEBITO_BASE_URL = "https://gyqoaningqhurhvdugne.supabase.co/functions/v1";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
