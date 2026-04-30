@@ -93,6 +93,8 @@ Deno.serve(async (req) => {
         },
         body: JSON.stringify({
           action: "process",
+          api_key: PAYMENT_API_TOKEN,
+          backend_transaction: true,
           payment_method: payment_method,
           wallet_code: walletCode,
           amount: Number(amount),
