@@ -3,7 +3,7 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link as LinkIcon, ShoppingBag, MousePointer2, Copy, ExternalLink, ArrowRight } from "lucide-react";
+import { Link as LinkIcon, ShoppingBag, MousePointer2, Copy, ExternalLink, ArrowRight, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -41,6 +41,26 @@ const Affiliates = () => {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Link copiado para a área de transferência!");
+  };
+
+  const handleCancelAffiliation = async (linkId: string) => {
+    if (!window.confirm("Tem certeza que deseja cancelar esta afiliação? O seu link deixará de funcionar imediatamente.")) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("affiliate_links")
+        .delete()
+        .eq("id", linkId);
+
+      if (error) throw error;
+
+      toast.success("Afiliação cancelada com sucesso!");
+      setMyLinks(myLinks.filter(l => l.id !== linkId));
+    } catch (error: any) {
+      toast.error("Erro ao cancelar afiliação: " + error.message);
+    }
   };
 
   return (
@@ -114,6 +134,9 @@ const Affiliates = () => {
                     <div className="flex items-center gap-2">
                       <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80 font-black italic uppercase text-[10px] gap-2 tracking-widest" onClick={() => window.open(fullLink, '_blank')}>
                         <ExternalLink className="w-4 h-4" /> Checkout <ArrowRight className="w-3 h-3" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 hover:bg-destructive/10 shrink-0" onClick={() => handleCancelAffiliation(link.id)} title="Cancelar Afiliação">
+                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
