@@ -80,10 +80,12 @@ const Marketplace = () => {
     }
   };
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (p.description && p.description.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (p.description && p.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    const hasOffer = affiliateOffers.some(o => o.product_id === p.id);
+    return matchesSearch && hasOffer;
+  });
 
   return (
     <DashboardLayout>

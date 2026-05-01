@@ -5,41 +5,39 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Nova infraestrutura da Debito Pay via Supabase Edge Functions
-const DEBITO_BASE_URL = "https://gyqoaningqhurhvdugne.supabase.co/functions/v1";
-const WALLET_CODES: Record<string, string> = {
-  mpesa: "23798",
-  emola: "71535",
+const E2_BASE_URL = "https://e2payments.explicador.co.mz/v1";
+const WALLET_IDS: Record<string, string> = {
+  mpesa: "999813",
+  emola: "999814",
 };
 
-async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 25000): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    return res;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function callDebitoOrchestrator(options: RequestInit, retries = 2): Promise<{ response: Response; text: string }> {
-  let lastError: Error | null = null;
-  const url = `${DEBITO_BASE_URL}/payment-orchestrator`;
+async function getE2Token(): Promise<string> {
+  const clientId = Deno.env.get("E2_CLIENT_ID");
+  const clientSecret = Deno.env.get("E2_CLIENT_SECRET");
   
-  for (let i = 0; i <= retries; i++) {
-    try {
-      console.log(`Débito Pay attempt ${i + 1}/${retries + 1}`);
-      const response = await fetchWithTimeout(url, options);
-      const text = await response.text();
-      return { response, text };
-    } catch (err) {
-      lastError = err as Error;
-      console.warn(`Attempt ${i + 1} failed:`, err.message);
-      if (i < retries) await new Promise(r => setTimeout(r, 2000));
-    }
+  if (!clientId || !clientSecret) {
+    throw new Error("E2 credentials not configured");
   }
-  throw lastError!;
+
+  const response = await fetch(`${E2_BASE_URL}/oauth/token`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+    },
+    body: JSON.stringify({
+      client_id: clientId,
+      client_secret: clientSecret,
+      grant_type: "client_credentials",
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || "Failed to obtain E2 access token");
+  }
+
+  return data.access_token;
 }
 
 Deno.serve(async (req) => {
@@ -48,11 +46,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const PAYMENT_API_TOKEN = Deno.env.get("PAYMENT_API_TOKEN");
-    if (!PAYMENT_API_TOKEN) {
-      throw new Error("PAYMENT_API_TOKEN not configured");
-    }
-
     const { order_id, payment_method, amount, phone, product_name } = await req.json();
 
     if (!order_id || !payment_method || !amount || !phone) {
@@ -62,76 +55,57 @@ Deno.serve(async (req) => {
       );
     }
 
-    const walletCode = WALLET_CODES[payment_method];
-    if (!walletCode) {
+    const walletId = WALLET_IDS[payment_method];
+    if (!walletId) {
       return new Response(
-        JSON.stringify({ error: "Método de pagamento inválido. Use 'mpesa' ou 'emola'" }),
+        JSON.stringify({ error: "Método de pagamento inválido." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Clean phone and ensure Mozambican prefix
-    let cleanPhone = phone.replace(/\D/g, "");
-    if (cleanPhone.startsWith("258")) {
-      cleanPhone = "+" + cleanPhone;
-    } else if (cleanPhone.length === 9) {
-      cleanPhone = "+258" + cleanPhone;
-    }
+    // Clean phone (9 digits)
+    const cleanPhone = phone.replace(/\D/g, "").slice(-9);
+    
+    console.log(`[E2Payments] Initiating ${payment_method} for Order ${order_id}`);
 
-    console.log(`Initiating ${payment_method} payment for Order ${order_id} via Orchestrator`);
-
-    let responseText: string;
-    let debitoResponse: Response;
-
+    // 1. Get OAuth Token
+    let token: string;
     try {
-      const result = await callDebitoOrchestrator({
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
-        body: JSON.stringify({
-          action: "process",
-          api_key: PAYMENT_API_TOKEN.replace("Bearer ", "").trim(),
-          backend_transaction: true,
-          payment_method: payment_method,
-          wallet_code: walletCode,
-          amount: Number(amount),
-          currency: "MZN",
-          phone: cleanPhone,
-          source: "gateway",
-          source_id: order_id
-        }),
-      });
-      debitoResponse = result.response;
-      responseText = result.text;
+      token = await getE2Token();
     } catch (err) {
-      console.error("All retry attempts failed:", err.message);
+      console.error("Token error:", err.message);
       return new Response(
-        JSON.stringify({ error: "Serviço de pagamento indisponível. Tente novamente em alguns minutos." }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Erro de autenticação com o provedor de pagamentos." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Débito Pay Response:", debitoResponse.status, responseText.substring(0, 500));
+    // 2. Process Payment
+    const endpoint = payment_method === "mpesa" ? "mpesa-payment" : "emola-payment";
+    const paymentUrl = `${E2_BASE_URL}/c2b/${endpoint}/${walletId}`;
+    
+    const paymentResponse = await fetch(paymentUrl, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify({
+        client_id: Deno.env.get("E2_CLIENT_ID"),
+        amount: String(amount),
+        phone: cleanPhone,
+        reference: order_id.substring(0, 20),
+      }),
+    });
 
-    let debitoData: any;
-    try {
-      debitoData = JSON.parse(responseText);
-    } catch {
-      return new Response(
-        JSON.stringify({ error: "Serviço de pagamento retornou resposta inválida." }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const paymentData = await paymentResponse.json();
+    console.log("E2 Response:", JSON.stringify(paymentData));
 
-    if (!debitoResponse.ok || !debitoData.success) {
+    if (!paymentResponse.ok) {
       return new Response(
-        JSON.stringify({
-          error: debitoData.message || debitoData.error || "Erro ao processar pagamento",
-          details: debitoData.errors || null,
-        }),
-        { status: debitoResponse.status === 200 ? 400 : debitoResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: paymentData.message || "Erro ao processar pagamento na e2Payments" }),
+        { status: paymentResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -140,13 +114,13 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Map new payment_id to debito_reference for backward compatibility
-    const paymentId = debitoData.payment_id || debitoData.id;
+    // Map E2 transaction ID to debito_reference column
+    const transactionId = paymentData.transaction_id || paymentData.id || paymentData.reference;
 
     await supabase
       .from("orders")
       .update({
-        debito_reference: paymentId,
+        debito_reference: transactionId,
         status: "processing",
       })
       .eq("id", order_id);
@@ -154,9 +128,8 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        debito_reference: paymentId,
+        transaction_id: transactionId,
         status: "pending",
-        payment_id: paymentId
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
