@@ -109,7 +109,30 @@ Deno.serve(async (req) => {
           }
           const sellerNet = ord.price - affComm;
           const splits = [{ order_id: ord.id, user_id: prod.user_id, amount: sellerNet, user_type: 'seller' }];
-          if (affComm > 0 && ord.affiliate_id) splits.push({ order_id: ord.id, user_id: ord.affiliate_id, amount: affComm, user_type: 'affiliate' });
+          if (affComm > 0 && ord.affiliate_id) {
+            splits.push({ order_id: ord.id, user_id: ord.affiliate_id, amount: affComm, user_type: 'affiliate' });
+            
+            // Notify Affiliate
+            const { data: affProfile } = await supabase.from("profiles").select("email, full_name").eq("id", ord.affiliate_id).single();
+            if (affProfile && affProfile.email) {
+              const affHtml = `
+                <div style="font-family: sans-serif; background-color: #f8f9fa; color: #333; padding: 40px; border-radius: 16px; border-top: 5px solid #10b981;">
+                  <h2>Nova Comissão Recebida! 🎉</h2>
+                  <p>Olá ${affProfile.full_name || 'Afiliado'},</p>
+                  <p>Alguém acabou de comprar o produto <b>${prod?.name}</b> através do seu link de afiliado!</p>
+                  <p>A sua comissão de <b>${affComm.toFixed(2)} MT</b> já foi adicionada ao seu saldo na EnsinaPay.</p>
+                  <a href="${Deno.env.get("PUBLIC_SITE_URL") || 'https://ensinapay.com'}/dashboard/finance" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-top: 20px;">Ver Meu Saldo</a>
+                </div>
+              `;
+              await supabase.functions.invoke("send-email-notification", { 
+                body: { 
+                  to: affProfile.email, 
+                  subject: \`🎉 Parabéns! Ganhaste \${affComm.toFixed(2)} MT de Comissão\`, 
+                  htmlContent: affHtml 
+                } 
+              });
+            }
+          }
           await supabase.from("commissions").insert(splits);
           await supabase.from("orders").update({ seller_notified: true }).eq("id", id);
         }
