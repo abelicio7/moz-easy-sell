@@ -36,21 +36,31 @@ const Checkout = () => {
   });
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const emailParam = params.get("email");
-    const nameParam = params.get("name");
-    const affCode = params.get("aff");
-    
-    if (emailParam || nameParam) {
-      setForm(prev => ({
-        ...prev,
-        email: emailParam || prev.email,
-        name: nameParam || prev.name
-      }));
-    }
+    const initPage = async () => {
+      // 1. Process URL Params & Affiliate
+      const params = new URLSearchParams(window.location.search);
+      const emailParam = params.get("email");
+      const nameParam = params.get("name");
+      const affCode = params.get("aff");
 
-    if (affCode) {
-      const trackAffiliate = async () => {
+      if (emailParam || nameParam) {
+        setForm(prev => ({
+          ...prev,
+          email: emailParam || prev.email,
+          name: nameParam || prev.name
+        }));
+      }
+
+      let currentAffId = localStorage.getItem("ensina_aff_id");
+      const affExpiry = localStorage.getItem("ensina_aff_expiry");
+      
+      if (!affExpiry || parseInt(affExpiry) < Date.now()) {
+        currentAffId = null;
+        localStorage.removeItem("ensina_aff_id");
+        localStorage.removeItem("ensina_aff_expiry");
+      }
+
+      if (affCode) {
         try {
           const { data } = await supabase
             .from("affiliate_links")
@@ -59,22 +69,17 @@ const Checkout = () => {
             .maybeSingle();
           
           if (data) {
+            currentAffId = data.user_id;
             localStorage.setItem("ensina_aff_id", data.user_id);
             localStorage.setItem("ensina_aff_expiry", (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
-            
-            // Increment click count (optional but good)
             await supabase.rpc('increment_affiliate_clicks', { aff_code: affCode });
           }
         } catch (e) {
           console.error("Affiliate tracking error:", e);
         }
-      };
-      trackAffiliate();
-    }
-  }, []);
+      }
 
-  useEffect(() => {
-    const fetchProductAndPixel = async () => {
+      // 2. Fetch Product Data
       const { data: productData, error: productError } = await supabase
         .from("products")
         .select(`
@@ -89,14 +94,8 @@ const Checkout = () => {
         .eq("id", productId)
         .maybeSingle();
       
-      if (productError) {
-        console.error("Product error:", productError);
-        setDebugError(`Erro BD: ${productError.message}`);
-        setProduct(null);
-        setLoading(false);
-        return;
-      }
-      if (!productData || productData.status !== 'approved') {
+      if (productError || !productData || productData.status !== 'approved') {
+        if (productError) setDebugError(`Erro BD: ${productError.message}`);
         setProduct(null);
         setLoading(false);
         return;
@@ -104,44 +103,64 @@ const Checkout = () => {
 
       setProduct(productData as any);
 
-      if (productData?.user_id) {
-        try {
-          const { data: pixelData } = await supabase
+      // 3. Setup Facebook Pixel
+      const pixelsToFire: string[] = [];
+      try {
+        // Seller Pixel
+        if (productData.user_id) {
+          const { data: sellerPixel } = await supabase
             .from("seller_integrations")
             .select("config")
             .eq("user_id", productData.user_id)
             .eq("integration_type", "facebook_pixel")
             .eq("is_active", true)
             .maybeSingle();
-
-          if (pixelData?.config?.pixelId) {
-            const pixelId = pixelData.config.pixelId;
-            const win = window as any;
-            if (!win.fbq) {
-              !function(f:any,b:any,e:any,v:any,n?:any,t?:any,s?:any)
-              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-              n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-              if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-              n.queue=[];t=b.createElement(e);t.async=!0;
-              t.src=v;s=b.getElementsByTagName(e)[0];
-              s.parentNode.insertBefore(t,s)}(win, document,'script',
-              'https://connect.facebook.net/en_US/fbevents.js');
-            }
-            win.fbq('init', pixelId);
-            win.fbq('track', 'PageView');
-            win.fbq('track', 'InitiateCheckout', {
-              content_name: productData.name,
-              value: productData.price,
-              currency: 'MZN'
-            });
-          }
-        } catch (e) {
-          console.error("Erro ao carregar pixel:", e);
+          
+          if (sellerPixel?.config?.pixelId) pixelsToFire.push(sellerPixel.config.pixelId);
         }
+
+        // Affiliate Pixel
+        if (currentAffId) {
+          const { data: affPixel } = await supabase
+            .from("seller_integrations")
+            .select("config")
+            .eq("user_id", currentAffId)
+            .eq("integration_type", "facebook_pixel")
+            .eq("is_active", true)
+            .maybeSingle();
+          
+          if (affPixel?.config?.pixelId) pixelsToFire.push(affPixel.config.pixelId);
+        }
+
+        if (pixelsToFire.length > 0) {
+          const win = window as any;
+          if (!win.fbq) {
+            !function(f:any,b:any,e:any,v:any,n?:any,t?:any,s?:any)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(win, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+          }
+          
+          pixelsToFire.forEach(pixelId => win.fbq('init', pixelId));
+          win.fbq('track', 'PageView');
+          win.fbq('track', 'InitiateCheckout', {
+            content_name: productData.name,
+            value: productData.price,
+            currency: 'MZN'
+          });
+        }
+      } catch (e) {
+        console.error("Erro ao carregar pixels:", e);
       }
+
       setLoading(false);
     };
-    fetchProductAndPixel();
+
+    initPage();
   }, [productId]);
 
   const handleCaptureCart = async () => {
