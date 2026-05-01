@@ -62,6 +62,12 @@ const Marketplace = () => {
   const handleBecomeAffiliate = async (productId: string) => {
     if (!user) return;
     
+    const product = products.find(p => p.id === productId);
+    if (product?.user_id === user.id) {
+      toast.error("Você não pode se afiliar ao seu próprio produto.");
+      return;
+    }
+    
     const code = `${user.id.substring(0, 4)}-${Math.random().toString(36).substring(7)}`;
     
     const { error } = await supabase
@@ -112,6 +118,7 @@ const Marketplace = () => {
           {filteredProducts.map((product) => {
             const offer = affiliateOffers.find(o => o.product_id === product.id);
             const isAffiliate = myLinks.some(link => link.product_id === product.id);
+            const isOwner = product.user_id === user?.id;
 
             return (
               <Card key={product.id} className="group overflow-hidden border-border/50 hover:border-primary/50 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/5 rounded-[2rem] bg-card flex flex-col">
@@ -154,7 +161,11 @@ const Marketplace = () => {
                       </Link>
                     </div>
 
-                    {offer ? (
+                    {isOwner ? (
+                      <Button disabled className="w-full h-12 rounded-xl font-bold bg-muted text-muted-foreground border-2 border-dashed">
+                        Seu Próprio Produto
+                      </Button>
+                    ) : offer ? (
                       <Button 
                         onClick={() => handleBecomeAffiliate(product.id)}
                         disabled={isAffiliate}
