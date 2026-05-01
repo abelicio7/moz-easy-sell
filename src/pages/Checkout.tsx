@@ -346,7 +346,7 @@ const Checkout = () => {
                 <RadioGroup
                   value={form.payment_method}
                   onValueChange={(v) => setForm({ ...form, payment_method: v })}
-                  className="space-y-3"
+                  className="grid grid-cols-2 gap-3"
                 >
                   <label
                     htmlFor="mpesa"
