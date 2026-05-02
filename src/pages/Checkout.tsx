@@ -495,9 +495,15 @@ const Checkout = () => {
                     <div className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest opacity-60">
                       <ShieldCheck className="w-3 h-3" /> Pague com segurança via EnsinaPay
                     </div>
-                    <div className="flex items-center gap-4 opacity-40">
-                      <img src="https://www.mpesa.co.mz/wp-content/uploads/2021/04/m-pesa-logo-vector.png" alt="M-Pesa" className="h-4 grayscale" />
-                      <img src="https://movitel.co.mz/wp-content/uploads/2021/06/e-mola-logo.png" alt="E-Mola" className="h-4 grayscale" />
+                    <div className="flex items-center gap-4 opacity-60 grayscale hover:grayscale-0 transition-all">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-full bg-[#E51B24] flex items-center justify-center text-white text-[8px] font-black">M</div>
+                        <span className="text-[10px] font-black text-foreground/70">M-Pesa</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-full bg-[#F57C00] flex items-center justify-center text-white text-[8px] font-black">E</div>
+                        <span className="text-[10px] font-black text-foreground/70">E-Mola</span>
+                      </div>
                     </div>
                   </div>
                 </div>
