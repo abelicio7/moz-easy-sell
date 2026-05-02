@@ -22,6 +22,7 @@ const Login = () => {
     if (error) {
       toast.error(error.message);
     } else {
+      localStorage.removeItem("ensina_device_token");
       navigate("/verify-2fa");
     }
   };
@@ -70,6 +71,7 @@ const Login = () => {
             type="button" 
             className="w-full" 
             onClick={async () => {
+              localStorage.removeItem("ensina_device_token");
               const { error } = await supabase.auth.signInWithOAuth({
                 provider: "google",
                 options: { redirectTo: `${window.location.origin}/verify-2fa` },
