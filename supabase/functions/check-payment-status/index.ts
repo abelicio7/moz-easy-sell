@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
           await supabase.from("orders").update({ customer_notified: true }).eq("id", id);
         }
 
-        // --- 2. NOTIFY SELLER ---
+        // --- 2. NOTIFY SELLER & RECORD COMMISSIONS ---
         if (prod?.user_id && !ord.seller_notified) {
           let sEmail = prod.profiles?.email;
           if (!sEmail) { 
@@ -142,46 +142,49 @@ Deno.serve(async (req) => {
               });
               console.log("Seller email result:", JSON.stringify(sellerEmailData), sellerEmailErr);
             } catch(e) { console.error("Seller email crash:", e); }
-            await supabase.from("orders").update({ seller_notified: true }).eq("id", id);
-
-            // --- 5. CALCULATE AND RECORD COMMISSIONS ---
-            let affiliateCommission = 0;
-            if (ord.affiliate_id) {
-              const { data: offer } = await supabase.from("affiliate_offers").select("commission_percent").eq("product_id", ord.product_id).eq("is_active", true).maybeSingle();
-              if (offer) affiliateCommission = ord.price * (Number(offer.commission_percent) / 100);
-            }
-
-            const sellerNet = ord.price - affiliateCommission;
-            const splits = [{ order_id: ord.id, user_id: prod.user_id, amount: sellerNet, user_type: 'seller' }];
-            if (affiliateCommission > 0 && ord.affiliate_id) {
-              splits.push({ order_id: ord.id, user_id: ord.affiliate_id, amount: affiliateCommission, user_type: 'affiliate' });
-
-              // --- 6. NOTIFY AFFILIATE ---
-              const { data: affProfile } = await supabase.from("profiles").select("email, full_name").eq("id", ord.affiliate_id).single();
-              if (affProfile && affProfile.email) {
-                const affHtml = `
-                  <div style="font-family: sans-serif; background-color: #f8f9fa; color: #333; padding: 40px; border-radius: 16px; border-top: 5px solid #10b981;">
-                    <h2>Nova Comissão Recebida! 🎉</h2>
-                    <p>Olá ${affProfile.full_name || 'Afiliado'},</p>
-                    <p>Alguém acabou de comprar o produto <b>${prod?.name}</b> através do seu link de afiliado!</p>
-                    <p>A sua comissão de <b>${affiliateCommission.toFixed(2)} MT</b> já foi adicionada ao seu saldo na EnsinaPay.</p>
-                    <a href="${Deno.env.get("PUBLIC_SITE_URL") || 'https://ensinapay.com'}/dashboard/finance" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-top: 20px;">Ver Meu Saldo</a>
-                  </div>
-                `;
-                try {
-                  const { data: affEmailData, error: affEmailErr } = await supabase.functions.invoke("send-email-notification", { 
-                    body: { 
-                      to: affProfile.email, 
-                      subject: \`🎉 Parabéns! Ganhaste \${affiliateCommission.toFixed(2)} MT de Comissão\`, 
-                      htmlContent: affHtml 
-                    } 
-                  });
-                  console.log("Affiliate email result:", JSON.stringify(affEmailData), affEmailErr);
-                } catch(e) { console.error("Affiliate email crash:", e); }
-              }
-            }
-            await supabase.from("commissions").insert(splits);
           }
+          
+          // Sempre atualizar para não calcular comissão dupla
+          await supabase.from("orders").update({ seller_notified: true }).eq("id", id);
+
+          // --- 5. CALCULATE AND RECORD COMMISSIONS ---
+          let affiliateCommission = 0;
+          if (ord.affiliate_id) {
+            const { data: offer } = await supabase.from("affiliate_offers").select("commission_percent").eq("product_id", ord.product_id).eq("is_active", true).maybeSingle();
+            if (offer) affiliateCommission = ord.price * (Number(offer.commission_percent) / 100);
+          }
+
+          const sellerNet = ord.price - affiliateCommission;
+          const splits = [{ order_id: ord.id, user_id: prod.user_id, amount: sellerNet, user_type: 'seller' }];
+          
+          if (affiliateCommission > 0 && ord.affiliate_id) {
+            splits.push({ order_id: ord.id, user_id: ord.affiliate_id, amount: affiliateCommission, user_type: 'affiliate' });
+
+            // --- 6. NOTIFY AFFILIATE ---
+            const { data: affProfile } = await supabase.from("profiles").select("email, full_name").eq("id", ord.affiliate_id).single();
+            if (affProfile && affProfile.email) {
+              const affHtml = `
+                <div style="font-family: sans-serif; background-color: #f8f9fa; color: #333; padding: 40px; border-radius: 16px; border-top: 5px solid #10b981;">
+                  <h2>Nova Comissão Recebida! 🎉</h2>
+                  <p>Olá ${affProfile.full_name || 'Afiliado'},</p>
+                  <p>Alguém acabou de comprar o produto <b>${prod?.name}</b> através do seu link de afiliado!</p>
+                  <p>A sua comissão de <b>${affiliateCommission.toFixed(2)} MT</b> já foi adicionada ao seu saldo na EnsinaPay.</p>
+                  <a href="${Deno.env.get("PUBLIC_SITE_URL") || 'https://ensinapay.com'}/dashboard/finance" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-top: 20px;">Ver Meu Saldo</a>
+                </div>
+              `;
+              try {
+                const { data: affEmailData, error: affEmailErr } = await supabase.functions.invoke("send-email-notification", { 
+                  body: { 
+                    to: affProfile.email, 
+                    subject: \`🎉 Parabéns! Ganhaste \${affiliateCommission.toFixed(2)} MT de Comissão\`, 
+                    htmlContent: affHtml 
+                  } 
+                });
+                console.log("Affiliate email result:", JSON.stringify(affEmailData), affEmailErr);
+              } catch(e) { console.error("Affiliate email crash:", e); }
+            }
+          }
+          await supabase.from("commissions").insert(splits);
         }
       }
       return { status: apiStatus, order_status: newS };
