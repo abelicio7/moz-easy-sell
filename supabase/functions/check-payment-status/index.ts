@@ -109,9 +109,12 @@ Deno.serve(async (req) => {
             </div>
           `;
           
-          await supabase.functions.invoke("send-email-notification", { 
-            body: { to: ord.customer_email, subject: `✅ Seu acesso chegou: ${prod?.name}`, htmlContent: customerHtml, senderName: "EnsinaPay" } 
-          });
+          try {
+            const { data: emailData, error: emailErr } = await supabase.functions.invoke("send-email-notification", { 
+              body: { to: ord.customer_email, subject: `✅ Seu acesso chegou: ${prod?.name}`, htmlContent: customerHtml, senderName: "EnsinaPay" } 
+            });
+            console.log("Customer email result:", JSON.stringify(emailData), emailErr);
+          } catch(e) { console.error("Customer email crash:", e); }
           await supabase.from("orders").update({ customer_notified: true }).eq("id", id);
         }
 
@@ -133,9 +136,12 @@ Deno.serve(async (req) => {
               </div>
             `;
             
-            await supabase.functions.invoke("send-email-notification", { 
-              body: { to: sEmail, subject: `💸 VENDA REALIZADA: ${prod?.name}`, htmlContent: sellerHtml, senderName: "EnsinaPay Vendas" } 
-            });
+            try {
+              const { data: sellerEmailData, error: sellerEmailErr } = await supabase.functions.invoke("send-email-notification", { 
+                body: { to: sEmail, subject: `💸 VENDA REALIZADA: ${prod?.name}`, htmlContent: sellerHtml, senderName: "EnsinaPay Vendas" } 
+              });
+              console.log("Seller email result:", JSON.stringify(sellerEmailData), sellerEmailErr);
+            } catch(e) { console.error("Seller email crash:", e); }
             await supabase.from("orders").update({ seller_notified: true }).eq("id", id);
 
             // --- 5. CALCULATE AND RECORD COMMISSIONS ---
@@ -162,13 +168,16 @@ Deno.serve(async (req) => {
                     <a href="${Deno.env.get("PUBLIC_SITE_URL") || 'https://ensinapay.com'}/dashboard/finance" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-top: 20px;">Ver Meu Saldo</a>
                   </div>
                 `;
-                await supabase.functions.invoke("send-email-notification", { 
-                  body: { 
-                    to: affProfile.email, 
-                    subject: \`🎉 Parabéns! Ganhaste \${affiliateCommission.toFixed(2)} MT de Comissão\`, 
-                    htmlContent: affHtml 
-                  } 
-                });
+                try {
+                  const { data: affEmailData, error: affEmailErr } = await supabase.functions.invoke("send-email-notification", { 
+                    body: { 
+                      to: affProfile.email, 
+                      subject: \`🎉 Parabéns! Ganhaste \${affiliateCommission.toFixed(2)} MT de Comissão\`, 
+                      htmlContent: affHtml 
+                    } 
+                  });
+                  console.log("Affiliate email result:", JSON.stringify(affEmailData), affEmailErr);
+                } catch(e) { console.error("Affiliate email crash:", e); }
               }
             }
             await supabase.from("commissions").insert(splits);
