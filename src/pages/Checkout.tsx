@@ -377,11 +377,11 @@ const Checkout = () => {
                   <RadioGroup
                     value={form.payment_method}
                     onValueChange={(v) => setForm({ ...form, payment_method: v })}
-                    className="grid grid-cols-2 gap-3"
+                    className="grid grid-cols-2 gap-2"
                   >
                     <label
                       htmlFor="mpesa"
-                      className={`relative overflow-hidden flex items-center gap-4 rounded-lg p-3.5 cursor-pointer transition-all bg-gradient-to-br from-[#E51B24] to-[#8A0A12] text-white hover:scale-[1.01] ${
+                      className={`relative overflow-hidden flex items-center gap-2 rounded-lg p-2 cursor-pointer transition-all bg-gradient-to-br from-[#E51B24] to-[#8A0A12] text-white hover:scale-[1.01] ${
                         form.payment_method === "mpesa"
                           ? "shadow-lg ring-2 ring-primary/20 opacity-100"
                           : "opacity-80 hover:opacity-100"
@@ -390,22 +390,22 @@ const Checkout = () => {
                       <RadioGroupItem 
                         value="mpesa" 
                         id="mpesa" 
-                        className="border-white text-white fill-white"
+                        className="w-3 h-3 border-white text-white fill-white"
                       />
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="w-9 h-9 rounded-full flex flex-col items-center justify-center bg-white text-[#DD0512]">
-                          <span className="font-black text-[10px] uppercase">M</span>
+                      <div className="flex items-center gap-2 flex-1">
+                        <div className="w-7 h-7 rounded-full flex flex-col items-center justify-center bg-white text-[#DD0512]">
+                          <span className="font-black text-[9px] uppercase">M</span>
                         </div>
                         <div>
-                          <p className="font-bold text-white text-sm">M-Pesa</p>
-                          <p className="text-[9px] text-white/80">Vodacom</p>
+                          <p className="font-bold text-white text-[11px] leading-tight">M-Pesa</p>
+                          <p className="text-[8px] text-white/70 leading-none">Vodacom</p>
                         </div>
                       </div>
                     </label>
                     
                     <label
                       htmlFor="emola"
-                      className={`relative overflow-hidden flex items-center gap-4 rounded-lg p-3.5 cursor-pointer transition-all bg-gradient-to-br from-[#F57C00] to-[#b34700] text-white hover:scale-[1.01] ${
+                      className={`relative overflow-hidden flex items-center gap-2 rounded-lg p-2 cursor-pointer transition-all bg-gradient-to-br from-[#F57C00] to-[#b34700] text-white hover:scale-[1.01] ${
                         form.payment_method === "emola"
                           ? "shadow-lg ring-2 ring-primary/20 opacity-100"
                           : "opacity-80 hover:opacity-100"
@@ -414,15 +414,15 @@ const Checkout = () => {
                       <RadioGroupItem 
                         value="emola" 
                         id="emola" 
-                        className="border-white text-white fill-white"
+                        className="w-3 h-3 border-white text-white fill-white"
                       />
-                      <div className="flex items-center gap-3 flex-1">
-                        <div className="w-9 h-9 rounded-full flex flex-col items-center justify-center bg-white text-[#F57C00]">
-                          <span className="font-black text-[10px] uppercase">E</span>
+                      <div className="flex items-center gap-2 flex-1">
+                        <div className="w-7 h-7 rounded-full flex flex-col items-center justify-center bg-white text-[#F57C00]">
+                          <span className="font-black text-[9px] uppercase">E</span>
                         </div>
                         <div>
-                          <p className="font-bold text-white text-sm">E-Mola</p>
-                          <p className="text-[9px] text-white/80">Movitel</p>
+                          <p className="font-bold text-white text-[11px] leading-tight">E-Mola</p>
+                          <p className="text-[8px] text-white/70 leading-none">Movitel</p>
                         </div>
                       </div>
                     </label>
