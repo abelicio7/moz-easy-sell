@@ -308,15 +308,16 @@ const Checkout = () => {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          <div className="lg:col-span-3 space-y-6">
-            <div className="lg:hidden">
-              <ProductCard product={product} />
+      <div className="max-w-2xl mx-auto space-y-6">
+            <div className="flex items-center justify-between mb-2">
+              <Logo size="sm" />
+              <div className="flex items-center gap-1 text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
+                <ShieldCheck className="w-3 h-3 text-primary" /> Checkout Seguro
+              </div>
             </div>
 
-            <Card className="border-border/50 bg-card">
-              <CardContent className="pt-6 space-y-8">
+            <Card className="border-border/50 bg-card overflow-hidden shadow-2xl">
+              <CardContent className="pt-8 space-y-8">
                 {/* Secção 1: Dados Pessoais */}
                 <div>
                   <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
@@ -325,19 +326,19 @@ const Checkout = () => {
                   </h2>
                   <div className="space-y-4">
                     <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">Nome completo *</Label>
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Nome completo *</Label>
                       <Input
                         placeholder="Digite seu nome completo"
                         value={form.name}
                         onChange={(e) => setForm({ ...form, name: e.target.value })}
                         onBlur={handleCaptureCart}
                         required
-                        className="bg-background/50 border-border"
+                        className="bg-background/50 border-border h-11"
                       />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Label className="text-xs text-muted-foreground uppercase tracking-wider font-bold flex items-center gap-1">
                           <Mail className="w-3 h-3" /> Email *
                         </Label>
                         <Input
@@ -347,11 +348,11 @@ const Checkout = () => {
                           onChange={(e) => setForm({ ...form, email: e.target.value })}
                           onBlur={handleCaptureCart}
                           required
-                          className="bg-background/50 border-border"
+                          className="bg-background/50 border-border h-11"
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Label className="text-xs text-muted-foreground uppercase tracking-wider font-bold flex items-center gap-1">
                           <MessageCircle className="w-3 h-3 text-emerald-500" /> WhatsApp *
                         </Label>
                         <Input
@@ -359,7 +360,7 @@ const Checkout = () => {
                           value={form.customer_whatsapp}
                           onChange={(e) => setForm({ ...form, customer_whatsapp: e.target.value })}
                           required
-                          className="bg-background/50 border-border"
+                          className="bg-background/50 border-border h-11"
                         />
                       </div>
                     </div>
@@ -381,17 +382,13 @@ const Checkout = () => {
                   >
                     <label
                       htmlFor="mpesa"
-                      className={`relative overflow-hidden flex items-center gap-2 rounded-lg p-2 cursor-pointer transition-all bg-gradient-to-br from-[#E51B24] to-[#8A0A12] text-white hover:scale-[1.01] ${
+                      className={`relative overflow-hidden flex items-center gap-2 rounded-xl p-3 cursor-pointer transition-all bg-gradient-to-br from-[#E51B24] to-[#8A0A12] text-white hover:scale-[1.01] ${
                         form.payment_method === "mpesa"
                           ? "shadow-lg ring-2 ring-primary/20 opacity-100"
                           : "opacity-80 hover:opacity-100"
                       }`}
                     >
-                      <RadioGroupItem 
-                        value="mpesa" 
-                        id="mpesa" 
-                        className="w-3 h-3 border-white text-white fill-white"
-                      />
+                      <RadioGroupItem value="mpesa" id="mpesa" className="w-3 h-3 border-white text-white fill-white" />
                       <div className="flex items-center gap-2 flex-1">
                         <div className="w-7 h-7 rounded-full flex flex-col items-center justify-center bg-white text-[#DD0512]">
                           <span className="font-black text-[9px] uppercase">M</span>
@@ -405,17 +402,13 @@ const Checkout = () => {
                     
                     <label
                       htmlFor="emola"
-                      className={`relative overflow-hidden flex items-center gap-2 rounded-lg p-2 cursor-pointer transition-all bg-gradient-to-br from-[#F57C00] to-[#b34700] text-white hover:scale-[1.01] ${
+                      className={`relative overflow-hidden flex items-center gap-2 rounded-xl p-3 cursor-pointer transition-all bg-gradient-to-br from-[#F57C00] to-[#b34700] text-white hover:scale-[1.01] ${
                         form.payment_method === "emola"
                           ? "shadow-lg ring-2 ring-primary/20 opacity-100"
                           : "opacity-80 hover:opacity-100"
                       }`}
                     >
-                      <RadioGroupItem 
-                        value="emola" 
-                        id="emola" 
-                        className="w-3 h-3 border-white text-white fill-white"
-                      />
+                      <RadioGroupItem value="emola" id="emola" className="w-3 h-3 border-white text-white fill-white" />
                       <div className="flex items-center gap-2 flex-1">
                         <div className="w-7 h-7 rounded-full flex flex-col items-center justify-center bg-white text-[#F57C00]">
                           <span className="font-black text-[9px] uppercase">E</span>
@@ -430,8 +423,8 @@ const Checkout = () => {
 
                   <div className="mt-6 space-y-4">
                     <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground flex items-center justify-between">
-                        <span className="flex items-center gap-1 font-bold text-foreground"><Smartphone className="w-3.5 h-3.5 text-primary" /> Número de Pagamento *</span>
+                      <Label className="text-xs text-muted-foreground flex items-center justify-between uppercase tracking-wider font-bold">
+                        <span className="flex items-center gap-1 font-bold text-foreground">Número de Pagamento *</span>
                         <span className="text-[10px] text-primary font-bold">
                           {form.payment_method === 'mpesa' ? 'Vodacom (84/85)' : 'Movitel (86/87)'}
                         </span>
@@ -442,28 +435,64 @@ const Checkout = () => {
                         value={form.payment_phone}
                         onChange={(e) => setForm({ ...form, payment_phone: e.target.value })}
                         required
-                        className="h-12 bg-background/50 border-border rounded-xl text-lg font-bold"
+                        className="h-14 bg-background/50 border-border rounded-xl text-xl font-black text-center"
                       />
-                      <p className="text-[10px] text-muted-foreground italic">
+                      <p className="text-[10px] text-muted-foreground italic text-center">
                         Irás receber um pedido de confirmação (PIN) neste número via {form.payment_method === "mpesa" ? "M-Pesa" : "E-Mola"}.
                       </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Secção de Finalização (Antes estava no card lateral) */}
+                <div className="pt-4 space-y-4">
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                      <Zap className="w-4 h-4 text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-emerald-500">Envio automático após o pagamento</p>
+                      <p className="text-[11px] text-emerald-500/70">O acesso ao seu produto será enviado para o seu e-mail imediatamente.</p>
+                    </div>
+                  </div>
+
+                  <Button 
+                    className="w-full h-16 bg-[#10b981] hover:bg-[#059669] text-black font-black text-xl rounded-xl transition-all hover:scale-[1.01] active:scale-[0.98] shadow-[0_10px_30px_rgba(16,185,129,0.3)] group"
+                    onClick={handleSubmit}
+                    disabled={submitting}
+                  >
+                    {submitting ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                        <span>Processando...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center gap-2">
+                        <span>PAGAR AGORA — {product.price.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</span>
+                        <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    )}
+                  </Button>
+
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <div className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest opacity-60">
+                      <ShieldCheck className="w-3 h-3" /> Pague com segurança via EnsinaPay
+                    </div>
+                    <div className="flex items-center gap-4 opacity-40">
+                      <img src="https://www.mpesa.co.mz/wp-content/uploads/2021/04/m-pesa-logo-vector.png" alt="M-Pesa" className="h-4 grayscale" />
+                      <img src="https://movitel.co.mz/wp-content/uploads/2021/06/e-mola-logo.png" alt="E-Mola" className="h-4 grayscale" />
                     </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <div className="lg:hidden pt-4">
-              <OrderSummary product={product} submitting={submitting} onSubmit={handleSubmit} 
-                disabled={submitting || !form.name || !form.email || !form.customer_whatsapp || !form.payment_phone} />
-            </div>
-          </div>
-
-          <div className="hidden lg:block lg:col-span-2">
-            <div className="sticky top-20 space-y-4">
-              <ProductCard product={product} />
-              <OrderSummary product={product} submitting={submitting} onSubmit={handleSubmit} 
-                disabled={submitting || !form.name || !form.email || !form.customer_whatsapp || !form.payment_phone} />
+            <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground font-medium uppercase tracking-widest py-8">
+              <Link to="/terms" className="hover:text-primary transition-colors">Termos</Link>
+              <span>•</span>
+              <Link to="/privacy" className="hover:text-primary transition-colors">Privacidade</Link>
+              <span>•</span>
+              <span>&copy; {new Date().getFullYear()} EnsinaPay</span>
             </div>
           </div>
         </div>
@@ -471,78 +500,5 @@ const Checkout = () => {
     </div>
   );
 };
-
-const OrderSummary = ({ product, submitting, onSubmit, disabled }: { product: Product, submitting: boolean, onSubmit: any, disabled: boolean }) => (
-  <Card className="border-border/50 bg-card shadow-lg overflow-hidden rounded-[1.5rem]">
-    <CardContent className="pt-8 pb-8 px-6">
-      <h3 className="text-base font-bold text-foreground flex items-center gap-3 mb-8">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-          <ShoppingBag className="w-4 h-4 text-primary" />
-        </div>
-        Resumo do pedido
-      </h3>
-      
-      <div className="space-y-4 text-sm">
-        <div className="flex justify-between items-center">
-          <span className="text-muted-foreground font-medium">Produto</span>
-          <span className="text-foreground font-bold">{product.price.toFixed(2)} MT</span>
-        </div>
-        <div className="flex justify-between items-center">
-          <span className="text-muted-foreground font-medium">Taxa de serviço</span>
-          <span className="text-emerald-500 font-black text-[10px] uppercase tracking-widest">Grátis</span>
-        </div>
-        
-        <Separator className="bg-border my-6" />
-        
-        <div className="flex justify-between items-center">
-          <span className="text-foreground font-black text-lg">Total</span>
-          <span className="text-primary font-black text-2xl tracking-tight">
-            {product.price.toFixed(2)} <span className="text-sm font-bold">MT</span>
-          </span>
-        </div>
-      </div>
-
-      <div className="mt-8 space-y-4">
-        <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/10 rounded-lg border border-emerald-500/20 w-fit mx-auto lg:mx-0">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[10px] font-black text-emerald-500 uppercase tracking-tighter">Envio automático após o pagamento</span>
-        </div>
-
-        <Button
-          onClick={onSubmit}
-          className="w-full h-16 text-lg font-black bg-primary hover:bg-primary/90 text-primary-foreground transition-all duration-300 rounded-2xl shadow-xl shadow-primary/10 active:scale-[0.98] disabled:opacity-50 disabled:grayscale"
-          disabled={disabled}
-        >
-          {submitting ? "Processando..." : `Finalizar Pagamento`}
-        </Button>
-      </div>
-
-      <p className="text-[10px] text-muted-foreground font-medium text-center mt-6 uppercase tracking-wider flex items-center justify-center gap-2">
-        Pague com segurança via EnsinaPay
-      </p>
-    </CardContent>
-  </Card>
-);
-
-const ProductCard = ({ product }: { product: Product }) => (
-  <Card className="border-border/50 overflow-hidden bg-card">
-    {product.image_url && (
-      <div className="aspect-video w-full overflow-hidden bg-muted">
-        <img
-          src={product.image_url}
-          alt={product.name}
-          className="w-full h-full object-cover"
-        />
-      </div>
-    )}
-    <CardContent className={product.image_url ? "pt-4" : "pt-6"}>
-      <h2 className="text-lg font-bold text-foreground">{product.name}</h2>
-      {product.description && (
-        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{product.description}</p>
-      )}
-      <p className="text-2xl font-bold text-primary mt-3">{product.price.toFixed(2)} MT</p>
-    </CardContent>
-  </Card>
-);
 
 export default Checkout;
