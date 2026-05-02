@@ -316,132 +316,138 @@ const Checkout = () => {
             </div>
 
             <Card className="border-border/50 bg-card">
-              <CardContent className="pt-6">
-                <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
-                  <User className="w-4 h-4 text-primary" />
-                  Seus dados
-                </h2>
-                <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground">Nome completo *</Label>
-                    <Input
-                      placeholder="Digite seu nome completo"
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      onBlur={handleCaptureCart}
-                      required
-                      className="bg-background/50 border-border"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Mail className="w-3 h-3" /> Email *
-                    </Label>
-                    <Input
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={form.email}
-                      onChange={(e) => setForm({ ...form, email: e.target.value })}
-                      onBlur={handleCaptureCart}
-                      required
-                      className="bg-background/50 border-border"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground flex items-center gap-1">
-                      <MessageCircle className="w-3 h-3 text-emerald-500" /> WhatsApp *
-                    </Label>
-                    <Input
-                      placeholder="Ex: 840000000"
-                      value={form.customer_whatsapp}
-                      onChange={(e) => setForm({ ...form, customer_whatsapp: e.target.value })}
-                      required
-                      className="bg-background/50 border-border"
-                    />
+              <CardContent className="pt-6 space-y-8">
+                {/* Secção 1: Dados Pessoais */}
+                <div>
+                  <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
+                    <User className="w-4 h-4 text-primary" />
+                    Seus dados
+                  </h2>
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">Nome completo *</Label>
+                      <Input
+                        placeholder="Digite seu nome completo"
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        onBlur={handleCaptureCart}
+                        required
+                        className="bg-background/50 border-border"
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Mail className="w-3 h-3" /> Email *
+                        </Label>
+                        <Input
+                          type="email"
+                          placeholder="seu@email.com"
+                          value={form.email}
+                          onChange={(e) => setForm({ ...form, email: e.target.value })}
+                          onBlur={handleCaptureCart}
+                          required
+                          className="bg-background/50 border-border"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                          <MessageCircle className="w-3 h-3 text-emerald-500" /> WhatsApp *
+                        </Label>
+                        <Input
+                          placeholder="Ex: 840000000"
+                          value={form.customer_whatsapp}
+                          onChange={(e) => setForm({ ...form, customer_whatsapp: e.target.value })}
+                          required
+                          className="bg-background/50 border-border"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
 
-            <Card className="border-border/50 bg-card">
-              <CardContent className="pt-6">
-                <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
-                  <Smartphone className="w-4 h-4 text-primary" />
-                  Método de pagamento
-                </h2>
-                <RadioGroup
-                  value={form.payment_method}
-                  onValueChange={(v) => setForm({ ...form, payment_method: v })}
-                  className="grid grid-cols-2 gap-3"
-                >
-                  <label
-                    htmlFor="mpesa"
-                    className={`relative overflow-hidden flex items-center gap-4 rounded-lg p-3.5 cursor-pointer transition-all bg-gradient-to-br from-[#E51B24] to-[#8A0A12] text-white hover:scale-[1.01] ${
-                      form.payment_method === "mpesa"
-                        ? "shadow-lg ring-2 ring-primary/20 opacity-100"
-                        : "opacity-80 hover:opacity-100"
-                    }`}
-                  >
-                    <RadioGroupItem 
-                      value="mpesa" 
-                      id="mpesa" 
-                      className="border-white text-white fill-white"
-                    />
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="w-9 h-9 rounded-full flex flex-col items-center justify-center bg-white text-[#DD0512]">
-                        <span className="font-black text-[10px] uppercase">M</span>
-                      </div>
-                      <div>
-                        <p className="font-bold text-white text-sm">M-Pesa</p>
-                        <p className="text-[9px] text-white/80">Vodacom</p>
-                      </div>
-                    </div>
-                  </label>
-                  
-                  <label
-                    htmlFor="emola"
-                    className={`relative overflow-hidden flex items-center gap-4 rounded-lg p-3.5 cursor-pointer transition-all bg-gradient-to-br from-[#F57C00] to-[#b34700] text-white hover:scale-[1.01] ${
-                      form.payment_method === "emola"
-                        ? "shadow-lg ring-2 ring-primary/20 opacity-100"
-                        : "opacity-80 hover:opacity-100"
-                    }`}
-                  >
-                    <RadioGroupItem 
-                      value="emola" 
-                      id="emola" 
-                      className="border-white text-white fill-white"
-                    />
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="w-9 h-9 rounded-full flex flex-col items-center justify-center bg-white text-[#F57C00]">
-                        <span className="font-black text-[10px] uppercase">E</span>
-                      </div>
-                      <div>
-                        <p className="font-bold text-white text-sm">E-Mola</p>
-                        <p className="text-[9px] text-white/80">Movitel</p>
-                      </div>
-                    </div>
-                  </label>
-                </RadioGroup>
+                <Separator className="bg-border/50" />
 
-                <div className="mt-8 pt-6 border-t border-border space-y-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground flex items-center justify-between">
-                      <span className="flex items-center gap-1 font-bold text-foreground"><Smartphone className="w-3.5 h-3.5 text-primary" /> Número de Pagamento *</span>
-                      <span className="text-[10px] text-primary font-bold">
-                        {form.payment_method === 'mpesa' ? 'Vodacom (84/85)' : 'Movitel (86/87)'}
-                      </span>
-                    </Label>
-                    <Input
-                      type="tel"
-                      placeholder={form.payment_method === 'mpesa' ? "Ex: 840000000" : "Ex: 860000000"}
-                      value={form.payment_phone}
-                      onChange={(e) => setForm({ ...form, payment_phone: e.target.value })}
-                      required
-                      className="h-12 bg-background/50 border-border rounded-xl text-lg font-bold"
-                    />
-                    <p className="text-[10px] text-muted-foreground italic">
-                      Irás receber um pedido de confirmação (PIN) neste número via {form.payment_method === "mpesa" ? "M-Pesa" : "E-Mola"}.
-                    </p>
+                {/* Secção 2: Pagamento */}
+                <div>
+                  <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
+                    <Smartphone className="w-4 h-4 text-primary" />
+                    Método de pagamento
+                  </h2>
+                  <RadioGroup
+                    value={form.payment_method}
+                    onValueChange={(v) => setForm({ ...form, payment_method: v })}
+                    className="grid grid-cols-2 gap-3"
+                  >
+                    <label
+                      htmlFor="mpesa"
+                      className={`relative overflow-hidden flex items-center gap-4 rounded-lg p-3.5 cursor-pointer transition-all bg-gradient-to-br from-[#E51B24] to-[#8A0A12] text-white hover:scale-[1.01] ${
+                        form.payment_method === "mpesa"
+                          ? "shadow-lg ring-2 ring-primary/20 opacity-100"
+                          : "opacity-80 hover:opacity-100"
+                      }`}
+                    >
+                      <RadioGroupItem 
+                        value="mpesa" 
+                        id="mpesa" 
+                        className="border-white text-white fill-white"
+                      />
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="w-9 h-9 rounded-full flex flex-col items-center justify-center bg-white text-[#DD0512]">
+                          <span className="font-black text-[10px] uppercase">M</span>
+                        </div>
+                        <div>
+                          <p className="font-bold text-white text-sm">M-Pesa</p>
+                          <p className="text-[9px] text-white/80">Vodacom</p>
+                        </div>
+                      </div>
+                    </label>
+                    
+                    <label
+                      htmlFor="emola"
+                      className={`relative overflow-hidden flex items-center gap-4 rounded-lg p-3.5 cursor-pointer transition-all bg-gradient-to-br from-[#F57C00] to-[#b34700] text-white hover:scale-[1.01] ${
+                        form.payment_method === "emola"
+                          ? "shadow-lg ring-2 ring-primary/20 opacity-100"
+                          : "opacity-80 hover:opacity-100"
+                      }`}
+                    >
+                      <RadioGroupItem 
+                        value="emola" 
+                        id="emola" 
+                        className="border-white text-white fill-white"
+                      />
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="w-9 h-9 rounded-full flex flex-col items-center justify-center bg-white text-[#F57C00]">
+                          <span className="font-black text-[10px] uppercase">E</span>
+                        </div>
+                        <div>
+                          <p className="font-bold text-white text-sm">E-Mola</p>
+                          <p className="text-[9px] text-white/80">Movitel</p>
+                        </div>
+                      </div>
+                    </label>
+                  </RadioGroup>
+
+                  <div className="mt-6 space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground flex items-center justify-between">
+                        <span className="flex items-center gap-1 font-bold text-foreground"><Smartphone className="w-3.5 h-3.5 text-primary" /> Número de Pagamento *</span>
+                        <span className="text-[10px] text-primary font-bold">
+                          {form.payment_method === 'mpesa' ? 'Vodacom (84/85)' : 'Movitel (86/87)'}
+                        </span>
+                      </Label>
+                      <Input
+                        type="tel"
+                        placeholder={form.payment_method === 'mpesa' ? "Ex: 840000000" : "Ex: 860000000"}
+                        value={form.payment_phone}
+                        onChange={(e) => setForm({ ...form, payment_phone: e.target.value })}
+                        required
+                        className="h-12 bg-background/50 border-border rounded-xl text-lg font-bold"
+                      />
+                      <p className="text-[10px] text-muted-foreground italic">
+                        Irás receber um pedido de confirmação (PIN) neste número via {form.payment_method === "mpesa" ? "M-Pesa" : "E-Mola"}.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </CardContent>
