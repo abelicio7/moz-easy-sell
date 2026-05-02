@@ -308,14 +308,7 @@ const Checkout = () => {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto space-y-6">
-            <div className="flex items-center justify-between mb-2">
-              <Logo size="sm" />
-              <div className="flex items-center gap-1 text-[10px] text-muted-foreground uppercase tracking-widest font-bold">
-                <ShieldCheck className="w-3 h-3 text-primary" /> Checkout Seguro
-              </div>
-            </div>
-
+      <div className="max-w-2xl mx-auto space-y-6 pt-8 px-4">
             <Card className="border-border/50 bg-card overflow-hidden shadow-2xl">
               {product && (
                 <div className="bg-muted/30 border-b border-border/50">
