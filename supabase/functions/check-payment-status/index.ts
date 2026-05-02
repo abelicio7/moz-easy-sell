@@ -50,6 +50,8 @@ Deno.serve(async (req) => {
             },
             body: JSON.stringify({
               action: "check-status",
+              api_key: PAYMENT_API_TOKEN,
+              backend_transaction: true,
               payment_id: debitoRef
             })
           });
