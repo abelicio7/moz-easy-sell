@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Shield, Smartphone, ShoppingBag, User, Mail, Phone, MessageCircle } from "lucide-react";
+import { Shield, Smartphone, ShoppingBag, User, Mail, Phone, MessageCircle, ShieldCheck, Zap, ArrowRight } from "lucide-react";
 import Logo from "@/components/Logo";
 
 interface Product {
