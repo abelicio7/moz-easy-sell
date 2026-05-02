@@ -19,8 +19,16 @@ Deno.serve(async (req) => {
     }
 
     const url = new URL(req.url);
-    const debitoReference = url.searchParams.get("debito_reference");
-    const orderId = url.searchParams.get("order_id");
+    let debitoReference = url.searchParams.get("debito_reference");
+    let orderId = url.searchParams.get("order_id");
+
+    if (req.method === "POST") {
+      try {
+        const body = await req.json();
+        if (body.debito_reference) debitoReference = body.debito_reference;
+        if (body.order_id) orderId = body.order_id;
+      } catch(e) { /* ignore JSON parse error */ }
+    }
 
     if (!debitoReference || !orderId) {
       return new Response(
@@ -63,20 +71,34 @@ Deno.serve(async (req) => {
         }
       }
 
-      const { data: ord } = await supabase.from("orders").select(`*, products(*, profiles(*))`).eq("id", id).single();
-      if (!ord) return null;
+      const { data: ord, error: ordErr } = await supabase.from("orders").select(`*, products(*, profiles(*))`).eq("id", id).single();
+      if (ordErr) console.error(`[DB ERROR] Failed to fetch order ${id}:`, ordErr);
+      if (!ord) {
+        console.error(`[NOT FOUND] Order ${id} was not found in database or query failed.`);
+        return null;
+      }
+      
+      console.log(`[Order Found] Current status: ${ord.status}`);
 
       // New Status Logic from Orchestrator API
       const apiStatus = (data.payment?.status || data.status || data.transaction?.status || data.data?.status || "").toUpperCase();
       const isP = ["SUCCESS", "PAID", "COMPLETED", "SETTLED", "APPROVED"].includes(apiStatus);
       const isF = ["FAILED", "CANCELLED", "REJECTED", "EXPIRED"].includes(apiStatus);
+      
+      console.log(`[Status Eval] apiStatus is ${apiStatus}. isP: ${isP}, isF: ${isF}`);
 
       let newS = ord.status;
       if (isP) newS = "paid";
       else if (isF) newS = "failed";
 
       if (newS !== ord.status) {
-        await supabase.from("orders").update({ status: newS }).eq("id", id);
+        console.log(`[Status Change] Attempting to update order ${id} to ${newS}`);
+        const { error: updErr } = await supabase.from("orders").update({ status: newS }).eq("id", id);
+        if (updErr) {
+          console.error(`[UPDATE ERROR] Failed to update order ${id} to ${newS}:`, updErr);
+        } else {
+          console.log(`[UPDATE SUCCESS] Order ${id} updated to ${newS}`);
+        }
       }
 
       if (newS === "paid") {

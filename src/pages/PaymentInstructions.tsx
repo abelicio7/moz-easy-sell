@@ -25,8 +25,11 @@ const PaymentInstructions = () => {
     setChecking(true);
     try {
       const { data, error } = await supabase.functions.invoke(
-        `check-payment-status?debito_reference=${debitoReference}&order_id=${orderId}`,
-        { method: 'GET' }
+        "check-payment-status",
+        { 
+          method: 'POST',
+          body: { debito_reference: debitoReference, order_id: orderId }
+        }
       );
 
       if (error) {

@@ -21,8 +21,8 @@ Deno.serve(async (req) => {
 
     // Debito usually sends 'debito_reference' and 'status'
     // The exact path depends on how it's configured, but we check common locations
-    const reference = body.debito_reference || body.transaction?.debito_reference || body.data?.debito_reference;
-    const providerStatus = (body.status || body.transaction?.status || body.data?.status || "").toUpperCase();
+    const reference = body.debito_reference || body.transaction?.debito_reference || body.data?.debito_reference || body.payment?.id || body.payment_id;
+    const providerStatus = (body.status || body.transaction?.status || body.data?.status || body.payment?.status || "").toUpperCase();
 
     if (!reference) {
       return new Response(JSON.stringify({ error: "No reference found" }), { status: 400 });
