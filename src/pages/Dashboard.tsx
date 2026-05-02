@@ -71,16 +71,8 @@ const Dashboard = () => {
           : 0;
       });
 
-      // 1. Total Billing (Own Gross Sales + Affiliate Commissions Net)
-      const ownGrossRevenue = allOrders.filter((o: any) => o.status === "paid").reduce((sum: number, o: any) => sum + (o.price || 0), 0);
-      const affiliateRevenue = (commissions || [])
-        .filter((c: any) => c.user_type === 'affiliate')
-        .reduce((sum, c) => sum + Number(c.amount), 0);
-
-      const totalBilling = ownGrossRevenue + affiliateRevenue;
-
-      // 2. Net Revenue (Real earnings from ALL sources) - For balance
-      const totalNetRevenue = (commissions || []).reduce((sum, comm) => sum + Number(comm.amount), 0);
+      // 1. Unified Revenue (Sum of all earnings from commissions table)
+      const totalNetEarnings = (commissions || []).reduce((sum, comm) => sum + Number(comm.amount), 0);
       
       const totalWithdrawnAndPending = allWithdrawals
         .filter((w: any) => w.status === "completed" || w.status === "pending")
@@ -90,8 +82,8 @@ const Dashboard = () => {
         total: allOrders.length,
         pending: allOrders.filter((o: any) => o.status === "pending").length,
         paid: allOrders.filter((o: any) => o.status === "paid").length,
-        revenue: totalBilling, 
-        availableBalance: totalNetRevenue - totalWithdrawnAndPending,
+        revenue: totalNetEarnings, 
+        availableBalance: totalNetEarnings - totalWithdrawnAndPending,
         methodStats
       });
       setLoading(false);
