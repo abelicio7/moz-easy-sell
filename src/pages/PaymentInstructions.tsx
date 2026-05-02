@@ -45,7 +45,8 @@ const PaymentInstructions = () => {
 
       setStatus(data.status || "PENDING");
       if (data.order_status === "paid") {
-        navigate(`/thank-you?order_id=${orderId}&amount=${amount}&product_id=${productId}`);
+        toast.success("Pagamento confirmado!");
+        navigate(`/thank-you?order_id=${orderId}&product_id=${productId}&amount=${amount}`);
       }
     } catch (e) {
       console.error("CRITICAL POLLING ERROR:", e);
