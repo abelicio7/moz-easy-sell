@@ -55,39 +55,46 @@ serve(async (req) => {
       const senderEmail = Deno.env.get("BREVO_SENDER_EMAIL") || "suporte@ensinapay.com";
       
       if (!brevoApiKey) {
-        console.error("BREVO_API_KEY is not set. Simulating email send for code:", otpCode);
-      } else {
-        const htmlContent = `
-          <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9fafb; padding: 40px 20px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <img src="https://www.ensinapay.com/logo.png" alt="EnsinaPay" style="max-height: 45px;" />
-            </div>
-            <div style="background-color: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); border: 1px solid #f3f4f6; text-align: center;">
-              <h2 style="color: #111827; margin-top: 0; font-size: 24px;">Código de Verificação de Segurança</h2>
-              <p style="color: #4b5563; font-size: 16px; line-height: 1.6;">Use o código abaixo para acessar a sua conta na EnsinaPay:</p>
-              
-              <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin: 30px auto; max-width: 200px; letter-spacing: 5px;">
-                <h1 style="color: #000; margin: 0; font-size: 32px;">${otpCode}</h1>
-              </div>
-              
-              <p style="color: #9ca3af; font-size: 14px; margin-top: 30px;">Este código expira em 5 minutos. Não o compartilhe com ninguém.</p>
-            </div>
-          </div>
-        `;
+        console.error("ERRO CRÍTICO: BREVO_API_KEY não configurada nos Secrets da Supabase.");
+        return new Response(JSON.stringify({ success: false, error: "Serviço de email não configurado (API Key em falta)." }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
 
-        await fetch("https://api.brevo.com/v3/smtp/email", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "api-key": brevoApiKey,
-            "Accept": "application/json"
-          },
-          body: JSON.stringify({
-            sender: { email: senderEmail, name: "EnsinaPay Segurança" },
-            to: [{ email: user.email }],
-            subject: "Seu código de acesso - EnsinaPay",
-            htmlContent: htmlContent
-          })
+      const htmlContent = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #111827; border-radius: 16px; overflow: hidden; color: #ffffff; padding: 40px 30px; text-align: center;">
+          <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 40px; margin-bottom: 30px;">
+          <h2 style="font-size: 22px; font-weight: 800; color: #ffffff; margin-bottom: 10px;">Código de Segurança</h2>
+          <p style="font-size: 16px; color: #9ca3af; margin-bottom: 30px;">Usa o código abaixo para validar o teu acesso à EnsinaPay:</p>
+          <div style="background-color: #1f2937; padding: 20px; border-radius: 12px; border: 1px solid #374151; display: inline-block; margin-bottom: 30px;">
+            <h1 style="font-size: 32px; font-weight: 900; color: #10b981; margin: 0; letter-spacing: 5px;">${otpCode}</h1>
+          </div>
+          <p style="font-size: 12px; color: #6b7280;">Este código expira em 5 minutos. Se não solicitaste este código, ignora este email.</p>
+        </div>
+      `;
+
+      const brevoResponse = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": brevoApiKey,
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({
+          sender: { email: senderEmail, name: "EnsinaPay Segurança" },
+          to: [{ email: user.email }],
+          subject: `${otpCode} é o seu código de segurança EnsinaPay`,
+          htmlContent: htmlContent
+        })
+      });
+
+      if (!brevoResponse.ok) {
+        const errorData = await brevoResponse.text();
+        console.error("Erro na API do Brevo:", errorData);
+        return new Response(JSON.stringify({ success: false, error: "Falha ao enviar email. Verifica o remetente no Brevo." }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
