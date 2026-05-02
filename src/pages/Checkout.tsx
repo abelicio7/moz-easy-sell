@@ -311,18 +311,22 @@ const Checkout = () => {
       <div className="max-w-2xl mx-auto space-y-6 pt-8 px-4">
             <Card className="border-border/50 bg-card overflow-hidden shadow-2xl">
               {product && (
-                <div className="bg-muted/30 border-b border-border/50">
-                  <div className="p-6 flex flex-col md:flex-row gap-6 items-center">
-                    {product.image_url && (
-                      <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-lg border-2 border-white/10">
-                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
-                      </div>
-                    )}
-                    <div className="text-center md:text-left flex-1">
-                      <h2 className="text-xl font-black text-foreground">{product.name}</h2>
-                      <p className="text-sm text-muted-foreground line-clamp-2">{product.description || "Acesso imediato ao conteúdo digital após confirmação do pagamento."}</p>
-                      <p className="text-lg font-black text-primary mt-1">{product.price.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</p>
+                <div className="bg-muted/10 border-b border-border/50">
+                  {product.image_url && (
+                    <div className="aspect-video w-full overflow-hidden">
+                      <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                     </div>
+                  )}
+                  <div className="p-6 space-y-3">
+                    <h2 className="text-2xl font-black text-foreground uppercase leading-tight tracking-tight">
+                      {product.name}
+                    </h2>
+                    <p className="text-sm text-muted-foreground font-medium leading-relaxed">
+                      {product.description || "Aprenda, execute e comece a vender ainda hoje com cursos, ferramentas e materiais prontos."}
+                    </p>
+                    <p className="text-3xl font-bold text-[#4fd1c5] tracking-tight">
+                      {product.price.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT
+                    </p>
                   </div>
                 </div>
               )}
