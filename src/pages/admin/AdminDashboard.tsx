@@ -278,28 +278,19 @@ const AdminDashboard = () => {
                     try {
                       const { data: { user } } = await supabase.auth.getUser();
                       const myEmail = user?.email || "abeliciosimoney@gmail.com";
-                      
-                      // 1. Create a "fake" abandoned cart from 2 hours ago
-                      const twoHoursAgo = new Date();
-                      twoHoursAgo.setHours(twoHoursAgo.getHours() - 2);
-
-                      // Get any product ID to link
                       const { data: prods } = await supabase.from("products").select("id").limit(1);
-                      if (!prods || prods.length === 0) throw new Error("Nenhum produto cadastrado para o teste.");
+                      if (!prods || prods.length === 0) throw new Error("Nenhum produto cadastrado.");
 
-                      // Upsert a test cart
                       await supabase.from("carts").upsert({
                         email: myEmail,
                         customer_name: "Teste Recuperação",
                         product_id: prods[0].id,
                         status: "pending",
-                        created_at: twoHoursAgo.toISOString(),
-                        contacted_at: null // Ensure it's not yet contacted
+                        created_at: new Date(Date.now() - 7200000).toISOString(),
+                        contacted_at: null
                       }, { onConflict: 'email, product_id' });
 
-                      // 2. Trigger the recovery function
-                      const { data, error } = await supabase.functions.invoke("abandoned-cart-recovery");
-
+                      const { error } = await supabase.functions.invoke("abandoned-cart-recovery");
                       if (error) throw error;
                       toast.success("E-mail de recuperação enviado!", { id: toastId });
                     } catch (err: any) {
@@ -307,8 +298,54 @@ const AdminDashboard = () => {
                     }
                   }}
                 >
-                  Testar Recuperação de Carrinho
+                  Recuperação de Carrinho
                 </Button>
+
+                <div className="border-t border-border/50 my-2 pt-2">
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground mb-2">Segurança e Acesso</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="secondary" 
+                      className="w-full text-xs font-bold"
+                      onClick={async () => {
+                        const toastId = toast.loading("Testando 2FA...");
+                        try {
+                          const { data, error } = await supabase.functions.invoke("handle-2fa", {
+                            body: { action: "generate" }
+                          });
+                          if (error || data?.success === false) throw new Error(data?.error || error?.message || "Erro no 2FA");
+                          toast.success("Código 2FA enviado para seu email!", { id: toastId });
+                        } catch (err: any) {
+                          toast.error("Falha 2FA: " + err.message, { id: toastId });
+                        }
+                      }}
+                    >
+                      Testar 2FA
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="secondary" 
+                      className="w-full text-xs font-bold"
+                      onClick={async () => {
+                        const toastId = toast.loading("Testando Biblioteca...");
+                        try {
+                          const { data: { user } } = await supabase.auth.getUser();
+                          const myEmail = user?.email || "";
+                          const { data, error } = await supabase.functions.invoke("send-library-code", {
+                            body: { email: myEmail }
+                          });
+                          if (error || data?.success === false) throw new Error(data?.error || error?.message || "Erro na Biblioteca");
+                          toast.success("Código Biblioteca enviado!", { id: toastId });
+                        } catch (err: any) {
+                          toast.error("Falha Biblioteca: " + err.message, { id: toastId });
+                        }
+                      }}
+                    >
+                      Testar Biblioteca
+                    </Button>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
