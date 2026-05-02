@@ -63,14 +63,23 @@ serve(async (req) => {
       }
 
       const htmlContent = `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #111827; border-radius: 16px; overflow: hidden; color: #ffffff; padding: 40px 30px; text-align: center;">
-          <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 40px; margin-bottom: 30px;">
-          <h2 style="font-size: 22px; font-weight: 800; color: #ffffff; margin-bottom: 10px;">Código de Segurança</h2>
-          <p style="font-size: 16px; color: #9ca3af; margin-bottom: 30px;">Usa o código abaixo para validar o teu acesso à EnsinaPay:</p>
-          <div style="background-color: #1f2937; padding: 20px; border-radius: 12px; border: 1px solid #374151; display: inline-block; margin-bottom: 30px;">
-            <h1 style="font-size: 32px; font-weight: 900; color: #10b981; margin: 0; letter-spacing: 5px;">${otpCode}</h1>
+        <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0b; border-radius: 24px; overflow: hidden; border: 1px solid #1c1c1e;">
+          <div style="background-color: #141416; padding: 40px 20px; text-align: center; border-bottom: 1px solid #1c1c1e;">
+            <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 32px;">
           </div>
-          <p style="font-size: 12px; color: #6b7280;">Este código expira em 5 minutos. Se não solicitaste este código, ignora este email.</p>
+          <div style="padding: 50px 40px; background-color: #0a0a0b; text-align: center;">
+            <h2 style="color: #ffffff; font-size: 24px; font-weight: 800; margin: 0 0 10px 0; letter-spacing: -0.5px;">Código de Segurança</h2>
+            <p style="color: #9ca3af; font-size: 16px; line-height: 1.5; margin: 0 0 40px 0;">Olá! Usa o código abaixo para validar o teu acesso à plataforma EnsinaPay.</p>
+            
+            <div style="background-color: #141416; padding: 25px; border-radius: 16px; border: 1px solid #232326; display: inline-block; margin-bottom: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+              <h1 style="color: #10b981; font-size: 42px; font-weight: 900; margin: 0; letter-spacing: 8px; font-family: monospace;">${otpCode}</h1>
+            </div>
+            
+            <p style="color: #6b7280; font-size: 13px; line-height: 1.5;">Este código é válido por 10 minutos. Se não solicitaste este código, podes ignorar este email com segurança.</p>
+          </div>
+          <div style="background-color: #141416; padding: 30px; text-align: center; border-top: 1px solid #1c1c1e;">
+            <p style="color: #4b5563; font-size: 12px; margin: 0;">&copy; ${new Date().getFullYear()} EnsinaPay. A maior plataforma de conteúdos de Moçambique.</p>
+          </div>
         </div>
       `;
 

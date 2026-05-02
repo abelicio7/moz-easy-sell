@@ -25,27 +25,35 @@ serve(async (req) => {
 
     // 2. Save code to DB
     const { error: dbError } = await supabase
-      .from("library_auth_codes")
-      .insert({ email: email.toLowerCase().trim(), code });
+      .from("user_otp_codes")
+      .insert({ 
+        email_auth: email.toLowerCase().trim(), 
+        code,
+        expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+        used: false
+      });
 
     if (dbError) throw dbError;
 
     // 3. Send email via Brevo
     const emailHtml = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #111827; border-radius: 16px; overflow: hidden; color: #ffffff; padding: 40px;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 40px;">
+      <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0b; border-radius: 24px; overflow: hidden; border: 1px solid #1c1c1e;">
+        <div style="background-color: #141416; padding: 40px 20px; text-align: center; border-bottom: 1px solid #1c1c1e;">
+          <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 32px;">
         </div>
-        <h2 style="text-align: center; color: #ffffff;">Seu Código de Acesso</h2>
-        <p style="text-align: center; color: #9ca3af; font-size: 16px;">Use o código abaixo para entrar na sua biblioteca de produtos EnsinaPay:</p>
-        
-        <div style="background-color: #1f2937; padding: 30px; border-radius: 12px; text-align: center; margin: 30px 0; border: 1px solid #374151;">
-          <h1 style="font-size: 42px; font-weight: 900; color: #10b981; letter-spacing: 10px; margin: 0;">${code}</h1>
+        <div style="padding: 50px 40px; background-color: #0a0a0b; text-align: center;">
+          <h2 style="color: #ffffff; font-size: 24px; font-weight: 800; margin: 0 0 10px 0; letter-spacing: -0.5px;">Acesso à Biblioteca</h2>
+          <p style="color: #9ca3af; font-size: 16px; line-height: 1.5; margin: 0 0 40px 0;">Olá! Usa o código abaixo para entrar na tua biblioteca de produtos digitais.</p>
+          
+          <div style="background-color: #141416; padding: 25px; border-radius: 16px; border: 1px solid #232326; display: inline-block; margin-bottom: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            <h1 style="color: #10b981; font-size: 42px; font-weight: 900; margin: 0; letter-spacing: 8px; font-family: monospace;">${code}</h1>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 13px; line-height: 1.5;">Este código é válido por 15 minutos. Se não solicitaste este acesso, podes ignorar este email.</p>
         </div>
-        
-        <p style="text-align: center; color: #6b7280; font-size: 12px;">Este código expira em 15 minutos. Se você não solicitou este acesso, por favor ignore este e-mail.</p>
-        <hr style="border: 0; border-top: 1px solid #374151; margin: 30px 0;">
-        <p style="text-align: center; color: #4b5563; font-size: 12px;">&copy; ${new Date().getFullYear()} EnsinaPay. Todos os direitos reservados.</p>
+        <div style="background-color: #141416; padding: 30px; text-align: center; border-top: 1px solid #1c1c1e;">
+          <p style="color: #4b5563; font-size: 12px; margin: 0;">&copy; ${new Date().getFullYear()} EnsinaPay. Elevando o conteúdo digital em Moçambique.</p>
+        </div>
       </div>
     `;
 

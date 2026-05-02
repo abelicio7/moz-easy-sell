@@ -109,24 +109,26 @@ Deno.serve(async (req) => {
           const deliveryUrl = `${Deno.env.get("PUBLIC_SITE_URL") || 'https://ensinapay.com'}/biblioteca?email=${encodeURIComponent(ord.customer_email)}`;
 
           const customerHtml = `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #111827; border-radius: 0 0 16px 16px; overflow: hidden; color: #ffffff;">
-              <div style="background-color: #f3f4f6; padding: 30px; text-align: center;">
-                <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 40px;">
+            <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0b; border-radius: 24px; overflow: hidden; border: 1px solid #1c1c1e;">
+              <div style="background-color: #141416; padding: 40px 20px; text-align: center; border-bottom: 1px solid #1c1c1e;">
+                <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 32px;">
               </div>
-              <div style="padding: 40px 30px;">
-                <h1 style="font-size: 24px; font-weight: 800; color: #ffffff; margin: 0 0 10px 0;">Obrigado pela sua compra! 🚀</h1>
-                <p style="font-size: 16px; color: #d1d5db; margin-bottom: 30px;">O seu pagamento foi confirmado e o seu acesso já está disponível.</p>
-                <div style="background-color: #1f2937; padding: 25px; border-radius: 12px; border: 1px solid #374151; margin-bottom: 30px;">
-                  <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin: 0 0 15px 0;">Detalhes do Pedido:</h3>
-                  <p style="margin: 0 0 5px 0; font-size: 16px; font-weight: bold; color: #10b981;">${prod?.name}</p>
-                  <p style="margin: 0 0 15px 0; font-size: 14px; color: #9ca3af;">Valor: ${ord.price.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</p>
+              <div style="padding: 50px 40px; background-color: #0a0a0b; text-align: center;">
+                <h1 style="color: #ffffff; font-size: 28px; font-weight: 800; margin: 0 0 10px 0; letter-spacing: -1px;">Compra Confirmada! 🚀</h1>
+                <p style="color: #9ca3af; font-size: 16px; line-height: 1.5; margin: 0 0 40px 0;">O teu pagamento foi processado com sucesso. O teu conteúdo já te espera.</p>
+                
+                <div style="background-color: #141416; padding: 25px; border-radius: 16px; border: 1px solid #232326; text-align: left; margin-bottom: 40px;">
+                  <h3 style="color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 15px 0;">Detalhes do Pedido:</h3>
+                  <p style="color: #ffffff; font-size: 18px; font-weight: 700; margin: 0 0 5px 0;">${prod?.name}</p>
+                  <p style="color: #10b981; font-size: 16px; font-weight: 600; margin: 0;">${ord.price.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</p>
                 </div>
-                <div style="text-align: center;">
-                  <a href="${deliveryUrl}" style="display: inline-block; background-color: #10b981; color: #000000; padding: 18px 45px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">Aceder ao Conteúdo</a>
-                </div>
-                <p style="text-align: center; font-size: 14px; color: #6b7280; margin-top: 30px;">
-                  Pode aceder a todos os seus produtos em <a href="https://ensinapay.com/biblioteca" style="color: #10b981; font-weight: bold; text-decoration: none;">ensinapay.com/biblioteca</a>
-                </p>
+                
+                <a href="${deliveryUrl}" style="display: inline-block; background-color: #10b981; color: #000000; padding: 20px 45px; text-decoration: none; border-radius: 12px; font-weight: 800; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 10px 20px rgba(16,185,129,0.2);">Aceder Agora</a>
+                
+                <p style="color: #6b7280; font-size: 14px; margin-top: 40px;">Podes ver todas as tuas compras em <a href="https://ensinapay.com/biblioteca" style="color: #10b981; text-decoration: none; font-weight: 600;">ensinapay.com/biblioteca</a></p>
+              </div>
+              <div style="background-color: #141416; padding: 30px; text-align: center; border-top: 1px solid #1c1c1e;">
+                <p style="color: #4b5563; font-size: 12px; margin: 0;">EnsinaPay - A nova era dos conteúdos em Moçambique.</p>
               </div>
             </div>
           `;
@@ -150,11 +152,28 @@ Deno.serve(async (req) => {
           
           if (sEmail) {
             const sellerHtml = `
-              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #111827; border-radius: 16px; overflow: hidden; color: #ffffff; padding: 40px 30px;">
-                <h2 style="font-size: 22px; font-weight: 800; color: #10b981;">Venda Realizada! 💸</h2>
-                <p style="font-size: 16px; color: #d1d5db;">Você acabou de vender o produto <b>${prod?.name}</b>.</p>
-                <h1 style="font-size: 48px; font-weight: 900; color: #10b981; margin: 20px 0;">${ord.price.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</h1>
-                <p style="font-size: 14px; color: #9ca3af;">Comprador: ${ord.customer_name} (${ord.customer_email})</p>
+              <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0b; border-radius: 24px; overflow: hidden; border: 1px solid #1c1c1e;">
+                <div style="background-color: #141416; padding: 30px; text-align: center; border-bottom: 1px solid #1c1c1e;">
+                  <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 28px;">
+                </div>
+                <div style="padding: 40px; text-align: center;">
+                  <p style="color: #10b981; font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;">Venda Realizada! 💸</p>
+                  <h2 style="color: #ffffff; font-size: 22px; font-weight: 800; margin: 0 0 30px 0;">Acabaste de vender ${prod?.name}</h2>
+                  
+                  <div style="background-color: #141416; padding: 30px; border-radius: 20px; border: 1px solid #232326; margin-bottom: 30px;">
+                    <p style="color: #9ca3af; font-size: 14px; margin: 0 0 10px 0;">Valor que vais receber:</p>
+                    <h1 style="color: #10b981; font-size: 48px; font-weight: 900; margin: 0;">${ord.price.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</h1>
+                  </div>
+                  
+                  <div style="text-align: left; background-color: #0a0a0b; padding: 20px; border-radius: 12px; border-left: 4px solid #10b981;">
+                    <p style="color: #9ca3af; font-size: 13px; margin: 0 0 5px 0;">Comprador:</p>
+                    <p style="color: #ffffff; font-weight: 600; font-size: 15px; margin: 0;">${ord.customer_name}</p>
+                    <p style="color: #6b7280; font-size: 13px; margin: 0;">${ord.customer_email}</p>
+                  </div>
+                </div>
+                <div style="background-color: #141416; padding: 20px; text-align: center;">
+                  <a href="https://ensinapay.com/dashboard/sales" style="color: #9ca3af; text-decoration: none; font-size: 12px; font-weight: 600;">Ver no Dashboard &rarr;</a>
+                </div>
               </div>
             `;
             
@@ -186,12 +205,24 @@ Deno.serve(async (req) => {
             const { data: affProfile } = await supabase.from("profiles").select("email, full_name").eq("id", ord.affiliate_id).single();
             if (affProfile && affProfile.email) {
               const affHtml = `
-                <div style="font-family: sans-serif; background-color: #f8f9fa; color: #333; padding: 40px; border-radius: 16px; border-top: 5px solid #10b981;">
-                  <h2>Nova Comissão Recebida! 🎉</h2>
-                  <p>Olá ${affProfile.full_name || 'Afiliado'},</p>
-                  <p>Alguém acabou de comprar o produto <b>${prod?.name}</b> através do seu link de afiliado!</p>
-                  <p>A sua comissão de <b>${affiliateCommission.toFixed(2)} MT</b> já foi adicionada ao seu saldo na EnsinaPay.</p>
-                  <a href="${Deno.env.get("PUBLIC_SITE_URL") || 'https://ensinapay.com'}/dashboard/finance" style="background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; margin-top: 20px;">Ver Meu Saldo</a>
+                <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0b; border-radius: 24px; overflow: hidden; border: 1px solid #1c1c1e;">
+                  <div style="background-color: #141416; padding: 30px; text-align: center; border-bottom: 1px solid #1c1c1e;">
+                    <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 28px;">
+                  </div>
+                  <div style="padding: 40px; text-align: center;">
+                    <p style="color: #10b981; font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;">Comissão Recebida! 🎉</p>
+                    <h2 style="color: #ffffff; font-size: 22px; font-weight: 800; margin: 0 0 30px 0;">Parabéns, ${affProfile.full_name || 'Afiliado'}!</h2>
+                    
+                    <div style="background-color: #141416; padding: 30px; border-radius: 20px; border: 1px solid #232326; margin-bottom: 30px;">
+                      <p style="color: #9ca3af; font-size: 14px; margin: 0 0 10px 0;">A tua comissão de afiliado:</p>
+                      <h1 style="color: #10b981; font-size: 48px; font-weight: 900; margin: 0;">${affiliateCommission.toFixed(2)} MT</h1>
+                    </div>
+                    
+                    <p style="color: #9ca3af; font-size: 15px;">Produto: <b style="color: #ffffff;">${prod?.name}</b></p>
+                  </div>
+                  <div style="background-color: #141416; padding: 25px; text-align: center;">
+                    <a href="https://ensinapay.com/dashboard/finance" style="display: inline-block; background-color: #10b981; color: #000000; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 14px;">Ver Carteira</a>
+                  </div>
                 </div>
               `;
               try {

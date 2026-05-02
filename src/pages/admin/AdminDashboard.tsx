@@ -163,35 +163,27 @@ const AdminDashboard = () => {
                       const myEmail = user?.email || "abeliciosimoney@gmail.com";
                       
                       const hotmartStyleHtml = `
-                        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #111827; border-radius: 0 0 16px 16px; overflow: hidden; color: #ffffff;">
-                          <div style="background-color: #f3f4f6; padding: 30px; text-align: center;">
-                            <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 40px;">
+                        <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0b; border-radius: 24px; overflow: hidden; border: 1px solid #1c1c1e;">
+                          <div style="background-color: #141416; padding: 30px; text-align: center; border-bottom: 1px solid #1c1c1e;">
+                            <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 28px;">
                           </div>
-                          <div style="padding: 40px 30px;">
-                            <p style="font-size: 18px; color: #d1d5db; margin-bottom: 10px;">Parabéns!</p>
-                            <h2 style="font-size: 22px; font-weight: 800; color: #ffffff; margin: 0 0 30px 0; line-height: 1.2;">
-                              Você acabou de vender uma cópia do produto <span style="text-transform: uppercase; color: #10b981;">Ebook: Sucesso em Moçambique</span>!
-                            </h2>
+                          <div style="padding: 40px; text-align: center;">
+                            <p style="color: #10b981; font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;">Venda Realizada! 💸</p>
+                            <h2 style="color: #ffffff; font-size: 22px; font-weight: 800; margin: 0 0 30px 0;">Acabaste de vender um produto digital</h2>
                             
-                            <p style="font-size: 16px; color: #10b981; margin-bottom: 5px; font-weight: 600;">Você recebeu:</p>
-                            <h1 style="font-size: 48px; font-weight: 900; color: #10b981; margin: 0 0 40px 0;">
-                              1.500,00 MT
-                            </h1>
-                            
-                            <div style="background-color: #1f2937; padding: 25px; border-radius: 12px; border: 1px solid #374151;">
-                              <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin: 0 0 20px 0;">Dados da Transação:</h3>
-                              
-                              <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Nome:</span> Cliente de Teste</p>
-                              <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Email:</span> <a href="#" style="color: #10b981; text-decoration: none;">cliente@teste.com</a></p>
-                              <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">WhatsApp:</span> <a href="#" style="color: #10b981; text-decoration: none;">841234567</a></p>
-                              <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Método:</span> <span style="font-weight: bold;">M-PESA</span></p>
-                              <p style="margin: 0 0 10px 0; font-size: 15px;"><span style="color: #9ca3af;">Data:</span> ${new Date().toLocaleString('pt-MZ')}</p>
-                              <p style="margin: 0 0 20px 0; font-size: 15px;"><span style="color: #9ca3af;">ID:</span> EP999999</p>
+                            <div style="background-color: #141416; padding: 30px; border-radius: 20px; border: 1px solid #232326; margin-bottom: 30px;">
+                              <p style="color: #9ca3af; font-size: 14px; margin: 0 0 10px 0;">Valor que vais receber:</p>
+                              <h1 style="color: #10b981; font-size: 48px; font-weight: 900; margin: 0;">1.500,00 MT</h1>
                             </div>
                             
-                            <div style="text-align: center; margin-top: 40px;">
-                              <a href="https://ensinapay.com/dashboard/sales" style="display: inline-block; background-color: #10b981; color: #000000; padding: 15px 40px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 16px; text-transform: uppercase;">Ver Minhas Vendas</a>
+                            <div style="text-align: left; background-color: #0a0a0b; padding: 20px; border-radius: 12px; border-left: 4px solid #10b981;">
+                              <p style="color: #9ca3af; font-size: 13px; margin: 0 0 5px 0;">Comprador (Teste):</p>
+                              <p style="color: #ffffff; font-weight: 600; font-size: 15px; margin: 0;">Cliente de Demonstração</p>
+                              <p style="color: #6b7280; font-size: 13px; margin: 0;">cliente@teste.com</p>
                             </div>
+                          </div>
+                          <div style="background-color: #141416; padding: 20px; text-align: center;">
+                            <p style="color: #4b5563; font-size: 12px; margin: 0;">Este é um email de teste gerado pelo sistema EnsinaPay.</p>
                           </div>
                         </div>
                       `;
@@ -199,7 +191,7 @@ const AdminDashboard = () => {
                       const { data, error } = await supabase.functions.invoke("send-email-notification", {
                         body: { 
                           to: myEmail, 
-                          subject: "💸 VENDA REALIZADA (TESTE ESTILO HOTMART)", 
+                          subject: "💸 VENDA REALIZADA (TESTE PREMIUM)", 
                           htmlContent: hotmartStyleHtml,
                           senderName: "EnsinaPay Vendas"
                         }
@@ -225,28 +217,24 @@ const AdminDashboard = () => {
                       const myEmail = user?.email || "abeliciosimoney@gmail.com";
                       
                       const customerStyleHtml = `
-                        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #111827; border-radius: 0 0 16px 16px; overflow: hidden; color: #ffffff;">
-                          <div style="background-color: #f3f4f6; padding: 30px; text-align: center;">
-                            <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 40px;">
+                        <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0b; border-radius: 24px; overflow: hidden; border: 1px solid #1c1c1e;">
+                          <div style="background-color: #141416; padding: 40px 20px; text-align: center; border-bottom: 1px solid #1c1c1e;">
+                            <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 32px;">
                           </div>
-                          <div style="padding: 40px 30px;">
-                            <h1 style="font-size: 24px; font-weight: 800; color: #ffffff; margin: 0 0 10px 0;">Obrigado pela sua compra! 🚀</h1>
-                            <p style="font-size: 16px; color: #d1d5db; margin-bottom: 30px;">O seu pagamento foi confirmado e o seu acesso já está disponível.</p>
+                          <div style="padding: 50px 40px; background-color: #0a0a0b; text-align: center;">
+                            <h1 style="color: #ffffff; font-size: 28px; font-weight: 800; margin: 0 0 10px 0; letter-spacing: -1px;">Compra Confirmada! 🚀</h1>
+                            <p style="color: #9ca3af; font-size: 16px; line-height: 1.5; margin: 0 0 40px 0;">O teu pagamento foi processado com sucesso. O teu conteúdo já te espera.</p>
                             
-                            <div style="background-color: #1f2937; padding: 25px; border-radius: 12px; border: 1px solid #374151; margin-bottom: 30px;">
-                              <h3 style="font-size: 14px; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; margin: 0 0 15px 0;">Detalhes do Pedido:</h3>
-                              <p style="margin: 0 0 5px 0; font-size: 16px; font-weight: bold; color: #10b981;">Ebook: Sucesso em Moçambique</p>
-                              <p style="margin: 0 0 15px 0; font-size: 14px; color: #9ca3af;">Valor: 1.500,00 MT</p>
-                              
-                              <div style="border-top: 1px solid #374151; padding-top: 15px; margin-top: 15px;">
-                                <p style="margin: 0 0 10px 0; font-size: 13px; color: #9ca3af; text-transform: uppercase;">Dúvidas sobre o produto?</p>
-                                <a href="#" style="display: inline-block; background-color: transparent; color: #10b981; border: 1px solid #10b981; padding: 8px 15px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 13px;">Falar com Vendedor</a>
-                              </div>
+                            <div style="background-color: #141416; padding: 25px; border-radius: 16px; border: 1px solid #232326; text-align: left; margin-bottom: 40px;">
+                              <h3 style="color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 15px 0;">Detalhes do Pedido:</h3>
+                              <p style="color: #ffffff; font-size: 18px; font-weight: 700; margin: 0 0 5px 0;">Produto de Teste Premium</p>
+                              <p style="color: #10b981; font-size: 16px; font-weight: 600; margin: 0;">1.500,00 MT</p>
                             </div>
                             
-                            <div style="text-align: center;">
-                              <a href="https://ensinapay.com/thank-you" style="display: inline-block; background-color: #10b981; color: #000000; padding: 18px 45px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">Aceder ao Conteúdo</a>
-                            </div>
+                            <a href="https://ensinapay.com/biblioteca" style="display: inline-block; background-color: #10b981; color: #000000; padding: 20px 45px; text-decoration: none; border-radius: 12px; font-weight: 800; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px;">Aceder Agora</a>
+                          </div>
+                          <div style="background-color: #141416; padding: 30px; text-align: center; border-top: 1px solid #1c1c1e;">
+                            <p style="color: #4b5563; font-size: 12px; margin: 0;">EnsinaPay - A nova era dos conteúdos digitais.</p>
                           </div>
                         </div>
                       `;
