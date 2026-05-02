@@ -252,6 +252,13 @@ const Checkout = () => {
         throw new Error(paymentData.error || "Erro no pagamento");
       }
 
+      // Salvar a referência da Débito Pay na encomenda para que o sistema a consiga confirmar depois
+      if (paymentData.debito_reference) {
+        await supabase.from("orders")
+          .update({ debito_reference: paymentData.debito_reference })
+          .eq("id", orderId);
+      }
+
       navigate(
         `/checkout/${productId}/payment?order_id=${orderId}&debito_reference=${paymentData.debito_reference}&method=${form.payment_method}&amount=${product.price}`
       );
