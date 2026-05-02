@@ -317,6 +317,23 @@ const Checkout = () => {
             </div>
 
             <Card className="border-border/50 bg-card overflow-hidden shadow-2xl">
+              {product && (
+                <div className="bg-muted/30 border-b border-border/50">
+                  <div className="p-6 flex flex-col md:flex-row gap-6 items-center">
+                    {product.image_url && (
+                      <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-lg border-2 border-white/10">
+                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                    <div className="text-center md:text-left flex-1">
+                      <h2 className="text-xl font-black text-foreground">{product.name}</h2>
+                      <p className="text-sm text-muted-foreground line-clamp-2">{product.description || "Acesso imediato ao conteúdo digital após confirmação do pagamento."}</p>
+                      <p className="text-lg font-black text-primary mt-1">{product.price.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <CardContent className="pt-8 space-y-8">
                 {/* Secção 1: Dados Pessoais */}
                 <div>
