@@ -471,18 +471,22 @@ const Checkout = () => {
                   </div>
 
                   <Button 
-                    className="w-full h-16 bg-[#10b981] hover:bg-[#059669] text-black font-black text-xl rounded-xl transition-all hover:scale-[1.01] active:scale-[0.98] shadow-[0_10px_30px_rgba(16,185,129,0.3)] group"
+                    className={`w-full h-16 text-white font-black text-xl rounded-xl transition-all duration-500 hover:scale-[1.01] active:scale-[0.98] group relative overflow-hidden shadow-2xl ${
+                      form.payment_method === 'mpesa' 
+                        ? 'bg-gradient-to-r from-[#E51B24] to-[#8A0A12] hover:shadow-[#E51B24]/40' 
+                        : 'bg-gradient-to-r from-[#F57C00] to-[#b34700] hover:shadow-[#F57C00]/40'
+                    }`}
                     onClick={handleSubmit}
                     disabled={submitting}
                   >
                     {submitting ? (
                       <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         <span>Processando...</span>
                       </div>
                     ) : (
                       <div className="flex items-center justify-center gap-2">
-                        <span>PAGAR AGORA — {product.price.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</span>
+                        <span>PAGAR AGORA — {product.price.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT</span>
                         <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                       </div>
                     )}
