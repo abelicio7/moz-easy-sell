@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Mail } from "lucide-react";
+import { toast } from "sonner";
 
 interface Order {
   id: string;
@@ -132,10 +133,58 @@ const OrderCard = ({ order }: { order: Order }) => (
                   </a>
                 </Button>
               )}
-              <Button size="sm" variant="outline" className="w-full bg-background" asChild>
-                <a href={`mailto:${order.customer_email}?subject=${encodeURIComponent(`Seu pedido: ${order.products.name}`)}`} target="_blank" rel="noreferrer">
-                  Enviar Email
-                </a>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="w-full bg-background gap-2"
+                onClick={async () => {
+                  const toastId = toast.loading("Enviando email de recuperação...");
+                  try {
+                    const siteUrl = window.location.origin;
+                    const checkoutUrl = `${siteUrl}/checkout/${(order as any).product_id}?email=${encodeURIComponent(order.customer_email)}&name=${encodeURIComponent(order.customer_name)}`;
+                    
+                    const recoveryHtml = `
+                      <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0b; border-radius: 24px; overflow: hidden; border: 1px solid #1c1c1e;">
+                        <div style="background-color: #141416; padding: 40px 20px; text-align: center; border-bottom: 1px solid #1c1c1e;">
+                          <img src="${siteUrl}/logo.png" alt="EnsinaPay" style="height: 32px;">
+                        </div>
+                        <div style="padding: 50px 40px; background-color: #0a0a0b; text-align: center;">
+                          <h1 style="color: #ffffff; font-size: 28px; font-weight: 800; margin: 0 0 10px 0; letter-spacing: -1px;">Esqueceu algo? 🛒</h1>
+                          <p style="color: #9ca3af; font-size: 16px; line-height: 1.5; margin: 0 0 40px 0;">Olá ${order.customer_name}, vimos que quase garantiu o seu conteúdo, mas não finalizou a compra.</p>
+                          
+                          <div style="background-color: #141416; padding: 25px; border-radius: 16px; border: 1px solid #232326; text-align: left; margin-bottom: 40px;">
+                            <h3 style="color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 15px 0;">Item no Carrinho:</h3>
+                            <p style="color: #ffffff; font-size: 18px; font-weight: 700; margin: 0 0 5px 0;">${order.products.name}</p>
+                            <p style="color: #10b981; font-size: 16px; font-weight: 600; margin: 0;">${order.price.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT</p>
+                          </div>
+                          
+                          <a href="${checkoutUrl}" style="display: inline-block; background-color: #10b981; color: #000000; padding: 20px 45px; text-decoration: none; border-radius: 12px; font-weight: 800; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 10px 20px rgba(16,185,129,0.2);">Concluir Compra</a>
+                          
+                          <p style="color: #6b7280; font-size: 14px; margin-top: 40px;">Precisa de ajuda? Basta responder a este email.</p>
+                        </div>
+                        <div style="background-color: #141416; padding: 30px; text-align: center; border-top: 1px solid #1c1c1e;">
+                          <p style="color: #4b5563; font-size: 12px; margin: 0;">EnsinaPay - A nova era dos conteúdos em Moçambique.</p>
+                        </div>
+                      </div>
+                    `;
+
+                    const { error } = await supabase.functions.invoke("send-email-notification", {
+                      body: {
+                        to: order.customer_email,
+                        subject: `🛒 Quase lá! O seu ${order.products.name} está à espera`,
+                        htmlContent: recoveryHtml,
+                        senderName: "EnsinaPay"
+                      }
+                    });
+
+                    if (error) throw error;
+                    toast.success("Email de recuperação enviado!", { id: toastId });
+                  } catch (err: any) {
+                    toast.error("Erro ao enviar: " + err.message, { id: toastId });
+                  }
+                }}
+              >
+                <Mail className="w-4 h-4" /> Enviar Email
               </Button>
             </div>
           </div>
