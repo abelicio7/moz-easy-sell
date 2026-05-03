@@ -57,7 +57,7 @@ const PaymentInstructions = () => {
 
   useEffect(() => {
     if (!debitoReference) return;
-    const interval = setInterval(checkStatus, 5000);
+    const interval = setInterval(checkStatus, 3000);
     checkStatus();
     return () => clearInterval(interval);
   }, [checkStatus, debitoReference]);

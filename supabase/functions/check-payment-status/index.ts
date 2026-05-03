@@ -103,6 +103,7 @@ Deno.serve(async (req) => {
 
       if (newS === "paid") {
         const prod = Array.isArray(ord.products) ? ord.products[0] : ord.products;
+        const notificationPromises = [];
         
         // --- 1. NOTIFY CUSTOMER (Premium Access Email) ---
         if (ord.customer_email && !ord.customer_notified) {
@@ -133,16 +134,16 @@ Deno.serve(async (req) => {
             </div>
           `;
           
-          try {
-            const { data: emailData, error: emailErr } = await supabase.functions.invoke("send-email-notification", { 
-              body: { to: ord.customer_email, subject: `✅ Seu acesso chegou: ${prod?.name}`, htmlContent: customerHtml, senderName: "EnsinaPay" } 
-            });
-            console.log("Customer email result:", JSON.stringify(emailData), emailErr);
-          } catch(e) { console.error("Customer email crash:", e); }
-          
-          const { error: notifyCustErr } = await supabase.from("orders").update({ customer_notified: true }).eq("id", id);
-          if (notifyCustErr) console.error(`[DB ERROR] Failed to set customer_notified=true for order ${id}:`, notifyCustErr);
-          else console.log(`[DB SUCCESS] customer_notified set to true for order ${id}`);
+          const sendCustomerEmail = async () => {
+            try {
+              await supabase.functions.invoke("send-email-notification", { 
+                body: { to: ord.customer_email, subject: `✅ Seu acesso chegou: ${prod?.name}`, htmlContent: customerHtml, senderName: "EnsinaPay" } 
+              });
+              const { error: notifyCustErr } = await supabase.from("orders").update({ customer_notified: true }).eq("id", id);
+              if (notifyCustErr) console.error(`[DB ERROR] Failed to set customer_notified=true for order ${id}:`, notifyCustErr);
+            } catch(e) { console.error("Customer email flow crash:", e); }
+          };
+          notificationPromises.push(sendCustomerEmail());
         }
 
         // --- 2. NOTIFY SELLER & RECORD COMMISSIONS ---
@@ -161,36 +162,36 @@ Deno.serve(async (req) => {
                 </div>
                 <div style="padding: 40px; text-align: center;">
                   <p style="color: #10b981; font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;">Venda Realizada! 💸</p>
-                  <h2 style="color: #ffffff; font-size: 22px; font-weight: 800; margin: 0 0 30px 0;">Acabaste de vender ${prod?.name}</h2>
+                  <h1 style="color: #ffffff; font-size: 24px; font-weight: 800; margin: 0 0 10px 0; letter-spacing: -1px;">Acabaste de vender!</h1>
+                  <p style="color: #9ca3af; font-size: 15px; margin-bottom: 30px;">O produto <strong>${prod?.name}</strong> foi vendido com sucesso.</p>
                   
-                  <div style="background-color: #141416; padding: 30px; border-radius: 20px; border: 1px solid #232326; margin-bottom: 30px;">
-                    <p style="color: #9ca3af; font-size: 14px; margin: 0 0 10px 0;">Valor que vais receber:</p>
-                    <h1 style="color: #10b981; font-size: 48px; font-weight: 900; margin: 0;">${ord.price.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</h1>
+                  <div style="background-color: #141416; padding: 20px; border-radius: 12px; border: 1px solid #232326; display: inline-block; min-width: 200px;">
+                    <p style="color: #6b7280; font-size: 11px; text-transform: uppercase; margin: 0 0 5px 0;">Valor da Venda:</p>
+                    <p style="color: #ffffff; font-size: 20px; font-weight: 800; margin: 0;">${ord.price.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT</p>
                   </div>
-                  
-                  <div style="text-align: left; background-color: #0a0a0b; padding: 20px; border-radius: 12px; border-left: 4px solid #10b981;">
-                    <p style="color: #9ca3af; font-size: 13px; margin: 0 0 5px 0;">Comprador:</p>
-                    <p style="color: #ffffff; font-weight: 600; font-size: 15px; margin: 0;">${ord.customer_name}</p>
-                    <p style="color: #6b7280; font-size: 13px; margin: 0;">${ord.customer_email}</p>
-                  </div>
-                </div>
-                <div style="background-color: #141416; padding: 20px; text-align: center;">
-                  <a href="https://ensinapay.com/dashboard/sales" style="color: #9ca3af; text-decoration: none; font-size: 12px; font-weight: 600;">Ver no Dashboard &rarr;</a>
                 </div>
               </div>
             `;
             
-            try {
-              const { data: sellerEmailData, error: sellerEmailErr } = await supabase.functions.invoke("send-email-notification", { 
-                body: { to: sEmail, subject: `💸 VENDA REALIZADA: ${prod?.name}`, htmlContent: sellerHtml, senderName: "EnsinaPay Vendas" } 
-              });
-              console.log("Seller email result:", JSON.stringify(sellerEmailData), sellerEmailErr);
-            } catch(e) { console.error("Seller email crash:", e); }
+            const sendSellerEmail = async () => {
+              try {
+                await supabase.functions.invoke("send-email-notification", { 
+                  body: { to: sEmail, subject: `💸 VENDA REALIZADA: ${prod?.name}`, htmlContent: sellerHtml, senderName: "EnsinaPay Vendas" } 
+                });
+                const { error: notifySellErr } = await supabase.from("orders").update({ seller_notified: true }).eq("id", id);
+                if (notifySellErr) console.error(`[DB ERROR] Failed to set seller_notified=true for order ${id}:`, notifySellErr);
+              } catch(e) { console.error("Seller email flow crash:", e); }
+            };
+            notificationPromises.push(sendSellerEmail());
           }
-          
-          const { error: notifySellErr } = await supabase.from("orders").update({ seller_notified: true }).eq("id", id);
-          if (notifySellErr) console.error(`[DB ERROR] Failed to set seller_notified=true for order ${id}:`, notifySellErr);
-          else console.log(`[DB SUCCESS] seller_notified set to true for order ${id}`);
+        }
+
+        // Run notifications in parallel but wait for them to finish before responding to keep function alive
+        // in Supabase Edge Functions environment.
+        if (notificationPromises.length > 0) {
+          console.log(`[Speed] Triggering ${notificationPromises.length} notifications in parallel...`);
+          await Promise.all(notificationPromises);
+        }
 
           // --- 5. CALCULATE AND RECORD COMMISSIONS (CRITICAL) ---
           const { data: existingCommissions } = await supabase.from("commissions").select("id").eq("order_id", id).limit(1);
