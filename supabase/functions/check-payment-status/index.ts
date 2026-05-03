@@ -188,56 +188,64 @@ Deno.serve(async (req) => {
           // Sempre atualizar para não calcular comissão dupla
           await supabase.from("orders").update({ seller_notified: true }).eq("id", id);
 
-          // --- 5. CALCULATE AND RECORD COMMISSIONS ---
-          let affiliateCommission = 0;
-          if (ord.affiliate_id) {
-            const { data: offer } = await supabase.from("affiliate_offers").select("commission_percent").eq("product_id", ord.product_id).eq("is_active", true).maybeSingle();
-            if (offer) affiliateCommission = ord.price * (Number(offer.commission_percent) / 100);
-          }
-
-          const sellerNet = ord.price - affiliateCommission;
-          const splits = [{ order_id: ord.id, user_id: prod.user_id, amount: sellerNet, user_type: 'seller' }];
+          // --- 5. CALCULATE AND RECORD COMMISSIONS (CRITICAL) ---
+          const { data: existingCommissions } = await supabase.from("commissions").select("id").eq("order_id", id).limit(1);
           
-          if (affiliateCommission > 0 && ord.affiliate_id) {
-            splits.push({ order_id: ord.id, user_id: ord.affiliate_id, amount: affiliateCommission, user_type: 'affiliate' });
-
-            // --- 6. NOTIFY AFFILIATE ---
-            const { data: affProfile } = await supabase.from("profiles").select("email, full_name").eq("id", ord.affiliate_id).single();
-            if (affProfile && affProfile.email) {
-              const affHtml = `
-                <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0b; border-radius: 24px; overflow: hidden; border: 1px solid #1c1c1e;">
-                  <div style="background-color: #141416; padding: 30px; text-align: center; border-bottom: 1px solid #1c1c1e;">
-                    <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 28px;">
-                  </div>
-                  <div style="padding: 40px; text-align: center;">
-                    <p style="color: #10b981; font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;">Comissão Recebida! 🎉</p>
-                    <h2 style="color: #ffffff; font-size: 22px; font-weight: 800; margin: 0 0 30px 0;">Parabéns, ${affProfile.full_name || 'Afiliado'}!</h2>
-                    
-                    <div style="background-color: #141416; padding: 30px; border-radius: 20px; border: 1px solid #232326; margin-bottom: 30px;">
-                      <p style="color: #9ca3af; font-size: 14px; margin: 0 0 10px 0;">A tua comissão de afiliado:</p>
-                      <h1 style="color: #10b981; font-size: 48px; font-weight: 900; margin: 0;">${affiliateCommission.toFixed(2)} MT</h1>
-                    </div>
-                    
-                    <p style="color: #9ca3af; font-size: 15px;">Produto: <b style="color: #ffffff;">${prod?.name}</b></p>
-                  </div>
-                  <div style="background-color: #141416; padding: 25px; text-align: center;">
-                    <a href="https://ensinapay.com/dashboard/finance" style="display: inline-block; background-color: #10b981; color: #000000; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 14px;">Ver Carteira</a>
-                  </div>
-                </div>
-              `;
-              try {
-                const { data: affEmailData, error: affEmailErr } = await supabase.functions.invoke("send-email-notification", { 
-                  body: { 
-                    to: affProfile.email, 
-                    subject: \`🎉 Parabéns! Ganhaste \${affiliateCommission.toFixed(2)} MT de Comissão\`, 
-                    htmlContent: affHtml 
-                  } 
-                });
-                console.log("Affiliate email result:", JSON.stringify(affEmailData), affEmailErr);
-              } catch(e) { console.error("Affiliate email crash:", e); }
+          if (!existingCommissions || existingCommissions.length === 0) {
+            console.log(`[Commission] Calculating splits for order ${id}...`);
+            let affiliateCommission = 0;
+            if (ord.affiliate_id) {
+              const { data: offer } = await supabase.from("affiliate_offers").select("commission_percent").eq("product_id", ord.product_id).eq("is_active", true).maybeSingle();
+              if (offer) affiliateCommission = ord.price * (Number(offer.commission_percent) / 100);
             }
+
+            const sellerNet = ord.price - affiliateCommission;
+            const splits = [{ order_id: ord.id, user_id: prod.user_id, amount: sellerNet, user_type: 'seller' }];
+            
+            if (affiliateCommission > 0 && ord.affiliate_id) {
+              splits.push({ order_id: ord.id, user_id: ord.affiliate_id, amount: affiliateCommission, user_type: 'affiliate' });
+
+              // --- 6. NOTIFY AFFILIATE ---
+              const { data: affProfile } = await supabase.from("profiles").select("email, full_name").eq("id", ord.affiliate_id).single();
+              if (affProfile && affProfile.email) {
+                const affHtml = `
+                  <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0b; border-radius: 24px; overflow: hidden; border: 1px solid #1c1c1e;">
+                    <div style="background-color: #141416; padding: 30px; text-align: center; border-bottom: 1px solid #1c1c1e;">
+                      <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 28px;">
+                    </div>
+                    <div style="padding: 40px; text-align: center;">
+                      <p style="color: #10b981; font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;">Comissão Recebida! 🎉</p>
+                      <h2 style="color: #ffffff; font-size: 22px; font-weight: 800; margin: 0 0 30px 0;">Parabéns, ${affProfile.full_name || 'Afiliado'}!</h2>
+                      
+                      <div style="background-color: #141416; padding: 30px; border-radius: 20px; border: 1px solid #232326; margin-bottom: 30px;">
+                        <p style="color: #9ca3af; font-size: 14px; margin: 0 0 10px 0;">A tua comissão de afiliado:</p>
+                        <h1 style="color: #10b981; font-size: 48px; font-weight: 900; margin: 0;">${affiliateCommission.toFixed(2)} MT</h1>
+                      </div>
+                      
+                      <p style="color: #9ca3af; font-size: 15px;">Produto: <b style="color: #ffffff;">${prod?.name}</b></p>
+                    </div>
+                    <div style="background-color: #141416; padding: 25px; text-align: center;">
+                      <a href="https://ensinapay.com/dashboard/finance" style="display: inline-block; background-color: #10b981; color: #000000; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 800; font-size: 14px;">Ver Carteira</a>
+                    </div>
+                  </div>
+                `;
+                try {
+                  await supabase.functions.invoke("send-email-notification", { 
+                    body: { 
+                      to: affProfile.email, 
+                      subject: `🎉 Parabéns! Ganhaste ${affiliateCommission.toFixed(2)} MT de Comissão`, 
+                      htmlContent: affHtml 
+                    } 
+                  });
+                } catch(e) { console.error("Affiliate email crash:", e); }
+              }
+            }
+            const { error: insErr } = await supabase.from("commissions").insert(splits);
+            if (insErr) console.error(`[Commission Error] Failed to insert splits for order ${id}:`, insErr);
+            else console.log(`[Commission Success] Recorded earnings for order ${id}`);
+          } else {
+            console.log(`[Commission] Earnings already recorded for order ${id}. Skipping.`);
           }
-          await supabase.from("commissions").insert(splits);
         }
       }
       return { status: apiStatus, order_status: newS };

@@ -46,10 +46,34 @@ const Dashboard = () => {
     const fetchData = async () => {
       const [{ data: prods }, { data: orders }, { data: withdrawals }, { data: commissions }] = await Promise.all([
         supabase.from("products").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-        supabase.from("orders").select("*, products!inner(user_id)").eq("products.user_id", user.id),
+        supabase.from("orders").select("*, products!inner(name, user_id)").eq("products.user_id", user.id),
         supabase.from("withdrawals").select("amount, status").eq("user_id", user.id),
-        supabase.from("commissions").select("amount").eq("user_id", user.id),
+        supabase.from("commissions").select("amount, order_id").eq("user_id", user.id),
       ]);
+
+      // --- AUTO-SYNC: Check for paid orders without commissions ---
+      const paidOrders = (orders || []).filter(o => o.status === 'paid');
+      const commissionOrderIds = new Set((commissions || []).map(c => c.order_id));
+      const missingCommissions = paidOrders.filter(o => !commissionOrderIds.has(o.id));
+
+      if (missingCommissions.length > 0) {
+        console.log(`[Sync] Found ${missingCommissions.length} paid orders without commissions. Syncing...`);
+        for (const order of missingCommissions) {
+          try {
+            await supabase.functions.invoke("check-payment-status", {
+              body: { order_id: order.id, debito_reference: order.debito_reference }
+            });
+          } catch (e) {
+            console.error(`Failed to sync order ${order.id}:`, e);
+          }
+        }
+        // Re-fetch commissions after sync to update UI
+        const { data: newCommissions } = await supabase.from("commissions").select("amount").eq("user_id", user.id);
+        if (newCommissions) {
+          setStats(prev => ({ ...prev, revenue: newCommissions.reduce((sum, comm) => sum + Number(comm.amount), 0) }));
+        }
+      }
+
       setProducts(prods || []);
       const allOrders = orders || [];
       const allWithdrawals = withdrawals || [];
