@@ -32,16 +32,10 @@ serve(async (req) => {
     // 1. Fetch full order details with product and seller info
     const { data: ord, error: ordErr } = await supabase
       .from('orders')
-      .select(`
-        *,
-        products (
-          name,
-          user_id,
-          profiles (email)
-        )
-      `)
+      .select(`*, products(*)`)
       .eq('id', orderId)
       .single()
+
 
     if (ordErr || !ord) throw new Error(`Order not found: ${ordErr?.message}`)
     
@@ -52,7 +46,18 @@ serve(async (req) => {
     }
 
     const product = ord.products
-    const sellerEmail = product?.profiles?.email
+    
+    // 2. Fetch Seller Email from Profiles
+    let sellerEmail = null
+    if (product?.user_id) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('id', product.user_id)
+        .maybeSingle()
+      sellerEmail = profile?.email
+    }
+
     const siteUrl = Deno.env.get('PUBLIC_SITE_URL') || 'https://ensinapay.com'
 
     const notifications = []

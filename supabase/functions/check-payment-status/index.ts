@@ -131,10 +131,9 @@ Deno.serve(async (req) => {
           else console.log(`[Commission Success] Recorded 100% earnings for seller on order ${id}`);
         }
       }
-        }
-      }
       return { status: apiStatus, order_status: newS };
     };
+
 
     // 1. Process the requested order
     const result = await processOrder(orderId, debitoReference);
