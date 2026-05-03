@@ -60,7 +60,7 @@ const Finance = () => {
     if (!user) return;
     setLoading(true);
 
-    // Fetch all commissions for this user (both as seller and affiliate)
+    // Fetch all earnings for this user
     const { data: commissionData, error: commError } = await supabase
       .from("commissions")
       .select("amount")

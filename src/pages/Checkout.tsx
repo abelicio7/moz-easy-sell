@@ -43,7 +43,6 @@ const Checkout = () => {
       const params = new URLSearchParams(window.location.search);
       const emailParam = params.get("email");
       const nameParam = params.get("name");
-      const affCode = params.get("aff");
 
       if (emailParam || nameParam) {
         setForm(prev => ({
@@ -53,33 +52,7 @@ const Checkout = () => {
         }));
       }
 
-      let currentAffId = localStorage.getItem("ensina_aff_id");
-      const affExpiry = localStorage.getItem("ensina_aff_expiry");
-      
-      if (!affExpiry || parseInt(affExpiry) < Date.now()) {
-        currentAffId = null;
-        localStorage.removeItem("ensina_aff_id");
-        localStorage.removeItem("ensina_aff_expiry");
-      }
 
-      if (affCode) {
-        try {
-          const { data } = await supabase
-            .from("affiliate_links")
-            .select("user_id")
-            .eq("code", affCode)
-            .maybeSingle();
-          
-          if (data) {
-            currentAffId = data.user_id;
-            localStorage.setItem("ensina_aff_id", data.user_id);
-            localStorage.setItem("ensina_aff_expiry", (Date.now() + 30 * 24 * 60 * 60 * 1000).toString());
-            await supabase.rpc('increment_affiliate_clicks', { aff_code: affCode });
-          }
-        } catch (e) {
-          console.error("Affiliate tracking error:", e);
-        }
-      }
 
       // 2. Fetch Product Data
       const { data: productData, error: productError } = await supabase
@@ -207,11 +180,6 @@ const Checkout = () => {
     try {
       const orderId = crypto.randomUUID();
       
-      // Get affiliate from storage
-      const affId = localStorage.getItem("ensina_aff_id");
-      const affExpiry = localStorage.getItem("ensina_aff_expiry");
-      const isAffValid = affId && affExpiry && parseInt(affExpiry) > Date.now();
-
       const { error } = await supabase.from("orders").insert({
         id: orderId,
         product_id: product.id,
@@ -220,8 +188,7 @@ const Checkout = () => {
         customer_whatsapp: form.customer_whatsapp,
         payment_method: form.payment_method,
         price: product.price,
-        status: "pending",
-        affiliate_id: isAffValid ? affId : null
+        status: "pending"
       });
 
       if (error) {
