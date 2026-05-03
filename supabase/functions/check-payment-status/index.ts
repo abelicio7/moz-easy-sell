@@ -139,7 +139,10 @@ Deno.serve(async (req) => {
             });
             console.log("Customer email result:", JSON.stringify(emailData), emailErr);
           } catch(e) { console.error("Customer email crash:", e); }
-          await supabase.from("orders").update({ customer_notified: true }).eq("id", id);
+          
+          const { error: notifyCustErr } = await supabase.from("orders").update({ customer_notified: true }).eq("id", id);
+          if (notifyCustErr) console.error(`[DB ERROR] Failed to set customer_notified=true for order ${id}:`, notifyCustErr);
+          else console.log(`[DB SUCCESS] customer_notified set to true for order ${id}`);
         }
 
         // --- 2. NOTIFY SELLER & RECORD COMMISSIONS ---
@@ -185,8 +188,9 @@ Deno.serve(async (req) => {
             } catch(e) { console.error("Seller email crash:", e); }
           }
           
-          // Sempre atualizar para não calcular comissão dupla
-          await supabase.from("orders").update({ seller_notified: true }).eq("id", id);
+          const { error: notifySellErr } = await supabase.from("orders").update({ seller_notified: true }).eq("id", id);
+          if (notifySellErr) console.error(`[DB ERROR] Failed to set seller_notified=true for order ${id}:`, notifySellErr);
+          else console.log(`[DB SUCCESS] seller_notified set to true for order ${id}`);
 
           // --- 5. CALCULATE AND RECORD COMMISSIONS (CRITICAL) ---
           const { data: existingCommissions } = await supabase.from("commissions").select("id").eq("order_id", id).limit(1);
