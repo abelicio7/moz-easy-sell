@@ -262,6 +262,23 @@ const AdminDashboard = () => {
                   variant="outline" 
                   className="w-full font-bold text-orange-600 border-orange-200 hover:bg-orange-50"
                   onClick={async () => {
+                    const toastId = toast.loading("Disparando recuperação de carrinhos...");
+                    try {
+                      const { data, error } = await supabase.functions.invoke("abandoned-cart-recovery");
+                      if (error || data?.success === false) throw new Error(error?.message || data?.error || "Erro no disparo");
+                      toast.success(`Recuperação concluída! Processados: ${data.processed || 0}`, { id: toastId });
+                    } catch (err: any) {
+                      toast.error("Erro na recuperação: " + err.message, { id: toastId });
+                    }
+                  }}
+                >
+                  Disparar Recuperação de Vendas
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="w-full font-bold text-orange-600 border-orange-200 hover:bg-orange-50"
+                  onClick={async () => {
                     const toastId = toast.loading("Simulando recuperação de carrinho...");
                     try {
                       const { data: { user } } = await supabase.auth.getUser();
