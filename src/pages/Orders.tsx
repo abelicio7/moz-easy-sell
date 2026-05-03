@@ -40,7 +40,7 @@ const Orders = () => {
   useEffect(() => { fetchOrders(); }, [user]);
 
   const paidOrders = orders.filter(o => o.status === "paid");
-  const pendingOrders = orders.filter(o => o.status === "pending");
+  const pendingOrders = orders.filter(o => ["pending", "failed"].includes(o.status));
 
   return (
     <DashboardLayout>
@@ -99,8 +99,15 @@ const OrderCard = ({ order }: { order: Order }) => (
         <div>
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <span className="font-bold text-foreground text-lg">{order.customer_name}</span>
-            <Badge variant={order.status === "paid" ? "default" : "secondary"} className={order.status === "paid" ? "bg-primary" : ""}>
-              {order.status === "paid" ? "Pago e Entregue" : "Não Concluído"}
+            <Badge 
+              variant={order.status === "paid" ? "default" : "secondary"} 
+              className={
+                order.status === "paid" ? "bg-emerald-500 hover:bg-emerald-600" : 
+                order.status === "failed" ? "bg-red-500/10 text-red-500 border-red-500/20" : ""
+              }
+            >
+              {order.status === "paid" ? "Pago e Entregue" : 
+               order.status === "failed" ? "Pagamento Falhou" : "Não Concluído"}
             </Badge>
           </div>
           <div className="space-y-1 mb-3">
@@ -122,7 +129,7 @@ const OrderCard = ({ order }: { order: Order }) => (
           </p>
         </div>
         
-        {order.status === "pending" && (
+        {["pending", "failed"].includes(order.status) && (
           <div className="bg-muted/30 p-4 rounded-xl border border-border/50 md:min-w-[240px]">
             <span className="text-xs font-bold text-foreground block mb-3 uppercase tracking-wider">Recuperar Venda</span>
             <div className="flex flex-col gap-2">
