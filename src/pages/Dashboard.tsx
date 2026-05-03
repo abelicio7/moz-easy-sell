@@ -56,24 +56,34 @@ const Dashboard = () => {
       const commissionOrderIds = new Set((commissions || []).map(c => c.order_id));
       const missingCommissions = paidOrders.filter(o => !commissionOrderIds.has(o.id));
 
-      if (missingCommissions.length > 0) {
+      // Prevent infinite loop by checking if we already tried to sync in this cycle
+      const hasSyncedKey = `synced_${user.id}_${new Date().getMinutes()}`;
+      const alreadyTried = sessionStorage.getItem(hasSyncedKey);
+
+      if (missingCommissions.length > 0 && !alreadyTried) {
         console.log(`[Sync] Found ${missingCommissions.length} paid orders without commissions. Syncing...`);
+        sessionStorage.setItem(hasSyncedKey, 'true');
         toast.info(`Sincronizando ${missingCommissions.length} novas vendas...`, { duration: 3000 });
         
-        for (const order of missingCommissions) {
-          try {
-            await supabase.functions.invoke("check-payment-status", {
-              body: { order_id: order.id, debito_reference: order.debito_reference }
-            });
-          } catch (e) {
-            console.error(`Failed to sync order ${order.id}:`, e);
-          }
-        }
+        const syncPromises = missingCommissions.map(order => 
+          supabase.functions.invoke("check-payment-status", {
+            body: { order_id: order.id, debito_reference: order.debito_reference }
+          }).catch(e => console.error(`Failed to sync order ${order.id}:`, e))
+        );
+
+        await Promise.all(syncPromises);
         
-        // After syncing, we MUST re-fetch everything to ensure the UI is perfect
-        console.log("[Sync] Reconciliation complete. Refreshing data...");
-        fetchData();
-        return; // fetchData will run again, so we exit this cycle
+        // After syncing, re-fetch commissions only once
+        const { data: updatedCommissions } = await supabase.from("commissions").select("amount").eq("user_id", user.id);
+        if (updatedCommissions) {
+          const newRevenue = updatedCommissions.reduce((sum, comm) => sum + Number(comm.amount), 0);
+          setStats(prev => ({ 
+            ...prev, 
+            revenue: newRevenue,
+            availableBalance: newRevenue - allWithdrawals.reduce((sum: number, w: any) => sum + (w.status !== 'rejected' ? Number(w.amount) : 0), 0)
+          }));
+          toast.success("Saldo atualizado com sucesso!");
+        }
       }
 
       setProducts(prods || []);
