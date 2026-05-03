@@ -102,96 +102,15 @@ Deno.serve(async (req) => {
       }
 
       if (newS === "paid") {
-        const prod = Array.isArray(ord.products) ? ord.products[0] : ord.products;
-        const notificationPromises = [];
-        
-        // --- 1. NOTIFY CUSTOMER (Premium Access Email) ---
-        if (ord.customer_email && !ord.customer_notified) {
-          const deliveryUrl = `${Deno.env.get("PUBLIC_SITE_URL") || 'https://ensinapay.com'}/biblioteca?email=${encodeURIComponent(ord.customer_email)}`;
-
-          const customerHtml = `
-            <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0b; border-radius: 24px; overflow: hidden; border: 1px solid #1c1c1e;">
-              <div style="background-color: #141416; padding: 40px 20px; text-align: center; border-bottom: 1px solid #1c1c1e;">
-                <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 32px;">
-              </div>
-              <div style="padding: 50px 40px; background-color: #0a0a0b; text-align: center;">
-                <h1 style="color: #ffffff; font-size: 28px; font-weight: 800; margin: 0 0 10px 0; letter-spacing: -1px;">Compra Confirmada! 🚀</h1>
-                <p style="color: #9ca3af; font-size: 16px; line-height: 1.5; margin: 0 0 40px 0;">O teu pagamento foi processado com sucesso. O teu conteúdo já te espera.</p>
-                
-                <div style="background-color: #141416; padding: 25px; border-radius: 16px; border: 1px solid #232326; text-align: left; margin-bottom: 40px;">
-                  <h3 style="color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 15px 0;">Detalhes do Pedido:</h3>
-                  <p style="color: #ffffff; font-size: 18px; font-weight: 700; margin: 0 0 5px 0;">${prod?.name}</p>
-                  <p style="color: #10b981; font-size: 16px; font-weight: 600; margin: 0;">${ord.price.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</p>
-                </div>
-                
-                <a href="${deliveryUrl}" style="display: inline-block; background-color: #10b981; color: #000000; padding: 20px 45px; text-decoration: none; border-radius: 12px; font-weight: 800; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 10px 20px rgba(16,185,129,0.2);">Aceder Agora</a>
-                
-                <p style="color: #6b7280; font-size: 14px; margin-top: 40px;">Podes ver todas as tuas compras em <a href="https://ensinapay.com/biblioteca" style="color: #10b981; text-decoration: none; font-weight: 600;">ensinapay.com/biblioteca</a></p>
-              </div>
-              <div style="background-color: #141416; padding: 30px; text-align: center; border-top: 1px solid #1c1c1e;">
-                <p style="color: #4b5563; font-size: 12px; margin: 0;">EnsinaPay - A nova era dos conteúdos em Moçambique.</p>
-              </div>
-            </div>
-          `;
-          
-          const sendCustomerEmail = async () => {
-            try {
-              await supabase.functions.invoke("send-email-notification", { 
-                body: { to: ord.customer_email, subject: `✅ Seu acesso chegou: ${prod?.name}`, htmlContent: customerHtml, senderName: "EnsinaPay" } 
-              });
-              const { error: notifyCustErr } = await supabase.from("orders").update({ customer_notified: true }).eq("id", id);
-              if (notifyCustErr) console.error(`[DB ERROR] Failed to set customer_notified=true for order ${id}:`, notifyCustErr);
-            } catch(e) { console.error("Customer email flow crash:", e); }
-          };
-          notificationPromises.push(sendCustomerEmail());
+        console.log(`[Speed] Triggering master delivery function for order ${id}...`);
+        try {
+          await supabase.functions.invoke("process-order-delivery", {
+            body: { id: id }
+          });
+        } catch (e) {
+          console.error(`[Critical] Failed to trigger delivery function:`, e);
         }
-
-        // --- 2. NOTIFY SELLER & RECORD COMMISSIONS ---
-        if (prod?.user_id && !ord.seller_notified) {
-          let sEmail = prod.profiles?.email;
-          if (!sEmail) { 
-            const { data: aU } = await supabase.auth.admin.getUserById(prod.user_id); 
-            sEmail = aU?.user?.email; 
-          }
-          
-          if (sEmail) {
-            const sellerHtml = `
-              <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0b; border-radius: 24px; overflow: hidden; border: 1px solid #1c1c1e;">
-                <div style="background-color: #141416; padding: 30px; text-align: center; border-bottom: 1px solid #1c1c1e;">
-                  <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 28px;">
-                </div>
-                <div style="padding: 40px; text-align: center;">
-                  <p style="color: #10b981; font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;">Venda Realizada! 💸</p>
-                  <h1 style="color: #ffffff; font-size: 24px; font-weight: 800; margin: 0 0 10px 0; letter-spacing: -1px;">Acabaste de vender!</h1>
-                  <p style="color: #9ca3af; font-size: 15px; margin-bottom: 30px;">O produto <strong>${prod?.name}</strong> foi vendido com sucesso.</p>
-                  
-                  <div style="background-color: #141416; padding: 20px; border-radius: 12px; border: 1px solid #232326; display: inline-block; min-width: 200px;">
-                    <p style="color: #6b7280; font-size: 11px; text-transform: uppercase; margin: 0 0 5px 0;">Valor da Venda:</p>
-                    <p style="color: #ffffff; font-size: 20px; font-weight: 800; margin: 0;">${ord.price.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT</p>
-                  </div>
-                </div>
-              </div>
-            `;
-            
-            const sendSellerEmail = async () => {
-              try {
-                await supabase.functions.invoke("send-email-notification", { 
-                  body: { to: sEmail, subject: `💸 VENDA REALIZADA: ${prod?.name}`, htmlContent: sellerHtml, senderName: "EnsinaPay Vendas" } 
-                });
-                const { error: notifySellErr } = await supabase.from("orders").update({ seller_notified: true }).eq("id", id);
-                if (notifySellErr) console.error(`[DB ERROR] Failed to set seller_notified=true for order ${id}:`, notifySellErr);
-              } catch(e) { console.error("Seller email flow crash:", e); }
-            };
-            notificationPromises.push(sendSellerEmail());
-          }
-        }
-
-        // Run notifications in parallel but wait for them to finish before responding to keep function alive
-        // in Supabase Edge Functions environment.
-        if (notificationPromises.length > 0) {
-          console.log(`[Speed] Triggering ${notificationPromises.length} notifications in parallel...`);
-          await Promise.all(notificationPromises);
-        }
+      }
 
           // --- 5. CALCULATE AND RECORD COMMISSIONS (CRITICAL) ---
           const { data: existingCommissions } = await supabase.from("commissions").select("id").eq("order_id", id).limit(1);

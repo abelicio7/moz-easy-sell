@@ -60,20 +60,23 @@ Deno.serve(async (req) => {
       const functionUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/check-payment-status`;
       
       console.log(`Triggering check-payment-status for order ${order.id}...`);
-      const syncRes = await fetch(functionUrl, {
-        method: 'POST',
-        headers: { 
-          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          order_id: order.id,
-          debito_reference: reference || order.debito_reference
-        })
-      });
-      
-      const syncResult = await syncRes.text();
-      console.log(`Sync result for ${order.id}:`, syncResult);
+      try {
+        const syncRes = await fetch(functionUrl, {
+          method: 'POST',
+          headers: { 
+            "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            order_id: order.id,
+            debito_reference: reference || order.debito_reference
+          })
+        });
+        const syncResult = await syncRes.text();
+        console.log(`Sync result for ${order.id}:`, syncResult);
+      } catch (e) {
+        console.error(`Failed to trigger status check for order ${order.id}:`, e);
+      }
     }
 
     return new Response(JSON.stringify({ success: true }), { 
