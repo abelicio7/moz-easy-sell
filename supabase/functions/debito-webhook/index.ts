@@ -19,55 +19,61 @@ Deno.serve(async (req) => {
     const body = await req.json();
     console.log("Debito Webhook received:", JSON.stringify(body));
 
-    // Debito usually sends 'debito_reference' and 'status'
-    // The exact path depends on how it's configured, but we check common locations
-    const reference = body.debito_reference || body.transaction?.debito_reference || body.data?.debito_reference || body.payment?.id || body.payment_id;
+    // Try multiple ways to identify the order
+    const reference = body.debito_reference || body.transaction?.debito_reference || body.data?.debito_reference || body.payment?.id || body.payment_id || body.id;
+    const orderId = body.order_id || body.source_id || body.transaction?.source_id || body.data?.source_id;
     const providerStatus = (body.status || body.transaction?.status || body.data?.status || body.payment?.status || "").toUpperCase();
 
-    if (!reference) {
-      return new Response(JSON.stringify({ error: "No reference found" }), { status: 400 });
+    if (!reference && !orderId) {
+      console.error("No identifier (reference or order_id) found in webhook body");
+      return new Response(JSON.stringify({ error: "No reference or order_id found" }), { status: 400 });
     }
 
-    // Find the order by reference
-    const { data: order, error: orderErr } = await supabase
-      .from("orders")
-      .select(`
-        id, status, customer_email, customer_name, price, customer_notified, seller_notified, 
-        products(
-          name, delivery_type, delivery_content, user_id,
-          profiles(email, full_name)
-        )
-      `)
-      .eq("debito_reference", reference)
-      .maybeSingle();
+    // Find the order (try ID first, then reference)
+    let query = supabase.from("orders").select(`id, status, debito_reference`);
+    
+    if (orderId) {
+      query = query.eq("id", orderId);
+    } else {
+      query = query.eq("debito_reference", reference);
+    }
+
+    const { data: order, error: orderErr } = await query.maybeSingle();
 
     if (orderErr || !order) {
-      console.error("Order not found for reference:", reference, orderErr);
+      console.error("Order not found for:", { orderId, reference }, orderErr);
       return new Response(JSON.stringify({ error: "Order not found" }), { status: 404 });
     }
 
     const isPaid = ["COMPLETED", "SUCCESS", "PAID", "SUCCESSFUL", "SETTLED", "APPROVED", "AUTHORIZED"].includes(providerStatus);
     
-    if (isPaid && order.status !== "paid") {
-      console.log(`Webhook confirming payment for order ${order.id}`);
+    if (isPaid) {
+      console.log(`Webhook confirming payment for order ${order.id}. Current status: ${order.status}`);
       
-      // Update order status
-      await supabase.from("orders").update({ status: "paid" }).eq("id", order.id);
+      // Update order with the reference if it was missing
+      if (!order.debito_reference && reference) {
+        await supabase.from("orders").update({ debito_reference: reference }).eq("id", order.id);
+      }
 
-      // Trigger notifications using the same logic as check-payment-status
-      // We call the check-payment-status function to reuse the logic and keep it DRY
-      // but in a real production environment we might want to consolidate this.
-      // For now, let's just trigger a call to check-payment-status which is already robust
-      const functionUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/check-payment-status?debito_reference=${reference}&order_id=${order.id}`;
+      // We call check-payment-status to handle all the complex logic (commissions, emails, library access)
+      // This ensures we have ONE place for the business logic.
+      const functionUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/check-payment-status`;
       
-      console.log("Triggering check-payment-status via webhook for final notifications...");
-      await fetch(functionUrl, {
-        method: 'GET',
+      console.log(`Triggering check-payment-status for order ${order.id}...`);
+      const syncRes = await fetch(functionUrl, {
+        method: 'POST',
         headers: { 
           "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-          "apikey": Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-        }
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          order_id: order.id,
+          debito_reference: reference || order.debito_reference
+        })
       });
+      
+      const syncResult = await syncRes.text();
+      console.log(`Sync result for ${order.id}:`, syncResult);
     }
 
     return new Response(JSON.stringify({ success: true }), { 
