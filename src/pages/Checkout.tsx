@@ -94,9 +94,6 @@ const Checkout = () => {
           if (sellerPixel?.config?.pixelId) pixelsToFire.push(sellerPixel.config.pixelId);
         }
 
-        }
-
-
         if (pixelsToFire.length > 0) {
           const win = window as any;
           if (!win.fbq) {
