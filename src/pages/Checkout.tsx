@@ -27,6 +27,8 @@ const Checkout = () => {
   const [loading, setLoading] = useState(true);
   const [debugError, setDebugError] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
+  const [waitingForPin, setWaitingForPin] = useState(false);
+  const [debitoRef, setDebitoRef] = useState("");
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -252,16 +254,37 @@ const Checkout = () => {
         throw new Error(paymentData.error || "Erro no pagamento");
       }
 
-      // Salvar a referência da Débito Pay na encomenda para que o sistema a consiga confirmar depois
-      if (paymentData.debito_reference) {
-        await supabase.from("orders")
-          .update({ debito_reference: paymentData.debito_reference })
-          .eq("id", orderId);
-      }
+      // Ativar o modo de espera para o PIN
+      setWaitingForPin(true);
+      setDebitoRef(paymentData.debito_reference);
 
-      navigate(
-        `/checkout/${productId}/payment?order_id=${orderId}&debito_reference=${paymentData.debito_reference}&method=${form.payment_method}&amount=${product.price}`
-      );
+      // --- SUPABASE REALTIME: Escuta a confirmação do pagamento ---
+      const channel = supabase
+        .channel(`order-${orderId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'orders',
+            filter: `id=eq.${orderId}`
+          },
+          (payload) => {
+            console.log('[Realtime] Order update received:', payload.new.status);
+            if (payload.new.status === 'paid') {
+              supabase.removeChannel(channel);
+              toast.success("Pagamento confirmado com sucesso!");
+              navigate(`/thank-you?order_id=${orderId}&product_id=${productId}&amount=${product.price}`);
+            }
+          }
+        )
+        .subscribe();
+
+      // Limpeza de segurança (timeout de 2 minutos)
+      setTimeout(() => {
+        supabase.removeChannel(channel);
+      }, 120000);
+
     } catch (err: any) {
       toast.error(err?.message || "Erro ao processar pagamento.");
     } finally {
@@ -295,7 +318,8 @@ const Checkout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <>
+      <div className="min-h-screen bg-background text-foreground">
       <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -520,6 +544,58 @@ const Checkout = () => {
             </div>
           </div>
         </div>
+
+        {/* --- OVERLAY: AGUARDANDO PIN --- */}
+        {waitingForPin && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 backdrop-blur-xl bg-black/80 animate-in fade-in duration-300">
+            <Card className="w-full max-w-md bg-card border-primary/20 shadow-2xl shadow-primary/10 rounded-[2.5rem] overflow-hidden border-2">
+              <CardContent className="p-10 text-center space-y-8">
+                {/* Ícone Animado */}
+                <div className="relative mx-auto w-24 h-24">
+                  <div className={`absolute inset-0 rounded-3xl animate-ping opacity-20 ${
+                    form.payment_method === 'mpesa' ? 'bg-[#E51B24]' : 'bg-[#F57C00]'
+                  }`} />
+                  <div className={`relative w-24 h-24 rounded-3xl flex items-center justify-center shadow-xl ${
+                    form.payment_method === 'mpesa' ? 'bg-[#E51B24]' : 'bg-[#F57C00]'
+                  }`}>
+                    <Smartphone className="w-10 h-10 text-white animate-bounce" />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h2 className="text-3xl font-black italic uppercase tracking-tighter text-foreground">
+                    Aguardando PIN
+                  </h2>
+                  <p className="text-muted-foreground font-medium leading-relaxed">
+                    Enviamos um pedido de pagamento para o número <span className="text-foreground font-bold">{form.payment_phone}</span>. 
+                    Por favor, introduza o seu PIN no telemóvel para confirmar.
+                  </p>
+                </div>
+
+                {/* Progress Loader */}
+                <div className="space-y-4 pt-4">
+                  <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-primary animate-progress-fast" style={{ width: '60%' }} />
+                  </div>
+                  <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary animate-pulse">
+                    <Zap className="w-3 h-3 fill-current" /> Sincronizando com a rede...
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <Button 
+                    variant="ghost" 
+                    className="text-xs font-bold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity"
+                    onClick={() => setWaitingForPin(false)}
+                  >
+                    Cancelar e tentar novamente
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </>
   );
 };
 
