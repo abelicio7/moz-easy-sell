@@ -58,6 +58,8 @@ const Dashboard = () => {
 
       if (missingCommissions.length > 0) {
         console.log(`[Sync] Found ${missingCommissions.length} paid orders without commissions. Syncing...`);
+        toast.info(`Sincronizando ${missingCommissions.length} novas vendas...`, { duration: 3000 });
+        
         for (const order of missingCommissions) {
           try {
             await supabase.functions.invoke("check-payment-status", {
@@ -67,11 +69,11 @@ const Dashboard = () => {
             console.error(`Failed to sync order ${order.id}:`, e);
           }
         }
-        // Re-fetch commissions after sync to update UI
-        const { data: newCommissions } = await supabase.from("commissions").select("amount").eq("user_id", user.id);
-        if (newCommissions) {
-          setStats(prev => ({ ...prev, revenue: newCommissions.reduce((sum, comm) => sum + Number(comm.amount), 0) }));
-        }
+        
+        // After syncing, we MUST re-fetch everything to ensure the UI is perfect
+        console.log("[Sync] Reconciliation complete. Refreshing data...");
+        fetchData();
+        return; // fetchData will run again, so we exit this cycle
       }
 
       setProducts(prods || []);
