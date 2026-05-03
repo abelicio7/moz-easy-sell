@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
 
       // New Status Logic from Orchestrator API
       const apiStatus = (data.payment?.status || data.status || data.transaction?.status || data.data?.status || "").toUpperCase();
-      const isP = ["SUCCESS", "COMPLETED"].includes(apiStatus);
+      const isP = ["SUCCESS", "PAID", "COMPLETED", "SETTLED", "APPROVED"].includes(apiStatus);
       const isF = ["FAILED", "CANCELLED", "REJECTED", "EXPIRED"].includes(apiStatus);
       
       console.log(`[Status Eval] apiStatus is ${apiStatus}. isP: ${isP}, isF: ${isF}`);
