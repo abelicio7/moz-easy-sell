@@ -94,18 +94,8 @@ const Checkout = () => {
           if (sellerPixel?.config?.pixelId) pixelsToFire.push(sellerPixel.config.pixelId);
         }
 
-        // Affiliate Pixel
-        if (currentAffId) {
-          const { data: affPixel } = await supabase
-            .from("seller_integrations")
-            .select("config")
-            .eq("user_id", currentAffId)
-            .eq("integration_type", "facebook_pixel")
-            .eq("is_active", true)
-            .maybeSingle();
-          
-          if (affPixel?.config?.pixelId) pixelsToFire.push(affPixel.config.pixelId);
         }
+
 
         if (pixelsToFire.length > 0) {
           const win = window as any;
