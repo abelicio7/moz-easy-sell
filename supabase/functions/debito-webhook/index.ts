@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Order not found" }), { status: 404 });
     }
 
-    const isPaid = ["COMPLETED", "SUCCESS", "PAID", "SUCCESSFUL", "SETTLED", "APPROVED", "AUTHORIZED"].includes(providerStatus);
+    const isPaid = ["COMPLETED", "SUCCESS"].includes(providerStatus);
     
     if (isPaid) {
       console.log(`Webhook confirming payment for order ${order.id}. Current status: ${order.status}`);
