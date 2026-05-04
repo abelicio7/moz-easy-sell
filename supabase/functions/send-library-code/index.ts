@@ -25,13 +25,13 @@ serve(async (req) => {
 
     // 2. Save code to DB
     const { error: dbError } = await supabase
-      .from("user_otp_codes")
+      .from("library_auth_codes")
       .insert({ 
-        email_auth: email.toLowerCase().trim(), 
+        email: email.toLowerCase().trim(), 
         code,
-        expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-        used: false
+        expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString()
       });
+
 
     if (dbError) throw dbError;
 
