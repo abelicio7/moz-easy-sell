@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Zap, ShieldCheck, CheckCircle2, MessageCircle, ArrowRight, Lock, Sparkles, Phone } from "lucide-react";
+import { Zap, ShieldCheck, ArrowLeft, ArrowRight, Smartphone, Star, CheckCircle2, MessageCircle, Lock } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 
 const Checkout = () => {
   const { productId } = useParams();
@@ -27,7 +29,7 @@ const Checkout = () => {
     const fetchProduct = async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("*")
+        .select("*, profiles(full_name, avatar_url)")
         .eq("id", productId)
         .single();
 
@@ -49,7 +51,7 @@ const Checkout = () => {
     if (!product || submitting) return;
 
     if (!form.name || !form.email || !form.payment_phone) {
-      toast.error("Por favor, preencha todos os campos obrigatórios.");
+      toast.error("Preencha os campos obrigatórios.");
       return;
     }
 
@@ -122,218 +124,322 @@ const Checkout = () => {
     }
   };
 
-  if (loading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#050505] text-white space-y-4">
-      <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin" />
-      <span className="font-black italic uppercase tracking-widest text-sm animate-pulse">Carregando Experiência...</span>
-    </div>
-  );
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-background text-primary italic font-black text-2xl animate-pulse">Carregando...</div>;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white selection:bg-primary selection:text-black font-sans antialiased overflow-x-hidden">
-      
-      {/* Background Decor */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full opacity-50" />
-        <div className="absolute top-[20%] -right-[10%] w-[30%] h-[50%] bg-secondary/10 blur-[100px] rounded-full" />
-      </div>
-
-      <div className="relative max-w-6xl mx-auto px-6 py-12 md:py-20 grid lg:grid-cols-[1fr,450px] gap-16 items-start">
-        
-        {/* Left Side: Branding & Product Info */}
-        <div className="space-y-12 py-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary p-2 rounded-xl">
-              <Zap className="w-6 h-6 text-black fill-current" />
-            </div>
-            <span className="text-2xl font-black italic tracking-tighter uppercase">EnsinaPay</span>
-          </div>
-
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
-              <Sparkles className="w-4 h-4 text-primary animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Oferta Exclusiva Ativa</span>
-            </div>
+    <>
+        <div className="min-h-screen bg-background flex flex-col lg:flex-row font-sans">
+          {/* Lado Esquerdo: Info do Produto */}
+          <div className="lg:w-[45%] bg-muted/30 p-6 sm:p-12 lg:p-20 flex flex-col justify-between relative overflow-hidden">
+            {/* Elementos Decorativos */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-primary opacity-50" />
+            <div className="absolute -top-24 -left-24 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
             
-            <h1 className="text-6xl md:text-8xl font-black italic uppercase tracking-tighter leading-[0.85] text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/40">
-              {product.name}
-            </h1>
-            
-            <p className="text-xl text-white/50 leading-relaxed max-w-xl font-medium">
-              {product.description}
-            </p>
-          </div>
+            <div className="relative z-10 space-y-12">
+              <Link to="/" className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors group">
+                <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Voltar
+              </Link>
 
-          <div className="grid grid-cols-2 gap-4 max-w-md">
-            <div className="p-6 rounded-[32px] bg-white/5 border border-white/10 backdrop-blur-sm space-y-1">
-              <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Entrega</span>
-              <div className="text-xl font-bold flex items-center gap-2 italic">
-                <CheckCircle2 className="w-5 h-5 text-primary" /> Imediata
+              <div className="space-y-6">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest">
+                  <Zap className="w-3 h-3 fill-current" /> Envio Imediato via E-mail
+                </div>
+                
+                <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black italic uppercase tracking-tighter leading-none text-foreground">
+                  {product.name}
+                </h1>
+                
+                <p className="text-lg text-muted-foreground leading-relaxed max-w-lg font-medium">
+                  {product.description}
+                </p>
               </div>
-            </div>
-            <div className="p-6 rounded-[32px] bg-white/5 border border-white/10 backdrop-blur-sm space-y-1">
-              <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Segurança</span>
-              <div className="text-xl font-bold flex items-center gap-2 italic">
-                <ShieldCheck className="w-5 h-5 text-primary" /> SSL 256-bit
-              </div>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-4 text-white/40 text-sm font-medium">
-            <Lock className="w-4 h-4" />
-            Pagamento Processado com Segurança pela Débito Pay
-          </div>
-        </div>
-
-        {/* Right Side: Checkout Card */}
-        <div className="relative group">
-          <div className="absolute -inset-1 bg-gradient-to-br from-primary to-secondary rounded-[42px] blur-xl opacity-20 group-hover:opacity-30 transition-opacity" />
-          
-          <Card className="relative bg-[#0d0d0f] border-white/5 rounded-[40px] shadow-3xl overflow-hidden backdrop-blur-2xl">
-            <CardHeader className="bg-white/5 border-b border-white/5 py-8">
-              <div className="flex justify-between items-end px-4">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-white/40 italic">Total a Pagar</span>
-                  <div className="text-5xl font-black italic tracking-tighter text-white">
-                    {product.price}<span className="text-xl not-italic text-primary ml-1">MT</span>
+              {/* Prova Social / Trust Indicators */}
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="p-4 rounded-2xl bg-background border border-border shadow-sm flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-black uppercase tracking-tighter">Acesso Vitalício</p>
+                    <p className="text-[10px] text-muted-foreground">Assista quando quiser</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-primary italic">Checkout Ativo</span>
-                  <div className="flex gap-1 mt-1 justify-end">
-                    <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
-                    <div className="w-1.5 h-1.5 bg-primary/40 rounded-full" />
-                    <div className="w-1.5 h-1.5 bg-primary/20 rounded-full" />
+                <div className="p-4 rounded-2xl bg-background border border-border shadow-sm flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center">
+                    <Star className="w-6 h-6 text-amber-500 fill-amber-500" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-black uppercase tracking-tighter">4.9/5 Estrelas</p>
+                    <p className="text-[10px] text-muted-foreground">+2.4k Alunos</p>
                   </div>
                 </div>
               </div>
-            </CardHeader>
-            
-            <CardContent className="p-8">
-              {!waitingForPin ? (
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="group relative">
-                      <Input 
-                        placeholder="Nome Completo" 
-                        className="h-16 bg-white/5 border-white/10 rounded-2xl font-bold px-6 focus:bg-white/10 transition-all placeholder:text-white/20"
+
+              {/* Perfil do Vendedor (Se houver) */}
+              {product.profiles && (
+                <div className="flex items-center gap-4 pt-4">
+                  <div className="w-12 h-12 rounded-full bg-primary/20 border-2 border-background overflow-hidden">
+                    {product.profiles.avatar_url ? (
+                      <img src={product.profiles.avatar_url} alt={product.profiles.full_name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-primary font-black uppercase text-xl italic">
+                        {product.profiles.full_name?.charAt(0)}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Vendido por</p>
+                    <p className="text-lg font-black italic uppercase tracking-tighter text-foreground">{product.profiles.full_name}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="relative z-10 pt-12 flex items-center gap-3 text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-60">
+              <ShieldCheck className="w-4 h-4" /> Pagamento 100% Seguro
+            </div>
+          </div>
+
+          {/* Lado Direito: Checkout */}
+          <div className="lg:w-[55%] p-6 sm:p-12 lg:p-20 flex flex-col items-center justify-center">
+            <Card className="w-full max-w-xl bg-card border-none shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] rounded-[2.5rem] overflow-hidden border-t-4 border-primary">
+              <CardHeader className="bg-muted/30 border-b border-border/50 py-8 px-10">
+                <div className="flex justify-between items-end">
+                  <div className="space-y-1">
+                    <CardTitle className="text-[11px] font-black uppercase tracking-[0.2em] text-primary italic">Resumo da Compra</CardTitle>
+                    <div className="text-5xl font-black italic tracking-tighter text-foreground">
+                      {product.price.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} <span className="text-xl not-italic text-muted-foreground ml-1">MT</span>
+                    </div>
+                  </div>
+                  <div className="text-right pb-1">
+                    <div className="flex -space-x-2 justify-end mb-2">
+                      {[1,2,3].map(i => <div key={i} className="w-6 h-6 rounded-full border-2 border-card bg-muted flex items-center justify-center text-[8px] font-black italic text-muted-foreground">{i}</div>)}
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Etapas Seguras</span>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="p-10 space-y-8">
+                {/* Campos de Identificação */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-5 h-5 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Lock className="w-3 h-3 text-primary" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-foreground italic">Dados do Comprador</span>
+                  </div>
+                  
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] uppercase tracking-widest font-black ml-1 text-muted-foreground">Nome Completo</Label>
+                      <Input
+                        placeholder="Ex: Salomão Chamusse"
                         value={form.name}
                         onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        required
+                        className="h-12 bg-muted/20 border-border/50 rounded-xl font-bold"
                       />
                     </div>
-                    <div className="group relative">
-                      <Input 
-                        placeholder="E-mail para Receber o Produto" 
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] uppercase tracking-widest font-black ml-1 text-muted-foreground">E-mail para Entrega</Label>
+                      <Input
                         type="email"
-                        className="h-16 bg-white/5 border-white/10 rounded-2xl font-bold px-6 focus:bg-white/10 transition-all placeholder:text-white/20"
+                        placeholder="Ex: seu@email.com"
                         value={form.email}
                         onChange={(e) => setForm({ ...form, email: e.target.value })}
+                        required
+                        className="h-12 bg-muted/20 border-border/50 rounded-xl font-bold"
                       />
                     </div>
                   </div>
+                </div>
 
-                  <div className="space-y-4">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-white/40 block ml-2">Método de Pagamento</span>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button 
-                        type="button"
-                        className={`h-16 rounded-2xl font-black uppercase italic text-xs tracking-widest border transition-all flex items-center justify-center gap-2 ${
-                          form.payment_method === 'mpesa' 
-                            ? 'bg-primary text-black border-primary shadow-lg shadow-primary/20' 
-                            : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
-                        }`}
-                        onClick={() => setForm({ ...form, payment_method: 'mpesa' })}
-                      >
-                        M-Pesa
-                      </button>
-                      <button 
-                        type="button"
-                        className={`h-16 rounded-2xl font-black uppercase italic text-xs tracking-widest border transition-all flex items-center justify-center gap-2 ${
-                          form.payment_method === 'emola' 
-                            ? 'bg-secondary text-white border-secondary shadow-lg shadow-secondary/20' 
-                            : 'bg-white/5 border-white/10 text-white hover:bg-white/10'
-                        }`}
-                        onClick={() => setForm({ ...form, payment_method: 'emola' })}
-                      >
-                        E-Mola
-                      </button>
+                {/* Seleção de Pagamento */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-5 h-5 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Smartphone className="w-3 h-3 text-primary" />
                     </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-foreground italic">Método de Pagamento</span>
                   </div>
 
-                  <div className="group relative">
-                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-primary transition-colors">
-                      <Phone className="w-5 h-5" />
+                  <RadioGroup
+                    value={form.payment_method}
+                    onValueChange={(value) => setForm({ ...form, payment_method: value })}
+                    className="grid grid-cols-2 gap-4"
+                  >
+                    <label
+                      className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer group ${
+                        form.payment_method === 'mpesa' 
+                          ? 'border-[#E51B24] bg-[#E51B24]/5' 
+                          : 'border-border bg-muted/20 grayscale opacity-60 hover:grayscale-0 hover:opacity-100'
+                      }`}
+                    >
+                      <RadioGroupItem value="mpesa" className="sr-only" />
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#E51B24] flex items-center justify-center text-white font-black italic text-lg shadow-lg">M</div>
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-black uppercase tracking-tighter">M-Pesa</p>
+                          <p className="text-[8px] text-white/70 leading-none">Vodacom</p>
+                        </div>
+                      </div>
+                    </label>
+
+                    <label
+                      className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer group ${
+                        form.payment_method === 'emola' 
+                          ? 'border-[#F57C00] bg-[#F57C00]/5' 
+                          : 'border-border bg-muted/20 grayscale opacity-60 hover:grayscale-0 hover:opacity-100'
+                      }`}
+                    >
+                      <RadioGroupItem value="emola" className="sr-only" />
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#F57C00] flex items-center justify-center text-white font-black italic text-lg shadow-lg">E</div>
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-black uppercase tracking-tighter">E-Mola</p>
+                          <p className="text-[8px] text-white/70 leading-none">Movitel</p>
+                        </div>
+                      </div>
+                    </label>
+                  </RadioGroup>
+
+                  <div className="mt-6 space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground flex items-center justify-between uppercase tracking-wider font-bold">
+                        <span className="flex items-center gap-1 font-bold text-foreground">Número de Pagamento *</span>
+                        <span className="text-[10px] text-primary font-bold">
+                          {form.payment_method === 'mpesa' ? 'Vodacom (84/85)' : 'Movitel (86/87)'}
+                        </span>
+                      </Label>
+                      <Input
+                        type="tel"
+                        placeholder={form.payment_method === 'mpesa' ? "Ex: 840000000" : "Ex: 860000000"}
+                        value={form.payment_phone}
+                        onChange={(e) => setForm({ ...form, payment_phone: e.target.value })}
+                        required
+                        className="h-14 bg-background/50 border-border rounded-xl text-xl font-black text-center"
+                      />
+                      <p className="text-[10px] text-muted-foreground italic text-center">
+                        Irás receber um pedido de confirmação (PIN) neste número via {form.payment_method === "mpesa" ? "M-Pesa" : "E-Mola"}.
+                      </p>
                     </div>
-                    <Input 
-                      placeholder="Número de Telefone" 
-                      className="h-16 bg-white/5 border-white/10 rounded-2xl font-bold pl-14 pr-6 focus:bg-white/10 transition-all placeholder:text-white/20"
-                      value={form.payment_phone}
-                      onChange={(e) => setForm({ ...form, payment_phone: e.target.value })}
-                    />
+                  </div>
+                </div>
+
+                <div className="pt-4 space-y-4">
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+                      <Zap className="w-4 h-4 text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-emerald-500">Envio automático após o pagamento</p>
+                      <p className="text-[11px] text-emerald-500/70">O acesso ao seu produto será enviado para o seu e-mail imediatamente.</p>
+                    </div>
                   </div>
 
                   <Button 
+                    className={`w-full h-16 text-white font-black text-xl rounded-xl transition-all duration-500 hover:scale-[1.01] active:scale-[0.98] group relative overflow-hidden shadow-2xl ${
+                      form.payment_method === 'mpesa' 
+                        ? 'bg-gradient-to-r from-[#E51B24] to-[#8A0A12] hover:shadow-[#E51B24]/40' 
+                        : 'bg-gradient-to-r from-[#F57C00] to-[#b34700] hover:shadow-[#F57C00]/40'
+                    }`}
+                    onClick={handleSubmit}
                     disabled={submitting}
-                    className="w-full h-20 bg-primary hover:bg-primary/90 text-black font-black italic text-2xl rounded-2xl uppercase tracking-tighter shadow-xl shadow-primary/20 transition-transform active:scale-95 group/btn overflow-hidden relative"
                   >
-                    <span className="relative z-10 flex items-center justify-center gap-3">
-                      {submitting ? "Sincronizando..." : "Finalizar Compra"}
-                      {!submitting && <ArrowRight className="w-6 h-6 group-hover/btn:translate-x-1 transition-transform" />}
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover/btn:animate-shimmer" />
+                    {submitting ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Processando...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center gap-2">
+                        <span>PAGAR AGORA — {product.price.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT</span>
+                        <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    )}
                   </Button>
-                </form>
-              ) : (
-                <div className="text-center space-y-10 py-8 animate-in fade-in zoom-in duration-700">
-                  <div className="relative inline-flex items-center justify-center">
-                    <div className="absolute inset-0 bg-primary/30 blur-[60px] rounded-full animate-pulse" />
-                    <div className="relative w-32 h-32 rounded-full border-4 border-primary/20 flex items-center justify-center overflow-hidden">
-                      <Zap className="w-16 h-16 text-primary fill-current animate-bounce" />
-                      <div className="absolute inset-0 border-t-4 border-primary animate-spin" />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-3 px-4">
-                    <h2 className="text-4xl font-black italic uppercase tracking-tighter text-white">Confirme o PIN</h2>
-                    <p className="text-white/50 font-medium leading-relaxed">
-                      Enviamos um pedido de pagamento para <span className="text-white font-bold">{form.payment_phone}</span>.<br />
-                      Introduza o seu PIN para libertar o acesso.
-                    </p>
-                  </div>
 
-                  <div className="space-y-3 px-8">
-                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full bg-primary animate-progress-fast" style={{ width: '70%' }} />
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <div className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest opacity-60">
+                      <ShieldCheck className="w-3 h-3" /> Pague com segurança via EnsinaPay
                     </div>
-                    <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary animate-pulse italic">
-                      <ShieldCheck className="w-3 h-3" /> Transação Criptografada
+                    <div className="flex items-center gap-4 opacity-60 grayscale hover:grayscale-0 transition-all">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-full bg-[#E51B24] flex items-center justify-center text-white text-[8px] font-black">M</div>
+                        <span className="text-[10px] font-black text-foreground/70">M-Pesa</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-full bg-[#F57C00] flex items-center justify-center text-white text-[8px] font-black">E</div>
+                        <span className="text-[10px] font-black text-foreground/70">E-Mola</span>
+                      </div>
                     </div>
                   </div>
-                  
-                  <button 
-                    onClick={() => window.open('https://wa.me/5547999530835?text=Olá, preciso de ajuda com o meu pagamento no EnsinaPay.', '_blank')}
-                    className="flex items-center gap-2 mx-auto text-xs font-bold uppercase tracking-widest text-white/30 hover:text-primary transition-colors"
-                  >
-                    <MessageCircle className="w-4 h-4" /> Precisa de Ajuda?
-                  </button>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-          
-          {/* Support Link */}
-          <div className="mt-8 text-center">
-            <button 
-              onClick={() => window.open('https://wa.me/5547999530835', '_blank')}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-white/60 hover:text-white"
-            >
-              <MessageCircle className="w-5 h-5 text-primary" />
-              <span className="text-xs font-black uppercase tracking-widest italic">Suporte Especializado EnsinaPay</span>
-            </button>
+              </CardContent>
+            </Card>
+
+            <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground font-medium uppercase tracking-widest py-8">
+              <Link to="/terms" className="hover:text-primary transition-colors">Termos</Link>
+              <span>•</span>
+              <Link to="/privacy" className="hover:text-primary transition-colors">Privacidade</Link>
+              <span>•</span>
+              <span>&copy; {new Date().getFullYear()} EnsinaPay</span>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+
+        {/* --- OVERLAY: AGUARDANDO PIN --- */}
+        {waitingForPin && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 backdrop-blur-xl bg-black/80 animate-in fade-in duration-300">
+            <Card className="w-full max-w-md bg-card border-primary/20 shadow-2xl shadow-primary/10 rounded-[2.5rem] overflow-hidden border-2">
+              <CardContent className="p-10 text-center space-y-8">
+                {/* Ícone Animado */}
+                <div className="relative mx-auto w-24 h-24">
+                  <div className={`absolute inset-0 rounded-3xl animate-ping opacity-20 ${
+                    form.payment_method === 'mpesa' ? 'bg-[#E51B24]' : 'bg-[#F57C00]'
+                  }`} />
+                  <div className={`relative w-24 h-24 rounded-3xl flex items-center justify-center shadow-xl ${
+                    form.payment_method === 'mpesa' ? 'bg-[#E51B24]' : 'bg-[#F57C00]'
+                  }`}>
+                    <Smartphone className="w-10 h-10 text-white animate-bounce" />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h2 className="text-3xl font-black italic uppercase tracking-tighter text-foreground">
+                    Aguardando PIN
+                  </h2>
+                  <p className="text-muted-foreground font-medium leading-relaxed">
+                    Enviamos um pedido de pagamento para o número <span className="text-foreground font-bold">{form.payment_phone}</span>. 
+                    Por favor, introduza o seu PIN no telemóvel para confirmar.
+                  </p>
+                </div>
+
+                {/* Progress Loader */}
+                <div className="space-y-4 pt-4">
+                  <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-primary animate-progress-fast" style={{ width: '60%' }} />
+                  </div>
+                  <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary animate-pulse">
+                    <Zap className="w-3 h-3 fill-current" /> Sincronizando com a rede...
+                  </div>
+                </div>
+
+                <div className="pt-4 text-center">
+                  <button 
+                    onClick={() => window.open('https://wa.me/5547999530835?text=Olá, preciso de ajuda com o meu pagamento no EnsinaPay.', '_blank')}
+                    className="flex items-center gap-2 mx-auto text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <MessageCircle className="w-4 h-4" /> Suporte via WhatsApp
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </>
   );
 };
 
