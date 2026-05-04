@@ -24,17 +24,14 @@ const EditProduct = () => {
     delivery_type: "link", 
     delivery_content: "", 
     support_whatsapp: "",
-    allow_affiliates: false,
-    commission_percent: "20"
+    support_whatsapp: "",
   });
+
 
   useEffect(() => {
     const fetchProduct = async () => {
       const { data } = await supabase.from("products").select("*").eq("id", id).single();
       if (data) {
-        // Also fetch affiliate offer
-        const { data: offer } = await supabase.from("affiliate_offers").select("*").eq("product_id", id).maybeSingle();
-
         setForm({
           name: data.name,
           description: data.description || "",
@@ -42,9 +39,8 @@ const EditProduct = () => {
           delivery_type: data.delivery_type,
           delivery_content: data.delivery_content,
           support_whatsapp: data.support_whatsapp || "",
-          allow_affiliates: offer?.is_active || false,
-          commission_percent: String(offer?.commission_percent || "20")
         });
+
         if (data.image_url) setImagePreview(data.image_url);
       }
     };
@@ -104,19 +100,8 @@ const EditProduct = () => {
     const { error: productError } = await supabase.from("products").update(updateData).eq("id", id!);
     
     if (!productError) {
-      // Manage affiliate offer
-      if (form.allow_affiliates) {
-        await supabase.from("affiliate_offers").upsert({
-          product_id: id,
-          commission_percent: parseFloat(form.commission_percent),
-          is_active: true
-        }, { onConflict: 'product_id' });
-      } else {
-        // Disable affiliation
-        await supabase.from("affiliate_offers")
-          .update({ is_active: false })
-          .eq("product_id", id!);
-      }
+    // Affiliate offer management removed as per user request (direct sales only)
+
     }
 
     setLoading(false);
@@ -194,34 +179,7 @@ const EditProduct = () => {
               )}
             </div>
 
-            <div className="pt-4 border-t border-border">
-              <h3 className="text-sm font-bold mb-4">Programa de Afiliados</h3>
-              <div className="flex items-center gap-2 mb-4">
-                <input 
-                  type="checkbox" 
-                  id="allow_affiliates"
-                  checked={form.allow_affiliates}
-                  onChange={(e) => setForm({ ...form, allow_affiliates: e.target.checked })}
-                  className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
-                />
-                <Label htmlFor="allow_affiliates" className="cursor-pointer">Permitir que outros vendam este produto</Label>
-              </div>
 
-              {form.allow_affiliates && (
-                <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                  <Label>Comissão do Afiliado (%) *</Label>
-                  <Input 
-                    type="number" 
-                    min="1" 
-                    max="90" 
-                    value={form.commission_percent} 
-                    onChange={(e) => setForm({ ...form, commission_percent: e.target.value })}
-                    required
-                  />
-                  <p className="text-[10px] text-muted-foreground italic">Recomendado: 20% a 50% para atrair bons afiliados.</p>
-                </div>
-              )}
-            </div>
             <div className="flex gap-3 pt-2">
               <Button type="submit" disabled={loading} className="flex-1">{loading ? "Salvando..." : "Salvar"}</Button>
               <Button type="button" variant="outline" onClick={() => navigate("/dashboard")}>Cancelar</Button>

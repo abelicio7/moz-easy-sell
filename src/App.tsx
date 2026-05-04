@@ -37,8 +37,9 @@ import AdminWithdrawals from "./pages/admin/AdminWithdrawals";
 import AdminProfileRequests from "./pages/admin/AdminProfileRequests";
 import Account from "./pages/Account";
 import Library from "./pages/Library";
-import Affiliates from "./pages/Affiliates";
-import Marketplace from "./pages/Marketplace";
+import Account from "./pages/Account";
+import Library from "./pages/Library";
+
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -96,8 +97,7 @@ const App = () => {
           <Route path="/dashboard/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
           <Route path="/dashboard/integrations" element={<ProtectedRoute><Integrations /></ProtectedRoute>} />
           <Route path="/dashboard/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
-          <Route path="/dashboard/affiliates" element={<ProtectedRoute><Affiliates /></ProtectedRoute>} />
-          <Route path="/dashboard/marketplace" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
+
           <Route path="/checkout/:productId" element={<Checkout />} />
           <Route path="/checkout/:productId/payment" element={<PaymentInstructions />} />
           <Route path="/thank-you" element={<ThankYou />} />
