@@ -29,8 +29,6 @@ const Checkout = () => {
   const [submitting, setSubmitting] = useState(false);
   const [waitingForPin, setWaitingForPin] = useState(false);
   const [debitoRef, setDebitoRef] = useState("");
-  const [showSupport, setShowSupport] = useState(false);
-  const [timerId, setTimerId] = useState<any>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -241,7 +239,6 @@ const Checkout = () => {
           (payload) => {
             console.log('[Realtime] Order update received:', payload.new.status);
             if (payload.new.status === 'paid') {
-              if (timerId) clearTimeout(timerId);
               supabase.removeChannel(channel);
               toast.success("Pagamento confirmado com sucesso!");
               navigate(`/thank-you?order_id=${orderId}&product_id=${productId}&amount=${product.price}`);
@@ -251,13 +248,10 @@ const Checkout = () => {
         )
         .subscribe();
 
-      // --- TIMEOUT DE 15 SEGUNDOS PARA SUPORTE ---
-      const timeout = setTimeout(() => {
+      // Limpeza de segurança (timeout de 2 minutos)
+      setTimeout(() => {
         supabase.removeChannel(channel);
-        setShowSupport(true);
-      }, 15000);
-      
-      setTimerId(timeout);
+      }, 120000);
 
 
     } catch (err: any) {
@@ -539,51 +533,28 @@ const Checkout = () => {
 
                 <div className="space-y-4">
                   <h2 className="text-3xl font-black italic uppercase tracking-tighter text-foreground">
-                    {showSupport ? "Precisa de Ajuda?" : "Aguardando PIN"}
+                    Aguardando PIN
                   </h2>
                   <p className="text-muted-foreground font-medium leading-relaxed">
-                    {showSupport 
-                      ? "O sistema está a levar mais tempo do que o esperado para confirmar o seu PIN. Se já confirmou no telemóvel, clique no botão abaixo para suporte imediato."
-                      : `Enviamos um pedido de pagamento para o número ${form.payment_phone}. Por favor, introduza o seu PIN no telemóvel para confirmar.`
-                    }
+                    Enviamos um pedido de pagamento para o número <span className="text-foreground font-bold">{form.payment_phone}</span>. 
+                    Por favor, introduza o seu PIN no telemóvel para confirmar.
                   </p>
                 </div>
 
-                {showSupport ? (
-                  <div className="pt-4 animate-in zoom-in-95 duration-500">
-                    <Button 
-                      className="w-full h-16 bg-[#25D366] hover:bg-[#128C7E] text-white font-black text-lg rounded-2xl flex items-center justify-center gap-3 shadow-xl shadow-green-500/20"
-                      onClick={() => window.open(`https://wa.me/5547999530835?text=Olá, o meu pagamento para o produto ${product?.name} ainda não foi confirmado. ID do pedido: ${orderId}`, '_blank')}
-                    >
-                      <MessageCircle className="w-6 h-6 fill-current" />
-                      Falar com Suporte
-                    </Button>
+                {/* Progress Loader */}
+                <div className="space-y-4 pt-4">
+                  <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-primary animate-progress-fast" style={{ width: '60%' }} />
                   </div>
-                ) : (
-                  /* Progress Loader */
-                  <div className="space-y-4 pt-4">
-                    <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-primary animate-progress-fast" style={{ width: '60%' }} />
-                    </div>
-                    <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary animate-pulse">
-                      <Zap className="w-3 h-3 fill-current" /> Sincronizando com a rede...
-                    </div>
+                  <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary animate-pulse">
+                    <Zap className="w-3 h-3 fill-current" /> Sincronizando com a rede...
                   </div>
-                )}
+                </div>
 
                 <div className="pt-4">
-                  <Button 
-                    variant="ghost" 
-                    className="text-xs font-bold uppercase tracking-widest opacity-50 hover:opacity-100 transition-opacity"
-                    onClick={() => {
-                      setShowSupport(false);
-                      setWaitingForPin(false);
-                      if (timerId) clearTimeout(timerId);
-                    }}
-                  >
-                    Cancelar e tentar novamente
-                  </Button>
+                  <span className="text-xs text-muted-foreground opacity-50">Sincronizando com a rede...</span>
                 </div>
+
 
               </CardContent>
             </Card>
