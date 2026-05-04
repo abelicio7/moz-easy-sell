@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste de Webhook EnsinaPay</title>
+    <style>
+        body { font-family: sans-serif; padding: 50px; background: #0a0a0b; color: white; text-align: center; }
+        button { background: #10b981; border: none; color: black; padding: 15px 30px; border-radius: 10px; font-weight: bold; cursor: pointer; margin: 10px; }
+        .card { background: #141416; padding: 30px; border-radius: 20px; border: 1px solid #232326; max-width: 600px; margin: 0 auto; text-align: left; }
+        input { width: 100%; padding: 10px; margin: 10px 0; background: #000; border: 1px solid #333; color: white; border-radius: 5px; }
+        pre { background: #000; padding: 10px; border-radius: 5px; color: #10b981; font-size: 12px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>🧪 Testar Webhook Manualmente</h2>
+        <p>Usa esta ferramenta para simular a resposta da Débito e ver se o teu sistema reage.</p>
+        
+        <label>ID do Pedido (Order ID):</label>
+        <input type="text" id="orderId" placeholder="uuid-do-pedido">
+        
+        <label>Referência Débito:</label>
+        <input type="text" id="ref" placeholder="PAY-XXXX">
+        
+        <label>Chave Secreta (Opcional):</label>
+        <input type="text" id="secret" placeholder="Tua DEBITO_WEBHOOK_SECRET">
+        
+        <button onclick="testWebhook()">SIMULAR WEBHOOK AGORA</button>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://ekprysxfgkafpwjbocab.supabase.co";
+
+        async function testWebhook() {
+            const orderId = document.getElementById('orderId').value;
+            const ref = document.getElementById('ref').value;
+            const secret = document.getElementById('secret').value;
+            const log = document.getElementById('log');
+            
+            if (!orderId || !ref) return alert("Preenche o Order ID e a Referência!");
+
+            log.innerHTML = "A enviar simulação...<br>";
+            
+            const url = `${SUPABASE_URL}/functions/v1/debito-webhook${secret ? '?secret=' + secret : ''}`;
+            
+            try {
+                const resp = await fetch(url, {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        order_id: orderId,
+                        debito_reference: ref,
+                        status: "COMPLETED"
+                    })
+                });
+                
+                const data = await resp.json();
+                log.innerHTML += `<pre>Status: ${resp.status}\nResposta: ${JSON.stringify(data, null, 2)}</pre>`;
+                
+                if (resp.ok) log.innerHTML += "✅ Webhook recebido e processado! Verifica se o pedido mudou para 'paid' no Dashboard.";
+                else log.innerHTML += "❌ Erro no Webhook. Verifica os logs no Supabase Dashboard.";
+            } catch (e) {
+                log.innerHTML += `❌ ERRO DE CONEXÃO: ${e.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
