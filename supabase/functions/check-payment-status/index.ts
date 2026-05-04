@@ -102,16 +102,20 @@ Deno.serve(async (req) => {
         }
       }
 
-      if (newS === "paid") {
-        console.log(`[Speed] Triggering master delivery function for order ${id}...`);
-        try {
-          await supabase.functions.invoke("process-order-delivery", {
-            body: { id: id }
-          });
-        } catch (e) {
-          console.error(`[Critical] Failed to trigger delivery function:`, e);
+        const productData = ord.products;
+        const prod = Array.isArray(productData) ? productData[0] : productData;
+
+        if (newS === "paid") {
+          console.log(`[Speed] Triggering master delivery function for order ${id}...`);
+          try {
+            await supabase.functions.invoke("process-order-delivery", {
+              body: { id: id }
+            });
+          } catch (e) {
+            console.error(`[Critical] Failed to trigger delivery function:`, e);
+          }
         }
-      }
+
 
       // Commission recording removed as per user request (direct sales only)
 

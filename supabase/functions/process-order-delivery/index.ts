@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-client@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -45,7 +46,9 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: false, message: "Order not paid" }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    const product = ord.products
+    const productData = ord.products
+    const product = Array.isArray(productData) ? productData[0] : productData
+
     
     // 2. Fetch Seller Email from Profiles
     let sellerEmail = null
