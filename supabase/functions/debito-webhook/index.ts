@@ -35,8 +35,8 @@ Deno.serve(async (req) => {
 
     // Try multiple ways to identify the order
     const reference = body.debito_reference || body.transaction?.debito_reference || body.data?.debito_reference || body.payment?.id || body.payment_id || body.id || body.reference;
-    const orderId = body.order_id || body.source_id || body.transaction?.source_id || body.data?.source_id || body.external_id;
-    const providerStatus = (body.status || body.transaction?.status || body.data?.status || body.payment?.status || "").toUpperCase();
+    const orderId = body.order_id || body.source_id || body.transaction?.source_id || body.data?.source_id || body.external_id || body.reference;
+    const providerStatus = (body.status || body.transaction?.status || body.data?.status || body.payment?.status || body.result || body.state || "").toUpperCase();
 
     console.log("Extracted Info:", { reference, orderId, providerStatus });
 
