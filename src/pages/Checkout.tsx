@@ -196,30 +196,20 @@ const Checkout = () => {
       
       console.log("Pedido criado com sucesso. Chamando process-payment...");
 
-      
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-      
-      const paymentResponse = await fetch(`${supabaseUrl}/functions/v1/process-payment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseAnonKey}`
-        },
-        body: JSON.stringify({
+      const { data: paymentData, error: paymentError } = await supabase.functions.invoke('process-payment', {
+        body: {
           order_id: orderId,
           payment_method: form.payment_method,
           amount: product.price,
           phone: form.payment_phone,
           product_name: product.name,
-        })
+        }
       });
 
-      const paymentData = await paymentResponse.json();
-
-      if (!paymentResponse.ok || paymentData.error) {
-        throw new Error(paymentData.error || "Erro no pagamento");
+      if (paymentError || !paymentData) {
+        throw new Error(paymentError?.message || "Erro no processamento do pagamento");
       }
+
 
       // Ativar o modo de espera para o PIN
       setWaitingForPin(true);
