@@ -125,7 +125,9 @@ const Checkout = () => {
       };
 
     } catch (err: any) {
-      toast.error(err?.message || "Erro ao processar pagamento.");
+      console.error("Checkout Error:", err);
+      const errorMessage = err?.context?.message || err?.message || "Erro ao processar pagamento.";
+      toast.error(errorMessage);
       setSubmitting(false);
     }
   };

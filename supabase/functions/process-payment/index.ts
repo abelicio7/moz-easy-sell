@@ -18,8 +18,14 @@ serve(async (req) => {
     const DEBITO_API_KEY = Deno.env.get('DEBITO_API_KEY')
     const DEBITO_BASE_URL = "https://gyqoaningqhurhvdugne.supabase.co/functions/v1"
 
+    console.log("Environment check:", { 
+      hasApiKey: !!DEBITO_API_KEY, 
+      baseUrl: DEBITO_BASE_URL,
+      supabaseUrl: !!Deno.env.get('SUPABASE_URL')
+    })
+
     if (!DEBITO_API_KEY) {
-      throw new Error('DEBITO_API_KEY not configured')
+      throw new Error('DEBITO_API_KEY not configured in Supabase Secrets')
     }
 
     // 1. Call Débito API to request payment
