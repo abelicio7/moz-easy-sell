@@ -13,14 +13,17 @@ serve(async (req) => {
 
   try {
     const { order_id, amount, phone, payment_method } = await req.json()
-    console.log(`Processing payment for order ${order_id}, amount ${amount}, phone ${phone}, method ${payment_method}`)
+    
+    // SANITIZE PHONE: Remove +258 and non-digits
+    const cleanPhone = phone.replace(/\D/g, '').replace(/^258/, '')
+    
+    console.log(`Processing payment for order ${order_id}, amount ${amount}, phone ${cleanPhone}, method ${payment_method}`)
 
     const DEBITO_API_KEY = Deno.env.get('DEBITO_API_KEY')
     const MERCHANT_ID = Deno.env.get('DEBITO_MERCHANT_ID')
     const WALLET_EMOLA = Deno.env.get('DEBITO_WALLET_EMOLA')
     const WALLET_MPESA = Deno.env.get('DEBITO_WALLET_MPESA')
     
-    // Débito Base URL for Orchestrator
     const DEBITO_BASE_URL = "https://gyqoaningqhurhvdugne.supabase.co/functions/v1"
 
     if (!DEBITO_API_KEY || !MERCHANT_ID) {
@@ -33,7 +36,7 @@ serve(async (req) => {
       throw new Error(`Wallet code not configured for ${payment_method}`)
     }
 
-    // 1. Call Débito Payment Orchestrator
+    // 1. Call Débito Payment Orchestrator with EXACT documentation fields
     const response = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {
       method: 'POST',
       headers: {
@@ -42,15 +45,14 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         action: "process",
+        payment_method: payment_method, // EXACT field name from docs
         merchant_id: MERCHANT_ID,
         wallet_code: walletCode,
-        amount: amount,
-        phone: phone,
-        method: payment_method, // mpesa or emola
-        external_reference: order_id,
-        description: `Pagamento de Pedido #${order_id}`,
-        // Webhook is configured in the Débito panel, but some APIs allow overriding here
-        webhook_url: `https://ekprysxfgkafpwjbocab.supabase.co/functions/v1/debito-webhook`
+        amount: Number(amount),
+        currency: "MZN",
+        phone: cleanPhone, // Use sanitized phone
+        source: "gateway",
+        source_id: order_id
       })
     })
 
@@ -58,7 +60,7 @@ serve(async (req) => {
     console.log("Débito Orchestrator Response:", debitoData)
 
     if (!response.ok || !debitoData.success) {
-      throw new Error(debitoData.message || 'Error processing payment with Débito Orchestrator')
+      throw new Error(debitoData.message || debitoData.error || 'Error processing payment with Débito Orchestrator')
     }
 
     // 2. Update order with Débito reference
@@ -67,7 +69,6 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // The reference can be in 'reference', 'debito_reference', or 'id' in the response
     const debitoRef = debitoData.reference || debitoData.debito_reference || debitoData.id
 
     const { error: updateError } = await supabase
