@@ -165,8 +165,16 @@ const Checkout = () => {
     setSubmitting(true);
 
     try {
-      const orderId = crypto.randomUUID();
+      // Use crypto.randomUUID() if available, otherwise fallback to manual generation
+      const orderId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+        ? crypto.randomUUID() 
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+          });
       
+      console.log("Iniciando criação do pedido:", orderId);
+
       const { error } = await supabase.from("orders").insert({
         id: orderId,
         product_id: product.id,
@@ -179,10 +187,14 @@ const Checkout = () => {
       });
 
       if (error) {
-        toast.error(error.message || "Erro ao criar pedido");
+        console.error("Erro Supabase Insert:", error);
+        toast.error("Erro ao registrar pedido. Por favor, tente novamente.");
         setSubmitting(false);
         return;
       }
+      
+      console.log("Pedido criado com sucesso. Chamando process-payment...");
+
       
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;

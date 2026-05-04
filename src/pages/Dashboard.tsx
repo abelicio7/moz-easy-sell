@@ -44,47 +44,11 @@ const Dashboard = () => {
   useEffect(() => {
     if (!user) return;
     const fetchData = async () => {
-      const [{ data: prods }, { data: orders }, { data: withdrawals }, { data: commissions }] = await Promise.all([
+      const [{ data: prods }, { data: orders }, { data: withdrawals }] = await Promise.all([
         supabase.from("products").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("orders").select("*, products!inner(name, user_id)").eq("products.user_id", user.id),
         supabase.from("withdrawals").select("amount, status").eq("user_id", user.id),
-        supabase.from("commissions").select("amount, order_id").eq("user_id", user.id),
       ]);
-
-      // --- AUTO-SYNC: Check for paid orders without commissions ---
-      const paidOrders = (orders || []).filter(o => o.status === 'paid');
-      const commissionOrderIds = new Set((commissions || []).map(c => c.order_id));
-      const missingCommissions = paidOrders.filter(o => !commissionOrderIds.has(o.id));
-
-      // Prevent infinite loop by checking if we already tried to sync in this cycle
-      const hasSyncedKey = `synced_${user.id}_${new Date().getMinutes()}`;
-      const alreadyTried = sessionStorage.getItem(hasSyncedKey);
-
-      if (missingCommissions.length > 0 && !alreadyTried) {
-        console.log(`[Sync] Found ${missingCommissions.length} paid orders without commissions. Syncing...`);
-        sessionStorage.setItem(hasSyncedKey, 'true');
-        toast.info(`Sincronizando ${missingCommissions.length} novas vendas...`, { duration: 3000 });
-        
-        const syncPromises = missingCommissions.map(order => 
-          supabase.functions.invoke("check-payment-status", {
-            body: { order_id: order.id, debito_reference: order.debito_reference }
-          }).catch(e => console.error(`Failed to sync order ${order.id}:`, e))
-        );
-
-        await Promise.all(syncPromises);
-        
-        // After syncing, re-fetch commissions only once
-        const { data: updatedCommissions } = await supabase.from("commissions").select("amount").eq("user_id", user.id);
-        if (updatedCommissions) {
-          const newRevenue = updatedCommissions.reduce((sum, comm) => sum + Number(comm.amount), 0);
-          setStats(prev => ({ 
-            ...prev, 
-            revenue: newRevenue,
-            availableBalance: newRevenue - allWithdrawals.reduce((sum: number, w: any) => sum + (w.status !== 'rejected' ? Number(w.amount) : 0), 0)
-          }));
-          toast.success("Saldo atualizado com sucesso!");
-        }
-      }
 
       setProducts(prods || []);
       const allOrders = orders || [];
@@ -107,8 +71,10 @@ const Dashboard = () => {
           : 0;
       });
 
-      // 1. Unified Revenue (Sum of all earnings from commissions table)
-      const totalNetEarnings = (commissions || []).reduce((sum, comm) => sum + Number(comm.amount), 0);
+      // 1. Direct Revenue (Sum of all paid orders)
+      const totalNetEarnings = allOrders
+        .filter((o: any) => o.status === "paid")
+        .reduce((sum: number, o: any) => sum + Number(o.price), 0);
       
       const totalWithdrawnAndPending = allWithdrawals
         .filter((w: any) => w.status === "completed" || w.status === "pending")

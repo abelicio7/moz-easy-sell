@@ -60,18 +60,20 @@ const Finance = () => {
     if (!user) return;
     setLoading(true);
 
-    // Fetch all earnings for this user
-    const { data: commissionData, error: commError } = await supabase
-      .from("commissions")
-      .select("amount")
-      .eq("user_id", user.id);
+    // Fetch all paid orders for this user's products
+    const { data: orderData, error: orderError } = await supabase
+      .from("orders")
+      .select("price, products!inner(user_id)")
+      .eq("status", "paid")
+      .eq("products.user_id", user.id);
 
-    if (commError) {
-      console.error("Error fetching commissions:", commError);
+    if (orderError) {
+      console.error("Error fetching orders for revenue:", orderError);
     }
 
-    const revenue = (commissionData || []).reduce((sum, comm) => sum + Number(comm.amount), 0);
+    const revenue = (orderData || []).reduce((sum, order) => sum + Number(order.price), 0);
     setTotalRevenue(revenue);
+
 
     // Fetch withdrawals safely handling missing table structure if migration not run yet
     try {

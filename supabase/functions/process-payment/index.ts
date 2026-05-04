@@ -144,13 +144,21 @@ Deno.serve(async (req) => {
     // Map new payment_id to debito_reference for backward compatibility
     const paymentId = debitoData.payment_id || debitoData.id;
 
-    await supabase
+    const { error: updateError } = await supabase
       .from("orders")
       .update({
         debito_reference: paymentId,
         status: "processing",
       })
       .eq("id", order_id);
+
+    if (updateError) {
+      console.error("Error updating order to processing:", updateError);
+      return new Response(
+        JSON.stringify({ error: "Erro ao atualizar estado do pedido internamente." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     return new Response(
       JSON.stringify({

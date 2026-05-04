@@ -82,8 +82,9 @@ Deno.serve(async (req) => {
 
       // New Status Logic from Orchestrator API
       const apiStatus = (data.payment?.status || data.status || data.transaction?.status || data.data?.status || "").toUpperCase();
-      const isP = ["SUCCESS", "PAID", "COMPLETED", "SETTLED", "APPROVED"].includes(apiStatus);
-      const isF = ["FAILED", "CANCELLED", "REJECTED", "EXPIRED"].includes(apiStatus);
+      const isP = ["SUCCESS", "PAID", "COMPLETED", "SETTLED", "APPROVED", "CONFIRMED"].includes(apiStatus);
+      const isF = ["FAILED", "CANCELLED", "REJECTED", "EXPIRED", "DECLINED"].includes(apiStatus);
+
       
       console.log(`[Status Eval] apiStatus is ${apiStatus}. isP: ${isP}, isF: ${isF}`);
 
@@ -112,25 +113,8 @@ Deno.serve(async (req) => {
         }
       }
 
-      // --- 5. RECORD SELLER COMMISSION (100%) ---
-      const { data: existingCommissions } = await supabase.from("commissions").select("id").eq("order_id", id).limit(1);
-      
-      if (!existingCommissions || existingCommissions.length === 0) {
-        console.log(`[Commission] Recording 100% for seller for order ${id}...`);
-        const prod = Array.isArray(ord.products) ? ord.products[0] : ord.products;
-        
-        if (prod && prod.user_id) {
-          const { error: insErr } = await supabase.from("commissions").insert({
-            order_id: ord.id,
-            user_id: prod.user_id,
-            amount: ord.price,
-            user_type: 'seller'
-          });
-          
-          if (insErr) console.error(`[Commission Error] Failed to insert commission for order ${id}:`, insErr);
-          else console.log(`[Commission Success] Recorded 100% earnings for seller on order ${id}`);
-        }
-      }
+      // Commission recording removed as per user request (direct sales only)
+
       return { status: apiStatus, order_status: newS };
     };
 
