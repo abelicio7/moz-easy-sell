@@ -11,10 +11,23 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const DEBITO_WEBHOOK_SECRET = Deno.env.get("DEBITO_WEBHOOK_SECRET");
+    
+    // Check for secret in header or query param
+    const authHeader = req.headers.get("x-debito-secret") || req.headers.get("Authorization")?.replace("Bearer ", "");
+    const url = new URL(req.url);
+    const urlSecret = url.searchParams.get("secret");
+
+    if (DEBITO_WEBHOOK_SECRET && authHeader !== DEBITO_WEBHOOK_SECRET && urlSecret !== DEBITO_WEBHOOK_SECRET) {
+      console.error("Unauthorized webhook attempt: Secret mismatch");
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
 
     const body = await req.json();
     console.log("Debito Webhook received:", JSON.stringify(body));
