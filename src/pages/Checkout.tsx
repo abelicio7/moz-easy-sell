@@ -29,7 +29,7 @@ const Checkout = () => {
     const fetchProduct = async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("*, profiles(full_name, avatar_url)")
+        .select("*")
         .eq("id", productId)
         .single();
 
@@ -176,29 +176,9 @@ const Checkout = () => {
                 </div>
               </div>
 
-              {/* Perfil do Vendedor (Se houver) */}
-              {product.profiles && (
-                <div className="flex items-center gap-4 pt-4">
-                  <div className="w-12 h-12 rounded-full bg-primary/20 border-2 border-background overflow-hidden">
-                    {product.profiles.avatar_url ? (
-                      <img src={product.profiles.avatar_url} alt={product.profiles.full_name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-primary font-black uppercase text-xl italic">
-                        {product.profiles.full_name?.charAt(0)}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">Vendido por</p>
-                    <p className="text-lg font-black italic uppercase tracking-tighter text-foreground">{product.profiles.full_name}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="relative z-10 pt-12 flex items-center gap-3 text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-60">
-              <ShieldCheck className="w-4 h-4" /> Pagamento 100% Seguro
-            </div>
+              <div className="relative z-10 pt-12 flex items-center gap-3 text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-60">
+                <ShieldCheck className="w-4 h-4" /> Pagamento 100% Seguro
+              </div>
           </div>
 
           {/* Lado Direito: Checkout */}
