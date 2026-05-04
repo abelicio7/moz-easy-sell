@@ -30,17 +30,21 @@ Deno.serve(async (req) => {
 
 
     const body = await req.json();
-    console.log("Debito Webhook received:", JSON.stringify(body));
+    console.log("DEBITO WEBHOOK BODY:", JSON.stringify(body, null, 2));
+    console.log("DEBITO WEBHOOK HEADERS:", JSON.stringify(Object.fromEntries(req.headers.entries()), null, 2));
 
     // Try multiple ways to identify the order
-    const reference = body.debito_reference || body.transaction?.debito_reference || body.data?.debito_reference || body.payment?.id || body.payment_id || body.id;
-    const orderId = body.order_id || body.source_id || body.transaction?.source_id || body.data?.source_id;
+    const reference = body.debito_reference || body.transaction?.debito_reference || body.data?.debito_reference || body.payment?.id || body.payment_id || body.id || body.reference;
+    const orderId = body.order_id || body.source_id || body.transaction?.source_id || body.data?.source_id || body.external_id;
     const providerStatus = (body.status || body.transaction?.status || body.data?.status || body.payment?.status || "").toUpperCase();
 
+    console.log("Extracted Info:", { reference, orderId, providerStatus });
+
     if (!reference && !orderId) {
-      console.error("No identifier (reference or order_id) found in webhook body");
+      console.error("No identifier (reference or order_id) found in webhook body. All fields checked:", Object.keys(body));
       return new Response(JSON.stringify({ error: "No reference or order_id found" }), { status: 400 });
     }
+
 
     // Find the order (try ID first, then reference)
     let query = supabase.from("orders").select(`id, status, debito_reference`);
