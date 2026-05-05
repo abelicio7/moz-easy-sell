@@ -52,7 +52,8 @@ serve(async (req) => {
         currency: "MZN",
         phone: cleanPhone, // Use sanitized phone
         source: "gateway",
-        source_id: order_id
+        source_id: order_id,
+        external_reference: order_id
       })
     })
 
