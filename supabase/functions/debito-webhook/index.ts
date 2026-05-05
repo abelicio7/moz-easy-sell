@@ -11,24 +11,31 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  )
+
   try {
     const body = await req.json()
     console.log("WEBHOOK RECEIVED:", body)
 
-    // Débito format: { reference: "...", status: "paid/completed", ... }
-    const reference = body.reference || body.debito_reference || body.id
-    const status = body.status
+    // 0. LOG RAW WEBHOOK
+    await supabase.from('webhook_logs').insert({ payload: body })
+
+    // Débito format: { reference: "...", status: "payment.completed", ... }
+    // Note: status might be in 'type' or 'status' field.
+    const reference = body.reference || body.debito_reference || body.id || (body.data && body.data.id)
+    const status = body.status || body.type
+
+    console.log(`Processing webhook: reference=${reference}, status=${status}`)
 
     if (!reference) {
-      throw new Error("No reference found in webhook body")
+      console.error("No reference found in webhook body:", body)
+      return new Response(JSON.stringify({ error: "No reference found" }), { status: 200, headers: corsHeaders })
     }
 
-    if (status === 'completed' || status === 'paid' || status === 'successful') {
-      const supabase = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-      )
-
+    if (status === 'payment.completed' || status === 'completed' || status === 'paid' || status === 'successful') {
       // Find the order by reference and update to paid
       const { data, error } = await supabase
         .from('orders')
@@ -48,7 +55,6 @@ serve(async (req) => {
         const orderId = data[0].id
         console.log(`Triggering delivery for order ${orderId}...`)
         
-        // We call it asynchronously and don't wait for it to finish for the webhook response
         fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/deliver-product`, {
           method: 'POST',
           headers: {
@@ -69,7 +75,7 @@ serve(async (req) => {
     console.error("Webhook Error:", error.message)
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } } // Return 200 even on error to stop Débito retries
     )
   }
 })
