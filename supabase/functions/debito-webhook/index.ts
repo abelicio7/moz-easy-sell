@@ -23,21 +23,35 @@ serve(async (req) => {
     // 0. LOG RAW WEBHOOK
     await supabase.from('webhook_logs').insert({ payload: body })
 
-    // Débito format: { reference: "...", status: "payment.completed", ... }
-    // Note: status might be in 'type' or 'status' field.
-    const reference = body.reference || body.debito_reference || body.id || (body.data && body.data.id)
-    const status = body.status || body.type
+    // Débito Orchestrator format from test event:
+    // { event: "payment.completed", data: { transaction_id: "...", status: "success", ... } }
+    
+    const event = body.event
+    const data = body.data || {}
+    
+    const reference = data.transaction_id || data.reference || body.reference || body.id
+    const status = event || body.status || body.type
 
-    console.log(`Processing webhook: reference=${reference}, status=${status}`)
+    console.log(`Processing webhook: event=${event}, reference=${reference}, status=${status}`)
 
     if (!reference) {
       console.error("No reference found in webhook body:", body)
       return new Response(JSON.stringify({ error: "No reference found" }), { status: 200, headers: corsHeaders })
     }
 
-    if (status === 'payment.completed' || status === 'completed' || status === 'paid' || status === 'successful') {
+    // Success conditions
+    const isSuccess = 
+      event === 'payment.completed' || 
+      status === 'paid' || 
+      status === 'completed' || 
+      status === 'successful' || 
+      data.status === 'success' ||
+      data.status === 'completed'
+
+    if (isSuccess) {
       // Find the order by reference and update to paid
-      const { data, error } = await supabase
+      // We check both debito_reference (the ID from Débito) and potentially the ID if they match
+      const { data: orders, error } = await supabase
         .from('orders')
         .update({ status: 'paid' })
         .eq('debito_reference', reference)
@@ -48,13 +62,11 @@ serve(async (req) => {
         throw error
       }
 
-      console.log(`Order updated to paid for reference ${reference}. Rows affected:`, data?.length)
-
-      // TRIGGER DELIVERY
-      if (data && data.length > 0) {
-        const orderId = data[0].id
-        console.log(`Triggering delivery for order ${orderId}...`)
+      if (orders && orders.length > 0) {
+        const orderId = orders[0].id
+        console.log(`Order ${orderId} updated to paid. Triggering delivery...`)
         
+        // TRIGGER DELIVERY
         fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/deliver-product`, {
           method: 'POST',
           headers: {
@@ -63,6 +75,30 @@ serve(async (req) => {
           },
           body: JSON.stringify({ orderId })
         }).catch(err => console.error("Error triggering delivery:", err))
+      } else {
+        console.warn(`No order found with debito_reference ${reference}`)
+        
+        // Try fallback: check if reference IS the order UUID (source_id)
+        if (reference.length > 30) { // Likely a UUID
+            const { data: ordersByUuid, error: uuidError } = await supabase
+            .from('orders')
+            .update({ status: 'paid' })
+            .eq('id', reference)
+            .select()
+            
+            if (!uuidError && ordersByUuid && ordersByUuid.length > 0) {
+                const orderId = ordersByUuid[0].id
+                console.log(`Order ${orderId} found by UUID and updated to paid. Triggering delivery...`)
+                fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/deliver-product`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+                    },
+                    body: JSON.stringify({ orderId })
+                }).catch(err => console.error("Error triggering delivery:", err))
+            }
+        }
       }
     }
 
@@ -75,7 +111,7 @@ serve(async (req) => {
     console.error("Webhook Error:", error.message)
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } } // Return 200 even on error to stop Débito retries
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
