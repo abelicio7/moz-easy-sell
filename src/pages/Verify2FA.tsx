@@ -97,9 +97,13 @@ const Verify2FA = () => {
       console.log("Debug 2FA Response:", response);
 
       if (response.error || !response.data?.success) {
-        const backendError = response.data?.error;
-        const httpError = response.error?.message;
-        const errorMsg = backendError || httpError || "Código inválido ou erro de servidor";
+        // Tenta pegar a mensagem de erro de vários lugares possíveis
+        const errorMsg = 
+          response.data?.error || 
+          response.error?.message || 
+          (typeof response.error === 'object' ? JSON.stringify(response.error) : null) ||
+          "Erro de validação desconhecido";
+          
         throw new Error(errorMsg);
       }
 

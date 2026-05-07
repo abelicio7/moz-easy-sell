@@ -196,8 +196,9 @@ serve(async (req) => {
     throw new Error('Ação inválida');
 
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 400,
+    console.error("Erro na função handle-2fa:", error.message);
+    return new Response(JSON.stringify({ success: false, error: error.message }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
