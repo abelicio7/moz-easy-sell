@@ -48,7 +48,7 @@ serve(async (req) => {
       try {
         console.log(`Verificando Pedido: ${order.id} | Ref: ${order.debito_reference}`);
         
-        const response = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {
+        let response = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -64,7 +64,27 @@ serve(async (req) => {
           })
         });
 
-        const debitoData = await response.json();
+        let debitoData = await response.json();
+        
+        // Se não encontrar pela referência, tenta pelo ID do pedido (UUID)
+        if (debitoData.error === "Payment not found" || debitoData.success === false) {
+          console.log(`Ref não encontrada. Tentando pelo ID do pedido: ${order.id}`);
+          const retryResponse = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${DEBITO_API_KEY}`
+            },
+            body: JSON.stringify({
+              action: "check-status",
+              merchant_id: MERCHANT_ID,
+              transaction_id: order.id,
+              external_reference: order.id,
+              currency: "MZN"
+            })
+          });
+          debitoData = await retryResponse.json();
+        }
         console.log(`Resposta completa do Gateway para Ref ${order.debito_reference}:`, JSON.stringify(debitoData));
 
         // Lógica de detecção ultra-flexível
