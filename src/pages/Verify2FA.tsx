@@ -94,6 +94,8 @@ const Verify2FA = () => {
         headers: { Authorization: `Bearer ${session.access_token}` }
       });
 
+      console.log("Resposta do servidor 2FA:", response);
+
       if (response.error || !response.data?.success) {
         const errorMsg = response.data?.error || response.error?.message || "Código inválido";
         throw new Error(errorMsg);
@@ -108,6 +110,7 @@ const Verify2FA = () => {
       toast.success("Verificação concluída com sucesso!");
       navigate("/dashboard");
     } catch (error: any) {
+      console.error("Erro na verificação 2FA:", error);
       toast.error(error.message || "Código incorreto. Tente novamente.");
       // Clear code on failure
       setCode(["", "", "", "", "", ""]);

@@ -28,21 +28,17 @@ serve(async (req) => {
     if (authError || !user) throw new Error('Unauthorized');
 
     const { action, code } = await req.json();
+    console.log(`Ação: ${action}, Usuário: ${user.id}`);
 
     if (action === 'generate') {
-      // 1. Invalidate any existing pending codes for this user
-      await supabaseAdmin
-        .from('user_otp_codes')
-        .update({ used: true })
-        .eq('user_id', user.id)
-        .eq('used', false);
-
-      // 2. Generate a 6-digit code
+      // 1. Generate a 6-digit code
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes (matched with email)
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
 
-      // 3. Save code to DB
-      await supabaseAdmin.from('user_otp_codes').insert({
+      console.log(`Gerando código para ${user.email}: ${otpCode}`);
+
+      // 2. Save code to DB
+      const { error: insertError } = await supabaseAdmin.from('user_otp_codes').insert({
         user_id: user.id,
         code: otpCode,
         expires_at: expiresAt,
@@ -50,7 +46,12 @@ serve(async (req) => {
         attempts: 0
       });
 
-      // 4. Send email via Brevo
+      if (insertError) {
+        console.error("Erro ao inserir OTP:", insertError);
+        throw new Error("Erro ao gerar código de segurança.");
+      }
+
+      // 3. Send email via Brevo
       const brevoApiKey = Deno.env.get("BREVO_API_KEY");
       const senderEmail = Deno.env.get("BREVO_SENDER_EMAIL") || "suporte@ensinapay.com";
       
@@ -114,13 +115,16 @@ serve(async (req) => {
 
     if (action === 'verify') {
       if (!code) throw new Error('Código não fornecido');
+      const submittedCode = code.toString().trim();
+      console.log(`Verificando código ${submittedCode} para usuário ${user.id}`);
 
-      // 1. Get the latest pending code
+      // 1. Get any matching unused code
       const { data: otpData, error: otpError } = await supabaseAdmin
         .from('user_otp_codes')
         .select('*')
         .eq('user_id', user.id)
         .eq('used', false)
+        .eq('code', submittedCode)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -133,13 +137,15 @@ serve(async (req) => {
       }
 
       if (!otpData) {
-        return new Response(JSON.stringify({ success: false, error: 'Código inválido ou já utilizado. Solicite um novo.' }), {
+        console.warn(`Código ${submittedCode} não encontrado ou já usado para ${user.id}`);
+        return new Response(JSON.stringify({ success: false, error: 'Código inválido ou já utilizado. Verifique o código mais recente no seu e-mail.' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
       // Check expiration
       if (new Date(otpData.expires_at) < new Date()) {
+        console.warn(`Código ${submittedCode} expirado para ${user.id}`);
         return new Response(JSON.stringify({ success: false, error: 'Este código expirou. Solicite um novo.' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -147,27 +153,20 @@ serve(async (req) => {
 
       // Check max attempts
       if (otpData.attempts >= 5) {
+        console.warn(`Muitas tentativas para o código ${otpData.id}`);
         await supabaseAdmin.from('user_otp_codes').update({ used: true }).eq('id', otpData.id);
         return new Response(JSON.stringify({ success: false, error: 'Muitas tentativas falhas. Solicite um novo código.' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      // Verify code
-      const submittedCode = code.toString().trim();
-      if (otpData.code !== submittedCode) {
-        await supabaseAdmin.from('user_otp_codes').update({ attempts: otpData.attempts + 1 }).eq('id', otpData.id);
-        return new Response(JSON.stringify({ success: false, error: 'Código incorreto.' }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
       // Success! Mark as used
+      console.log(`Código ${submittedCode} validado com sucesso para ${user.email}`);
       await supabaseAdmin.from('user_otp_codes').update({ used: true }).eq('id', otpData.id);
 
       // Generate a Device Token for "Lembrar dispositivo"
       const deviceToken = crypto.randomUUID();
-      const deviceExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // Increased to 30 days
+      const deviceExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days
 
       await supabaseAdmin.from('verified_devices').insert({
         user_id: user.id,
