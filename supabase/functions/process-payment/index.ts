@@ -64,8 +64,25 @@ serve(async (req) => {
       throw new Error(debitoData.message || debitoData.error || 'Error processing payment with Débito Orchestrator')
     }
 
-    // PRIORIDADE MÁXIMA: payment_id (o UUID que vimos no log)
+    // Função para buscar recursivamente qualquer valor que comece com "EH"
+    const findEHReference = (obj: any): string | null => {
+      if (!obj || typeof obj !== 'object') return null;
+      for (const key in obj) {
+        const value = obj[key];
+        if (typeof value === 'string' && value.startsWith('EH')) return value;
+        if (typeof value === 'object') {
+          const found = findEHReference(value);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    const ehRef = findEHReference(debitoData);
+    
+    // PRIORIDADE: 1. Código EH, 2. payment_id (UUID), 3. Outros
     const debitoRef = 
+      ehRef ||
       debitoData.payment_id ||
       debitoData.data?.payment_id ||
       debitoData.data?.transaction_id || 
@@ -73,7 +90,7 @@ serve(async (req) => {
       debitoData.reference || 
       debitoData.id;
 
-    console.log(`✅ Referência CORRETA selecionada para salvar: ${debitoRef}`);
+    console.log(`✅ Referência IDENTIFICADA: ${debitoRef} (EH encontrado: ${ehRef ? 'Sim' : 'Não'})`);
 
     // 2. Update order with Débito reference
     const supabase = createClient(
