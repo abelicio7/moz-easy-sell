@@ -89,12 +89,9 @@ const Verify2FA = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Não autenticado");
 
-      console.log("Iniciando verificação via RPC...");
       const { data, error: rpcError } = await supabase.rpc('verify_user_otp', {
         submitted_code: fullCode
       });
-
-      console.log("Resultado RPC:", { data, error: rpcError });
 
       if (rpcError || !data?.success) {
         const errorMsg = data?.error || rpcError?.message || "Código inválido ou erro de servidor";

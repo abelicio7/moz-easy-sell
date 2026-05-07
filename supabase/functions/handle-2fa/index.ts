@@ -44,34 +44,20 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get the user making the request
-    const authHeader = req.headers.get('Authorization');
-    console.log("Recebido pedido 2FA. Auth Header presente:", !!authHeader);
-    if (!authHeader) {
-      return new Response(JSON.stringify({ success: false, error: 'Sessão expirada. Faça login novamente.' }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
     if (authError || !user) {
-      console.error("Erro Auth:", authError);
       return new Response(JSON.stringify({ success: false, error: 'Usuário não autenticado. Faça login novamente.' }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { action, code } = await req.json();
-    console.log(`Ação: ${action}, Usuário: ${user.id}`);
+    const { action } = await req.json();
 
     if (action === 'generate') {
       // 1. Generate a 6-digit code
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes
-
-      console.log(`Gerando código para ${user.email}: ${otpCode}`);
 
       // 2. Save code to DB
       const { error: insertError } = await supabaseAdmin.from('user_otp_codes').insert({
@@ -83,7 +69,6 @@ serve(async (req) => {
       });
 
       if (insertError) {
-        console.error("Erro ao inserir OTP:", insertError);
         throw new Error("Erro ao gerar código de segurança.");
       }
 
@@ -92,7 +77,6 @@ serve(async (req) => {
       const senderEmail = Deno.env.get("BREVO_SENDER_EMAIL") || "suporte@ensinapay.com";
       
       if (!brevoApiKey) {
-        console.error("ERRO CRÍTICO: BREVO_API_KEY não configurada.");
         return new Response(JSON.stringify({ success: false, error: "Serviço de email não configurado." }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -136,8 +120,6 @@ serve(async (req) => {
       });
 
       if (!brevoResponse.ok) {
-        const errorData = await brevoResponse.text();
-        console.error("Erro na API do Brevo:", errorData);
         return new Response(JSON.stringify({ success: false, error: "Falha ao enviar email." }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -145,86 +127,6 @@ serve(async (req) => {
       }
 
       return new Response(JSON.stringify({ success: true }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    if (action === 'verify') {
-      if (!code) throw new Error('Código não fornecido');
-      const submittedCode = code.toString().trim();
-      console.log(`Verificando código ${submittedCode} para usuário ${user.id}`);
-
-      // 1. Get any matching unused code
-      const { data: otpData, error: otpError } = await supabaseAdmin
-        .from('user_otp_codes')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('used', false)
-        .eq('code', submittedCode)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (otpError) {
-        console.error("Erro DB OTP:", otpError);
-        return new Response(JSON.stringify({ success: false, error: `Erro de banco de dados: ${otpError.message}` }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      if (!otpData) {
-        // Log details for debugging
-        console.warn(`Tentativa falha: Código ${submittedCode} não existe para user ${user.id} ou já foi usado.`);
-        
-        // Check if ANY code exists for this user to give a better hint
-        const { count } = await supabaseAdmin
-          .from('user_otp_codes')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('used', false);
-
-        const hint = count && count > 0 
-          ? "O código digitado não corresponde ao que enviamos. Verifique o e-mail." 
-          : "Não encontramos nenhum código pendente. Clique em 'Reenviar código'.";
-
-        return new Response(JSON.stringify({ success: false, error: hint }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      // Check expiration
-      const now = new Date();
-      const expiration = new Date(otpData.expires_at);
-      if (expiration < now) {
-        console.warn(`Código expirado: ${otpData.expires_at} (Agora: ${now.toISOString()})`);
-        return new Response(JSON.stringify({ success: false, error: 'Este código expirou (limite de 10 min). Peça um novo.' }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      // Check max attempts
-      if (otpData.attempts >= 5) {
-        await supabaseAdmin.from('user_otp_codes').update({ used: true }).eq('id', otpData.id);
-        return new Response(JSON.stringify({ success: false, error: 'Muitas tentativas. Este código foi invalidado por segurança.' }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      // Success! Mark as used
-      console.log(`Sucesso! Código ${submittedCode} validado.`);
-      await supabaseAdmin.from('user_otp_codes').update({ used: true }).eq('id', otpData.id);
-
-      // Generate a Device Token for "Lembrar dispositivo"
-      const deviceToken = crypto.randomUUID();
-      const deviceExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 dias
-
-      await supabaseAdmin.from('verified_devices').insert({
-        user_id: user.id,
-        device_token: deviceToken,
-        expires_at: deviceExpiresAt
-      });
-
-      return new Response(JSON.stringify({ success: true, device_token: deviceToken }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
