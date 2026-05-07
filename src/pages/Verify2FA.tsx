@@ -94,10 +94,12 @@ const Verify2FA = () => {
         headers: { Authorization: `Bearer ${session.access_token}` }
       });
 
-      console.log("Resposta do servidor 2FA:", response);
+      console.log("Debug 2FA Response:", response);
 
       if (response.error || !response.data?.success) {
-        const errorMsg = response.data?.error || response.error?.message || "Código inválido";
+        const backendError = response.data?.error;
+        const httpError = response.error?.message;
+        const errorMsg = backendError || httpError || "Código inválido ou erro de servidor";
         throw new Error(errorMsg);
       }
 
