@@ -55,7 +55,7 @@ serve(async (req) => {
             'Authorization': `Bearer ${DEBITO_API_KEY}`
           },
           body: JSON.stringify({
-            action: "status",
+            action: "check-status",
             merchant_id: MERCHANT_ID,
             transaction_id: order.debito_reference,
             payment_id: order.debito_reference,
