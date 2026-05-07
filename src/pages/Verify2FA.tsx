@@ -89,33 +89,21 @@ const Verify2FA = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Não autenticado");
 
-      const response = await supabase.functions.invoke('handle-2fa', {
-        body: { action: 'verify', code: fullCode },
-        headers: { Authorization: `Bearer ${session.access_token}` }
+      console.log("Iniciando verificação via RPC...");
+      const { data, error: rpcError } = await supabase.rpc('verify_user_otp', {
+        submitted_code: fullCode
       });
 
-      console.log("Debug 2FA Completo:", response);
+      console.log("Resultado RPC:", { data, error: rpcError });
 
-      if (response.error || !response.data?.success) {
-        console.error("Erro completo na resposta:", response);
-        let errorMsg = "Erro desconhecido";
-        
-        if (response.data?.error) {
-          errorMsg = response.data.error;
-        } else if (response.error?.message) {
-          errorMsg = response.error.message;
-        } else if (response.error) {
-          errorMsg = typeof response.error === 'string' ? response.error : JSON.stringify(response.error);
-        }
-        
-        console.error("Erro extraído:", errorMsg);
+      if (rpcError || !data?.success) {
+        const errorMsg = data?.error || rpcError?.message || "Código inválido ou erro de servidor";
         throw new Error(errorMsg);
       }
 
       // Success! Save device token
-      if (response.data.device_token) {
-        localStorage.setItem("ensina_device_token", response.data.device_token);
-        // Expiration is handled by backend or can be checked here, but storing it is enough to pass ProtectedRoute
+      if (data.device_token) {
+        localStorage.setItem("ensina_device_token", data.device_token);
       }
 
       toast.success("Verificação concluída com sucesso!");
