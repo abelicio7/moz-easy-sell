@@ -48,27 +48,31 @@ serve(async (req) => {
       try {
         console.log(`Verificando Pedido: ${order.id} | Ref: ${order.debito_reference}`);
         
+        const payload = {
+          action: "check-status",
+          merchant_id: MERCHANT_ID,
+          transaction_id: order.debito_reference,
+          payment_id: order.debito_reference,
+          paymentId: order.debito_reference,
+          id: order.debito_reference,
+          reference: order.debito_reference,
+          currency: "MZN"
+        };
+
         let response = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${DEBITO_API_KEY}`
           },
-          body: JSON.stringify({
-            action: "check-status",
-            merchant_id: MERCHANT_ID,
-            transaction_id: order.debito_reference,
-            payment_id: order.debito_reference,
-            reference: order.debito_reference,
-            currency: "MZN"
-          })
+          body: JSON.stringify(payload)
         });
 
         let debitoData = await response.json();
         
-        // Se não encontrar pela referência, tenta pelo ID do pedido (UUID)
-        if (debitoData.error === "Payment not found" || debitoData.success === false) {
-          console.log(`Ref não encontrada. Tentando pelo ID do pedido: ${order.id}`);
+        // Se ainda pedir payment_id ou der erro, tenta com o UUID
+        if (!debitoData.success || debitoData.error?.includes("payment_id")) {
+          console.log(`Tentativa 2 (UUID) para Pedido: ${order.id}`);
           const retryResponse = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {
             method: 'POST',
             headers: {
@@ -76,11 +80,12 @@ serve(async (req) => {
               'Authorization': `Bearer ${DEBITO_API_KEY}`
             },
             body: JSON.stringify({
-              action: "check-status",
-              merchant_id: MERCHANT_ID,
+              ...payload,
               transaction_id: order.id,
-              external_reference: order.id,
-              currency: "MZN"
+              payment_id: order.id,
+              paymentId: order.id,
+              id: order.id,
+              external_reference: order.id
             })
           });
           debitoData = await retryResponse.json();

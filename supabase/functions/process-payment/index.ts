@@ -58,11 +58,21 @@ serve(async (req) => {
     })
 
     const debitoData = await response.json()
-    console.log("Débito Orchestrator Response:", debitoData)
+    console.log("RESPOSTA COMPLETA DO ORQUESTRADOR (DEBUG):", JSON.stringify(debitoData))
 
     if (!response.ok || !debitoData.success) {
       throw new Error(debitoData.message || debitoData.error || 'Error processing payment with Débito Orchestrator')
     }
+
+    // Tentar pegar a referência mais "forte" (que comece com EH ou seja o transaction_id)
+    const debitoRef = 
+      debitoData.data?.transaction_id || 
+      debitoData.transaction_id || 
+      debitoData.reference || 
+      debitoData.debito_reference || 
+      debitoData.id;
+
+    console.log(`Referência selecionada para salvar: ${debitoRef}`);
 
     // 2. Update order with Débito reference
     const supabase = createClient(
@@ -70,12 +80,10 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const debitoRef = debitoData.reference || debitoData.debito_reference || debitoData.id
-
     const { error: updateError } = await supabase
       .from('orders')
       .update({ 
-        debito_reference: debitoRef,
+        debito_reference: String(debitoRef),
         status: 'pending'
       })
       .eq('id', order_id)
