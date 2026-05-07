@@ -114,7 +114,13 @@ serve(async (req) => {
         if (isPaid) {
           console.log(`✅ PAGAMENTO CONFIRMADO: Pedido ${order.id}. Atualizando para 'paid'...`);
           
-          await supabase.from('orders').update({ status: 'paid' }).eq('id', order.id);
+          const { error: updateError } = await supabase.from('orders').update({ status: 'paid' }).eq('id', order.id);
+          
+          if (updateError) {
+            console.error(`❌ ERRO AO ATUALIZAR BANCO: Pedido ${order.id}:`, updateError);
+          } else {
+            console.log(`✨ BANCO ATUALIZADO COM SUCESSO: Pedido ${order.id}`);
+          }
 
           fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/deliver-product`, {
             method: 'POST',

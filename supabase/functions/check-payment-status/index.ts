@@ -55,43 +55,72 @@ serve(async (req) => {
 
     console.log(`Polling Débito Orchestrator for ref ${ref}...`)
     
-      const response = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {
+    const payload = {
+      action: "check-status",
+      merchant_id: MERCHANT_ID,
+      transaction_id: ref,
+      payment_id: ref,
+      paymentId: ref,
+      id: ref,
+      reference: ref,
+      currency: "MZN"
+    };
+
+    let response = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DEBITO_API_KEY}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    let debitoData = await response.json();
+
+    // Se não encontrar pela referência, tenta pelo ID do pedido (UUID)
+    if (!debitoData.success || debitoData.error?.includes("payment_id") || debitoData.error === "Payment not found") {
+      console.log(`Ref não encontrada no Check-Status. Tentando pelo ID do pedido: ${order_id}`);
+      const retryResponse = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${DEBITO_API_KEY}`
         },
         body: JSON.stringify({
-          action: "check-status",
-          merchant_id: MERCHANT_ID,
-          transaction_id: ref,
-          payment_id: ref,
-          reference: ref,
-          currency: "MZN"
+          ...payload,
+          transaction_id: order_id,
+          payment_id: order_id,
+          paymentId: order_id,
+          id: order_id,
+          external_reference: order_id
         })
-      })
+      });
+      debitoData = await retryResponse.json();
+    }
 
-    const debitoData = await response.json()
-    console.log("Débito Status Response:", debitoData)
+    console.log("Resposta do Gateway:", JSON.stringify(debitoData));
 
-    // LOG POLLING RESULT FOR DEBUGGING
-    await supabase.from('webhook_logs').insert({ 
-        payload: { 
-            type: 'polling_check', 
-            order_id, 
-            reference: ref, 
-            response: debitoData 
-        } 
-    })
-
-    const isPaid = 
-        debitoData.success && 
-        (debitoData.data?.status === 'success' || 
-         debitoData.data?.status === 'completed' || 
-         debitoData.status === 'success')
+    // Lógica de detecção ultra-flexível (Sincronizada com check-all-orders)
+    const status = (
+      debitoData.payment?.status || 
+      debitoData.data?.status || 
+      debitoData.status || 
+      ""
+    ).toLowerCase();
+    
+    const success = debitoData.success === true || debitoData.status === "success" || debitoData.message === "success";
+    
+    const isPaid = (success || status === "success") && (
+      status === "success" || 
+      status === "completed" || 
+      status === "paid" || 
+      status === "pago" || 
+      status === "successful" ||
+      status === "complete"
+    );
 
     if (isPaid) {
-      console.log(`Payment confirmed via Polling for ${order_id}. Updating DB...`)
+      console.log(`✅ Payment confirmed via Polling for ${order_id}. Updating DB...`)
       
       const { error: updateError } = await supabase
         .from('orders')
