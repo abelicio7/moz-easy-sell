@@ -60,39 +60,41 @@ serve(async (req) => {
 
       if (!reference) {
         throw new Error("No reference found in webhook data");
+        console.error("ERRO: Nenhuma referência encontrada no corpo do webhook.");
+        return new Response(JSON.stringify({ error: "No reference found" }), { status: 200, headers: corsHeaders });
       }
 
-      // Check if order exists and is not already paid (Idempotency)
+      // 1. Tentar encontrar por debito_reference (ID do Débito Pay)
+      console.log(`Procurando pedido com debito_reference: ${reference}`);
       const { data: order, error: orderError } = await supabase
         .from('orders')
-        .select('id, status')
+        .select('id, status, customer_email')
         .eq('debito_reference', reference)
         .maybeSingle();
 
-      if (orderError) throw orderError;
+      if (orderError) console.error("Erro na busca 1:", orderError);
 
-      if (!order) {
-        // Fallback: check if reference is the order ID
+      if (order) {
+        console.log(`Pedido encontrado via debito_reference: ${order.id}`);
+        if (order.status !== 'paid' && order.status !== 'delivered') {
+          await processSuccessfulPayment(supabase, order.id);
+        }
+      } else {
+        // 2. Fallback: Tentar encontrar pelo próprio ID do pedido (UUID)
+        console.log(`Não encontrado. Tentando buscar por UUID do pedido: ${reference}`);
         const { data: orderById, error: idError } = await supabase
           .from('orders')
           .select('id, status')
           .eq('id', reference)
           .maybeSingle();
-        
+
         if (orderById) {
+          console.log(`Pedido encontrado via UUID: ${orderById.id}`);
           if (orderById.status !== 'paid' && orderById.status !== 'delivered') {
             await processSuccessfulPayment(supabase, orderById.id);
-          } else {
-            console.log(`Order ${orderById.id} already processed.`);
           }
         } else {
-          console.warn(`No order found for reference ${reference}`);
-        }
-      } else {
-        if (order.status !== 'paid' && order.status !== 'delivered') {
-          await processSuccessfulPayment(supabase, order.id);
-        } else {
-          console.log(`Order ${order.id} already processed.`);
+          console.warn(`ALERTA: Nenhum pedido localizado no banco para a referência ${reference}`);
         }
       }
     }
