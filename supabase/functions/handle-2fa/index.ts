@@ -24,8 +24,22 @@ serve(async (req) => {
     );
 
     // Get the user making the request
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ success: false, error: 'Sessão expirada. Faça login novamente.' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) throw new Error('Unauthorized');
+    if (authError || !user) {
+      console.error("Erro Auth:", authError);
+      return new Response(JSON.stringify({ success: false, error: 'Usuário não autenticado. Faça login novamente.' }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const { action, code } = await req.json();
     console.log(`Ação: ${action}, Usuário: ${user.id}`);

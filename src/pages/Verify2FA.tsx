@@ -94,16 +94,20 @@ const Verify2FA = () => {
         headers: { Authorization: `Bearer ${session.access_token}` }
       });
 
-      console.log("Debug 2FA Response:", response);
+      console.log("Debug 2FA Completo:", response);
 
       if (response.error || !response.data?.success) {
-        // Tenta pegar a mensagem de erro de vários lugares possíveis
-        const errorMsg = 
-          response.data?.error || 
-          response.error?.message || 
-          (typeof response.error === 'object' ? JSON.stringify(response.error) : null) ||
-          "Erro de validação desconhecido";
-          
+        let errorMsg = "Erro desconhecido";
+        
+        if (response.data?.error) {
+          errorMsg = response.data.error;
+        } else if (response.error?.message) {
+          errorMsg = response.error.message;
+        } else if (response.error) {
+          errorMsg = typeof response.error === 'string' ? response.error : JSON.stringify(response.error);
+        }
+        
+        console.error("Erro Identificado:", errorMsg);
         throw new Error(errorMsg);
       }
 
