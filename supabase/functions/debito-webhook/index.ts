@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
+import * as crypto from "https://deno.land/std@0.177.0/node/crypto.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,6 +8,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -17,101 +19,118 @@ serve(async (req) => {
   )
 
   try {
-    const body = await req.json()
-    console.log("WEBHOOK RECEIVED:", body)
+    // 1. Get raw body for HMAC validation
+    const rawBody = await req.text();
+    const signature = req.headers.get('x-webhook-signature');
+    const webhookSecret = Deno.env.get('DEBITO_WEBHOOK_SECRET');
 
-    // 0. LOG RAW WEBHOOK
-    await supabase.from('webhook_logs').insert({ payload: body })
+    console.log("Webhook Signature Received:", signature);
 
-    // Débito Orchestrator format from test event:
-    // { event: "payment.completed", data: { transaction_id: "...", status: "success", ... } }
-    
-    const event = body.event
-    const data = body.data || {}
-    
-    const reference = data.transaction_id || data.reference || body.reference || body.id
-    const status = event || body.status || body.type
+    // 2. VALIDATION (As per docs: HMAC-SHA256)
+    if (webhookSecret && signature) {
+      const hmac = crypto.createHmac("sha256", webhookSecret);
+      hmac.update(rawBody);
+      const hash = hmac.digest("hex");
 
-    console.log(`Processing webhook: event=${event}, reference=${reference}, status=${status}`)
-
-    if (!reference) {
-      console.error("No reference found in webhook body:", body)
-      return new Response(JSON.stringify({ error: "No reference found" }), { status: 200, headers: corsHeaders })
+      if (hash !== signature) {
+        console.error("INVALID WEBHOOK SIGNATURE. Hash mismatch.");
+        return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401, headers: corsHeaders });
+      }
+      console.log("Webhook signature validated successfully.");
+    } else if (!webhookSecret) {
+      console.warn("DEBITO_WEBHOOK_SECRET not set. Skipping signature validation (DANGEROUS).");
     }
 
-    // Success conditions
-    const isSuccess = 
-      event === 'payment.completed' || 
-      status === 'paid' || 
-      status === 'completed' || 
-      status === 'successful' || 
-      data.status === 'success' ||
-      data.status === 'completed'
+    const body = JSON.parse(rawBody);
+    const { event, data, timestamp } = body;
 
-    if (isSuccess) {
-      // Find the order by reference and update to paid
-      // We check both debito_reference (the ID from Débito) and potentially the ID if they match
-      const { data: orders, error } = await supabase
-        .from('orders')
-        .update({ status: 'paid' })
-        .eq('debito_reference', reference)
-        .select()
+    // 3. LOG RAW WEBHOOK FOR AUDIT
+    await supabase.from('webhook_logs').insert({ 
+        payload: body,
+        event_type: event,
+        reference: data?.reference
+    });
 
-      if (error) {
-        console.error("Error updating order status:", error)
-        throw error
+    console.log(`Processing event: ${event} for reference: ${data?.reference}`);
+
+    // 4. ONLY PROCESS 'payment.completed'
+    if (event === 'payment.completed') {
+      const reference = data.reference;
+      const paymentId = data.payment_id;
+
+      if (!reference) {
+        throw new Error("No reference found in webhook data");
       }
 
-      if (orders && orders.length > 0) {
-        const orderId = orders[0].id
-        console.log(`Order ${orderId} updated to paid. Triggering delivery...`)
+      // Check if order exists and is not already paid (Idempotency)
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select('id, status')
+        .eq('debito_reference', reference)
+        .maybeSingle();
+
+      if (orderError) throw orderError;
+
+      if (!order) {
+        // Fallback: check if reference is the order ID
+        const { data: orderById, error: idError } = await supabase
+          .from('orders')
+          .select('id, status')
+          .eq('id', reference)
+          .maybeSingle();
         
-        // TRIGGER DELIVERY
-        fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/deliver-product`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
-          },
-          body: JSON.stringify({ orderId })
-        }).catch(err => console.error("Error triggering delivery:", err))
+        if (orderById) {
+          if (orderById.status !== 'paid' && orderById.status !== 'delivered') {
+            await processSuccessfulPayment(supabase, orderById.id);
+          } else {
+            console.log(`Order ${orderById.id} already processed.`);
+          }
+        } else {
+          console.warn(`No order found for reference ${reference}`);
+        }
       } else {
-        console.warn(`No order found with debito_reference ${reference}`)
-        
-        // Try fallback: check if reference IS the order UUID (source_id)
-        if (reference.length > 30) { // Likely a UUID
-            const { data: ordersByUuid, error: uuidError } = await supabase
-            .from('orders')
-            .update({ status: 'paid' })
-            .eq('id', reference)
-            .select()
-            
-            if (!uuidError && ordersByUuid && ordersByUuid.length > 0) {
-                const orderId = ordersByUuid[0].id
-                console.log(`Order ${orderId} found by UUID and updated to paid. Triggering delivery...`)
-                fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/deliver-product`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
-                    },
-                    body: JSON.stringify({ orderId })
-                }).catch(err => console.error("Error triggering delivery:", err))
-            }
+        if (order.status !== 'paid' && order.status !== 'delivered') {
+          await processSuccessfulPayment(supabase, order.id);
+        } else {
+          console.log(`Order ${order.id} already processed.`);
         }
       }
     }
 
-    return new Response(
-      JSON.stringify({ success: true }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    // 5. RESPOND 200 OK (Must be within 5 seconds as per docs)
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
-    console.error("Webhook Error:", error.message)
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    console.error("Webhook Error:", error.message);
+    // Always return 200 if possible to stop retries unless it's a real server error
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
-})
+});
+
+async function processSuccessfulPayment(supabase: any, orderId: string) {
+  console.log(`Confirming payment for order: ${orderId}`);
+  
+  // Update status
+  const { error: updateError } = await supabase
+    .from('orders')
+    .update({ status: 'paid' })
+    .eq('id', orderId);
+
+  if (updateError) throw updateError;
+
+  // Trigger Delivery
+  console.log(`Triggering delivery for order: ${orderId}`);
+  fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/deliver-product`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+    },
+    body: JSON.stringify({ orderId: orderId })
+  }).catch(err => console.error("Error triggering delivery:", err));
+}

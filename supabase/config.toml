@@ -22,6 +22,12 @@ verify_jwt = true
 import_map = "./functions/verify-library-code/deno.json"
 entrypoint = "./functions/verify-library-code/index.ts"
 
+[functions.check-all-orders]
+enabled = true
+verify_jwt = true
+import_map = "./functions/check-all-orders/deno.json"
+entrypoint = "./functions/check-all-orders/index.ts"
+
 [functions.abandoned-cart-recovery]
 enabled = true
 verify_jwt = true
