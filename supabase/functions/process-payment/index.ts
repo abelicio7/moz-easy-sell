@@ -64,15 +64,16 @@ serve(async (req) => {
       throw new Error(debitoData.message || debitoData.error || 'Error processing payment with Débito Orchestrator')
     }
 
-    // Tentar pegar a referência mais "forte" (que comece com EH ou seja o transaction_id)
+    // PRIORIDADE MÁXIMA: payment_id (o UUID que vimos no log)
     const debitoRef = 
+      debitoData.payment_id ||
+      debitoData.data?.payment_id ||
       debitoData.data?.transaction_id || 
       debitoData.transaction_id || 
       debitoData.reference || 
-      debitoData.debito_reference || 
       debitoData.id;
 
-    console.log(`Referência selecionada para salvar: ${debitoRef}`);
+    console.log(`✅ Referência CORRETA selecionada para salvar: ${debitoRef}`);
 
     // 2. Update order with Débito reference
     const supabase = createClient(
