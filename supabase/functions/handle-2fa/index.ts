@@ -130,43 +130,57 @@ serve(async (req) => {
         .maybeSingle();
 
       if (otpError) {
-        console.error("Erro ao buscar OTP:", otpError);
-        return new Response(JSON.stringify({ success: false, error: 'Erro ao validar código. Tente novamente.' }), {
+        console.error("Erro DB OTP:", otpError);
+        return new Response(JSON.stringify({ success: false, error: `Erro de banco de dados: ${otpError.message}` }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
       if (!otpData) {
-        console.warn(`Código ${submittedCode} não encontrado ou já usado para ${user.id}`);
-        return new Response(JSON.stringify({ success: false, error: 'Código inválido ou já utilizado. Verifique o código mais recente no seu e-mail.' }), {
+        // Log details for debugging
+        console.warn(`Tentativa falha: Código ${submittedCode} não existe para user ${user.id} ou já foi usado.`);
+        
+        // Check if ANY code exists for this user to give a better hint
+        const { count } = await supabaseAdmin
+          .from('user_otp_codes')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('used', false);
+
+        const hint = count && count > 0 
+          ? "O código digitado não corresponde ao que enviamos. Verifique o e-mail." 
+          : "Não encontramos nenhum código pendente. Clique em 'Reenviar código'.";
+
+        return new Response(JSON.stringify({ success: false, error: hint }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
       // Check expiration
-      if (new Date(otpData.expires_at) < new Date()) {
-        console.warn(`Código ${submittedCode} expirado para ${user.id}`);
-        return new Response(JSON.stringify({ success: false, error: 'Este código expirou. Solicite um novo.' }), {
+      const now = new Date();
+      const expiration = new Date(otpData.expires_at);
+      if (expiration < now) {
+        console.warn(`Código expirado: ${otpData.expires_at} (Agora: ${now.toISOString()})`);
+        return new Response(JSON.stringify({ success: false, error: 'Este código expirou (limite de 10 min). Peça um novo.' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
       // Check max attempts
       if (otpData.attempts >= 5) {
-        console.warn(`Muitas tentativas para o código ${otpData.id}`);
         await supabaseAdmin.from('user_otp_codes').update({ used: true }).eq('id', otpData.id);
-        return new Response(JSON.stringify({ success: false, error: 'Muitas tentativas falhas. Solicite um novo código.' }), {
+        return new Response(JSON.stringify({ success: false, error: 'Muitas tentativas. Este código foi invalidado por segurança.' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
       // Success! Mark as used
-      console.log(`Código ${submittedCode} validado com sucesso para ${user.email}`);
+      console.log(`Sucesso! Código ${submittedCode} validado.`);
       await supabaseAdmin.from('user_otp_codes').update({ used: true }).eq('id', otpData.id);
 
       // Generate a Device Token for "Lembrar dispositivo"
       const deviceToken = crypto.randomUUID();
-      const deviceExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days
+      const deviceExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 dias
 
       await supabaseAdmin.from('verified_devices').insert({
         user_id: user.id,
