@@ -57,7 +57,10 @@ serve(async (req) => {
           body: JSON.stringify({
             action: "status",
             merchant_id: MERCHANT_ID,
-            transaction_id: order.debito_reference
+            transaction_id: order.debito_reference,
+            payment_id: order.debito_reference,
+            reference: order.debito_reference,
+            currency: "MZN"
           })
         });
 

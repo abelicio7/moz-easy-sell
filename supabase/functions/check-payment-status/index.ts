@@ -55,18 +55,21 @@ serve(async (req) => {
 
     console.log(`Polling Débito Orchestrator for ref ${ref}...`)
     
-    const response = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEBITO_API_KEY}`
-      },
-      body: JSON.stringify({
-        action: "status",
-        merchant_id: MERCHANT_ID,
-        transaction_id: ref
+      const response = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${DEBITO_API_KEY}`
+        },
+        body: JSON.stringify({
+          action: "status",
+          merchant_id: MERCHANT_ID,
+          transaction_id: ref,
+          payment_id: ref,
+          reference: ref,
+          currency: "MZN"
+        })
       })
-    })
 
     const debitoData = await response.json()
     console.log("Débito Status Response:", debitoData)
