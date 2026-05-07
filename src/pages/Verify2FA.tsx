@@ -28,6 +28,17 @@ const Verify2FA = () => {
       }
       setUserEmail(session.user.email || "");
       
+      // Test connectivity to handle-2fa
+      try {
+        console.log("Testando conectividade com handle-2fa...");
+        const pingRes = await supabase.functions.invoke('handle-2fa', {
+          headers: { 'x-ping': 'true' }
+        });
+        console.log("Resultado do Ping:", pingRes);
+      } catch (err) {
+        console.error("Falha crítica de conectividade:", err);
+      }
+
       // If we already have a valid device token, skip 2FA
       const deviceToken = localStorage.getItem("ensina_device_token");
       if (deviceToken) {
@@ -97,6 +108,7 @@ const Verify2FA = () => {
       console.log("Debug 2FA Completo:", response);
 
       if (response.error || !response.data?.success) {
+        console.error("Erro completo na resposta:", response);
         let errorMsg = "Erro desconhecido";
         
         if (response.data?.error) {
@@ -107,7 +119,7 @@ const Verify2FA = () => {
           errorMsg = typeof response.error === 'string' ? response.error : JSON.stringify(response.error);
         }
         
-        console.error("Erro Identificado:", errorMsg);
+        console.error("Erro extraído:", errorMsg);
         throw new Error(errorMsg);
       }
 

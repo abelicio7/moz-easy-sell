@@ -11,6 +11,14 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  // TESTE DE CONECTIVIDADE (PING)
+  if (req.headers.get('x-ping') === 'true') {
+    return new Response(JSON.stringify({ success: true, message: 'CONEXÃO OK: Servidor handle-2fa respondendo.' }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
