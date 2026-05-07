@@ -39,7 +39,7 @@ serve(async (req) => {
 
       // 2. Generate a 6-digit code
       const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 minutes (matched with email)
 
       // 3. Save code to DB
       await supabaseAdmin.from('user_otp_codes').insert({
@@ -55,8 +55,8 @@ serve(async (req) => {
       const senderEmail = Deno.env.get("BREVO_SENDER_EMAIL") || "suporte@ensinapay.com";
       
       if (!brevoApiKey) {
-        console.error("ERRO CRÍTICO: BREVO_API_KEY não configurada nos Secrets da Supabase.");
-        return new Response(JSON.stringify({ success: false, error: "Serviço de email não configurado (API Key em falta)." }), {
+        console.error("ERRO CRÍTICO: BREVO_API_KEY não configurada.");
+        return new Response(JSON.stringify({ success: false, error: "Serviço de email não configurado." }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -101,7 +101,7 @@ serve(async (req) => {
       if (!brevoResponse.ok) {
         const errorData = await brevoResponse.text();
         console.error("Erro na API do Brevo:", errorData);
-        return new Response(JSON.stringify({ success: false, error: "Falha ao enviar email. Verifica o remetente no Brevo." }), {
+        return new Response(JSON.stringify({ success: false, error: "Falha ao enviar email." }), {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -123,10 +123,17 @@ serve(async (req) => {
         .eq('used', false)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (otpError || !otpData) {
-        return new Response(JSON.stringify({ success: false, error: 'Código inválido ou expirado.' }), {
+      if (otpError) {
+        console.error("Erro ao buscar OTP:", otpError);
+        return new Response(JSON.stringify({ success: false, error: 'Erro ao validar código. Tente novamente.' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (!otpData) {
+        return new Response(JSON.stringify({ success: false, error: 'Código inválido ou já utilizado. Solicite um novo.' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
@@ -147,7 +154,8 @@ serve(async (req) => {
       }
 
       // Verify code
-      if (otpData.code !== code.toString().trim()) {
+      const submittedCode = code.toString().trim();
+      if (otpData.code !== submittedCode) {
         await supabaseAdmin.from('user_otp_codes').update({ attempts: otpData.attempts + 1 }).eq('id', otpData.id);
         return new Response(JSON.stringify({ success: false, error: 'Código incorreto.' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -159,7 +167,7 @@ serve(async (req) => {
 
       // Generate a Device Token for "Lembrar dispositivo"
       const deviceToken = crypto.randomUUID();
-      const deviceExpiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(); // 7 days
+      const deviceExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(); // Increased to 30 days
 
       await supabaseAdmin.from('verified_devices').insert({
         user_id: user.id,

@@ -15,6 +15,7 @@ const Verify2FA = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [userEmail, setUserEmail] = useState("");
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const hasRequestedCode = useRef(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,8 +32,9 @@ const Verify2FA = () => {
       const deviceToken = localStorage.getItem("ensina_device_token");
       if (deviceToken) {
         navigate("/dashboard");
-      } else {
-        // Automatically generate code on first load
+      } else if (!hasRequestedCode.current) {
+        // Automatically generate code on first load, but only once
+        hasRequestedCode.current = true;
         handleResendCode();
       }
     };
@@ -93,7 +95,8 @@ const Verify2FA = () => {
       });
 
       if (response.error || !response.data?.success) {
-        throw new Error(response.data?.error || response.error?.message || "Código inválido");
+        const errorMsg = response.data?.error || response.error?.message || "Código inválido";
+        throw new Error(errorMsg);
       }
 
       // Success! Save device token

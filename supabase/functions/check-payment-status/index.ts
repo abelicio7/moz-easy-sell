@@ -71,6 +71,16 @@ serve(async (req) => {
     const debitoData = await response.json()
     console.log("Débito Status Response:", debitoData)
 
+    // LOG POLLING RESULT FOR DEBUGGING
+    await supabase.from('webhook_logs').insert({ 
+        payload: { 
+            type: 'polling_check', 
+            order_id, 
+            reference: ref, 
+            response: debitoData 
+        } 
+    })
+
     const isPaid = 
         debitoData.success && 
         (debitoData.data?.status === 'success' || 

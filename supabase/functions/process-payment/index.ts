@@ -85,7 +85,11 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ ...debitoData, debito_reference: debitoRef }),
+      JSON.stringify({ 
+        ...debitoData, 
+        debito_reference: debitoRef,
+        reference: debitoRef // Standard name
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 

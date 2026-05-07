@@ -108,12 +108,24 @@ const Checkout = () => {
         .subscribe();
 
       const polling = setInterval(async () => {
-        const { data: statusData } = await supabase.functions.invoke('check-payment-status', {
-          body: { order_id: orderId, debito_reference: paymentData.debito_reference }
-        });
-        if (statusData?.order_status === 'paid') {
-          clearInterval(polling);
-          finishOrder(orderId);
+        console.log("Polling payment status for order:", orderId);
+        try {
+          const { data: statusData, error: invokeError } = await supabase.functions.invoke('check-payment-status', {
+            body: { order_id: orderId, debito_reference: paymentData.debito_reference }
+          });
+          
+          if (invokeError) {
+            console.error("Polling error:", invokeError);
+            return;
+          }
+
+          console.log("Polling response:", statusData);
+          if (statusData?.order_status === 'paid' || statusData?.order_status === 'delivered') {
+            clearInterval(polling);
+            finishOrder(orderId);
+          }
+        } catch (pollErr) {
+          console.error("Polling fetch error:", pollErr);
         }
       }, 5000);
 
