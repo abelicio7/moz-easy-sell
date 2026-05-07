@@ -65,20 +65,26 @@ serve(async (req) => {
         });
 
         const debitoData = await response.json();
+        console.log(`Resposta completa do Gateway para Ref ${order.debito_reference}:`, JSON.stringify(debitoData));
+
+        // Lógica de detecção ultra-flexível
+        const status = (debitoData.data?.status || debitoData.status || "").toLowerCase();
+        const success = debitoData.success === true || debitoData.status === "success" || debitoData.message === "success";
         
-        const isPaid = 
-          debitoData.success && 
-          (debitoData.data?.status === 'success' || 
-           debitoData.data?.status === 'completed' || 
-           debitoData.status === 'success');
+        const isPaid = success && (
+          status === "success" || 
+          status === "completed" || 
+          status === "paid" || 
+          status === "pago" || 
+          status === "successful" ||
+          status === "complete"
+        );
 
         if (isPaid) {
-          console.log(`PAGAMENTO CONFIRMADO para pedido ${order.id}. Atualizando...`);
+          console.log(`✅ PAGAMENTO CONFIRMADO: Pedido ${order.id}. Atualizando para 'paid'...`);
           
-          // Atualiza status para pago
           await supabase.from('orders').update({ status: 'paid' }).eq('id', order.id);
 
-          // Dispara entrega
           fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/deliver-product`, {
             method: 'POST',
             headers: {
@@ -90,7 +96,8 @@ serve(async (req) => {
 
           results.push({ order_id: order.id, status: 'paid' });
         } else {
-          results.push({ order_id: order.id, status: 'still_pending' });
+          console.log(`ℹ️ Pedido ${order.id} ainda não confirmado. Status recebido: ${status || "pendente"}`);
+          results.push({ order_id: order.id, status: status || 'still_pending' });
         }
       } catch (err) {
         console.error(`Erro ao processar pedido ${order.id}:`, err.message);
