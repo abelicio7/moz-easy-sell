@@ -12,19 +12,31 @@ serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("ERRO: Variáveis de ambiente SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não configuradas.");
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Erro de configuração no servidor (Secrets faltando). Verifique os logs do Supabase.' 
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
+      supabaseUrl,
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     );
 
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get the user making the request
     const authHeader = req.headers.get('Authorization');
+    console.log("Recebido pedido 2FA. Auth Header presente:", !!authHeader);
     if (!authHeader) {
       return new Response(JSON.stringify({ success: false, error: 'Sessão expirada. Faça login novamente.' }), {
         status: 200,
