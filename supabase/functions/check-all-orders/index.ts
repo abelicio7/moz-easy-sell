@@ -92,11 +92,17 @@ serve(async (req) => {
         }
         console.log(`Resposta completa do Gateway para Ref ${order.debito_reference}:`, JSON.stringify(debitoData));
 
-        // Lógica de detecção ultra-flexível
-        const status = (debitoData.data?.status || debitoData.status || "").toLowerCase();
+        // Lógica de detecção ultra-flexível (incluindo o novo campo 'payment.status')
+        const status = (
+          debitoData.payment?.status || 
+          debitoData.data?.status || 
+          debitoData.status || 
+          ""
+        ).toLowerCase();
+        
         const success = debitoData.success === true || debitoData.status === "success" || debitoData.message === "success";
         
-        const isPaid = success && (
+        const isPaid = (success || status === "success") && (
           status === "success" || 
           status === "completed" || 
           status === "paid" || 
