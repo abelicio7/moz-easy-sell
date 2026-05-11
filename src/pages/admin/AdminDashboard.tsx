@@ -13,6 +13,8 @@ const AdminDashboard = () => {
     pendingProducts: 0,
     pendingWithdrawals: 0,
     totalApprovedUsers: 0,
+    totalRevenue: 0,
+    totalSales: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -25,11 +27,20 @@ const AdminDashboard = () => {
         supabase.from("profiles").select("id", { count: "exact" }).eq("status", "approved"),
       ]);
 
+      const { data: allPaidOrders } = await supabase
+        .from("orders")
+        .select("price")
+        .in("status", ["paid", "delivered"]);
+
+      const totalRevenue = (allPaidOrders || []).reduce((sum, order) => sum + Number(order.price), 0);
+
       setStats({
         pendingUsers: usersRes.count || 0,
         pendingProducts: productsRes.count || 0,
         pendingWithdrawals: withdrawalsRes.count || 0,
         totalApprovedUsers: approvedUsersRes.count || 0,
+        totalRevenue,
+        totalSales: allPaidOrders?.length || 0,
       });
       setLoading(false);
     };
@@ -107,7 +118,33 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-black text-foreground">{stats.totalApprovedUsers}</div>
-              <p className="text-xs text-muted-foreground mt-2">Vendedores ativos na plataforma</p>
+              <p className="text-xs text-muted-foreground mt-2">Vendedores ativos</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 bg-primary/5 border-primary/20 hover:border-primary/50 transition-all">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-primary flex items-center justify-between">
+                Faturamento Total
+                <Banknote className="w-4 h-4 text-primary" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-black text-foreground">{stats.totalRevenue.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</div>
+              <p className="text-xs text-muted-foreground mt-2">Total processado (Pago/Entregue)</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 bg-card hover:border-primary/50 transition-all">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                Vendas Totais
+                <Package className="w-4 h-4 text-emerald-500" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-black text-foreground">{stats.totalSales}</div>
+              <p className="text-xs text-muted-foreground mt-2">Volume total de pedidos</p>
             </CardContent>
           </Card>
 

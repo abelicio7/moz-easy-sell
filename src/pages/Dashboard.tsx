@@ -58,7 +58,7 @@ const Dashboard = () => {
         const method = order.payment_method || 'Outro';
         if (!acc[method]) acc[method] = { totalOrders: 0, paidOrders: 0, revenue: 0, conversion: 0 };
         acc[method].totalOrders++;
-        if (order.status === "paid") {
+        if (["paid", "delivered"].includes(order.status)) {
           acc[method].paidOrders++;
           acc[method].revenue += (order.price || 0);
         }
@@ -73,7 +73,7 @@ const Dashboard = () => {
 
       // 1. Direct Revenue (Sum of all paid orders)
       const totalNetEarnings = allOrders
-        .filter((o: any) => o.status === "paid")
+        .filter((o: any) => ["paid", "delivered"].includes(o.status))
         .reduce((sum: number, o: any) => sum + Number(o.price), 0);
       
       const totalWithdrawnAndPending = allWithdrawals
@@ -83,7 +83,7 @@ const Dashboard = () => {
       setStats({
         total: allOrders.length,
         pending: allOrders.filter((o: any) => o.status === "pending").length,
-        paid: allOrders.filter((o: any) => o.status === "paid").length,
+        paid: allOrders.filter((o: any) => ["paid", "delivered"].includes(o.status)).length,
         revenue: totalNetEarnings, 
         availableBalance: totalNetEarnings - totalWithdrawnAndPending,
         methodStats
