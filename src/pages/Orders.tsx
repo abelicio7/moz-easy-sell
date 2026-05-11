@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ShoppingCart, Mail } from "lucide-react";
+import { ShoppingCart, Mail, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Order {
@@ -70,7 +70,7 @@ const Orders = () => {
               </div>
             ) : (
               paidOrders.map((order) => (
-                <OrderCard key={order.id} order={order} />
+                <OrderCard key={order.id} order={order} onRefresh={fetchOrders} />
               ))
             )}
           </TabsContent>
@@ -82,7 +82,7 @@ const Orders = () => {
               </div>
             ) : (
               pendingOrders.map((order) => (
-                <OrderCard key={order.id} order={order} />
+                <OrderCard key={order.id} order={order} onRefresh={fetchOrders} />
               ))
             )}
           </TabsContent>
@@ -92,7 +92,7 @@ const Orders = () => {
   );
 };
 
-const OrderCard = ({ order }: { order: Order }) => (
+const OrderCard = ({ order, onRefresh }: { order: Order; onRefresh: () => void }) => (
   <Card className="overflow-hidden hover:border-primary/40 transition-colors">
     <CardContent className="p-0">
       <div className="flex flex-col md:flex-row md:items-center justify-between p-4 sm:p-5 gap-5">
@@ -192,6 +192,40 @@ const OrderCard = ({ order }: { order: Order }) => (
                 }}
               >
                 <Mail className="w-4 h-4" /> Enviar Email
+              </Button>
+
+              <Button 
+                size="sm" 
+                variant="secondary" 
+                className="w-full bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border-emerald-500/20 gap-2 mt-2"
+                onClick={async () => {
+                  if (!confirm("Deseja confirmar este pagamento manualmente? Isso enviará o produto ao cliente imediatamente.")) return;
+                  
+                  const toastId = toast.loading("Confirmando pagamento...");
+                  try {
+                    // 1. Atualizar status no banco
+                    const { error: updateError } = await supabase
+                      .from("orders")
+                      .update({ status: "paid" })
+                      .eq("id", order.id);
+
+                    if (updateError) throw updateError;
+
+                    // 2. Disparar entrega
+                    const { error: deliveryError } = await supabase.functions.invoke("deliver-product", {
+                      body: { orderId: order.id }
+                    });
+
+                    if (deliveryError) throw deliveryError;
+
+                    toast.success("Pagamento confirmado e produto entregue!", { id: toastId });
+                    onRefresh();
+                  } catch (err: any) {
+                    toast.error("Erro ao confirmar: " + err.message, { id: toastId });
+                  }
+                }}
+              >
+                <CheckCircle2 className="w-4 h-4" /> Confirmar Manualmente
               </Button>
             </div>
           </div>
