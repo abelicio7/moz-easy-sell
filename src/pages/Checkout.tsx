@@ -57,6 +57,27 @@ const Checkout = () => {
     initPage();
   }, [productId, navigate]);
 
+  useEffect(() => {
+    const saveCart = async () => {
+      if (form.email && form.email.includes('@') && product) {
+        try {
+          await supabase.from("carts").upsert({
+            email: form.email,
+            customer_name: form.name,
+            product_id: product.id,
+            status: "pending",
+            contacted_at: null
+          }, { onConflict: 'email, product_id' });
+        } catch (e) {
+          console.error("Error saving cart:", e);
+        }
+      }
+    };
+
+    const timer = setTimeout(saveCart, 2000); // Debounce to avoid too many writes
+    return () => clearTimeout(timer);
+  }, [form.email, form.name, product]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!product || submitting) return;
@@ -129,9 +150,18 @@ const Checkout = () => {
         }
       }, 5000);
 
-      const finishOrder = (id: string) => {
+      const finishOrder = async (id: string) => {
         clearInterval(polling);
         supabase.removeChannel(channel);
+        
+        // Mark cart as completed if it exists
+        if (form.email && product) {
+          await supabase.from("carts")
+            .update({ status: "completed" })
+            .eq("email", form.email)
+            .eq("product_id", product.id);
+        }
+
         toast.success("Pagamento confirmado com sucesso!");
         navigate(`/thank-you?order_id=${id}&product_id=${product.id}&amount=${product.price}`);
       };

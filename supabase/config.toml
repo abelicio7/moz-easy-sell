@@ -28,8 +28,32 @@ verify_jwt = true
 import_map = "./functions/check-all-orders/deno.json"
 entrypoint = "./functions/check-all-orders/index.ts"
 
+[functions.check-payment-status]
+enabled = true
+verify_jwt = true
+
+[functions.process-payment]
+enabled = true
+verify_jwt = true
+
+[functions.deliver-product]
+enabled = true
+verify_jwt = true
+
 [functions.abandoned-cart-recovery]
 enabled = true
 verify_jwt = true
 import_map = "./functions/abandoned-cart-recovery/deno.json"
 entrypoint = "./functions/abandoned-cart-recovery/index.ts"
+
+[functions.send-email-notification]
+enabled = true
+verify_jwt = true
+import_map = "./functions/send-email-notification/deno.json"
+entrypoint = "./functions/send-email-notification/index.ts"
+
+[functions.notify-admins]
+enabled = true
+verify_jwt = true
+import_map = "./functions/notify-admins/deno.json"
+entrypoint = "./functions/notify-admins/index.ts"
