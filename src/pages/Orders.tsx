@@ -39,7 +39,7 @@ const Orders = () => {
 
   useEffect(() => { fetchOrders(); }, [user]);
 
-  const paidOrders = orders.filter(o => o.status === "paid");
+  const paidOrders = orders.filter(o => ["paid", "delivered"].includes(o.status));
   const pendingOrders = orders.filter(o => ["pending", "failed"].includes(o.status));
 
   return (
@@ -100,13 +100,13 @@ const OrderCard = ({ order, onRefresh }: { order: Order; onRefresh: () => void }
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <span className="font-bold text-foreground text-lg">{order.customer_name}</span>
             <Badge 
-              variant={order.status === "paid" ? "default" : "secondary"} 
+              variant={["paid", "delivered"].includes(order.status) ? "default" : "secondary"} 
               className={
-                order.status === "paid" ? "bg-emerald-500 hover:bg-emerald-600" : 
+                ["paid", "delivered"].includes(order.status) ? "bg-emerald-500 hover:bg-emerald-600" : 
                 order.status === "failed" ? "bg-red-500/10 text-red-500 border-red-500/20" : ""
               }
             >
-              {order.status === "paid" ? "Pago e Entregue" : 
+              {["paid", "delivered"].includes(order.status) ? "Pago e Entregue" : 
                order.status === "failed" ? "Pagamento Falhou" : "Não Concluído"}
             </Badge>
           </div>
@@ -212,13 +212,18 @@ const OrderCard = ({ order, onRefresh }: { order: Order; onRefresh: () => void }
                     if (updateError) throw updateError;
 
                     // 2. Disparar entrega
-                    const { error: deliveryError } = await supabase.functions.invoke("deliver-product", {
+                    const { data: deliveryData, error: deliveryError } = await supabase.functions.invoke("deliver-product", {
                       body: { orderId: order.id }
                     });
-
+                    
                     if (deliveryError) throw deliveryError;
-
-                    toast.success("Pagamento confirmado e produto entregue!", { id: toastId });
+                    
+                    if (deliveryData?.success === false) {
+                      toast.error("Pagamento registrado, mas a entrega falhou: " + (deliveryData.message || "Erro desconhecido"), { id: toastId });
+                    } else {
+                      toast.success("Pagamento confirmado e produto entregue!", { id: toastId });
+                    }
+                    
                     onRefresh();
                   } catch (err: any) {
                     toast.error("Erro ao confirmar: " + err.message, { id: toastId });

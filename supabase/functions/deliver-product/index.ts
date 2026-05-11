@@ -28,12 +28,17 @@ serve(async (req) => {
       .single()
 
     if (orderError || !order) {
-      throw new Error(`Order not found: ${orderError?.message}`)
+      console.error(`Order error: ${orderError?.message}`)
+      throw new Error(`Order not found: ${orderId}`)
     }
 
-    if (order.status !== 'paid') {
-      console.log(`Order ${orderId} is not paid yet (status: ${order.status}). Skipping delivery.`)
-      return new Response(JSON.stringify({ success: false, message: "Order not paid" }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    console.log(`Order status: ${order.status}`)
+
+    // If already delivered, we might still want to allow a retry if it's a manual action,
+    // but for now let's just make sure it's at least 'paid' or 'delivered'
+    if (!['paid', 'delivered'].includes(order.status)) {
+      console.log(`Order ${orderId} is not paid (status: ${order.status}). Skipping delivery.`)
+      return new Response(JSON.stringify({ success: false, message: `Order status is ${order.status}, not paid` }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     const customerEmail = order.customer_email

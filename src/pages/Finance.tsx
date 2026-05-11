@@ -60,11 +60,11 @@ const Finance = () => {
     if (!user) return;
     setLoading(true);
 
-    // Fetch all paid orders for this user's products
+    // Fetch all paid/delivered orders for this user's products
     const { data: orderData, error: orderError } = await supabase
       .from("orders")
       .select("price, products!inner(user_id)")
-      .eq("status", "paid")
+      .in("status", ["paid", "delivered"])
       .eq("products.user_id", user.id);
 
     if (orderError) {

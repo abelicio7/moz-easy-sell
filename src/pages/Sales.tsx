@@ -33,7 +33,7 @@ const Sales = () => {
           .from("orders")
           .select("id, price, payment_method, created_at, products!inner(name, user_id)")
           .eq("products.user_id", user.id)
-          .eq("status", "paid")
+          .in("status", ["paid", "delivered"])
           .order("created_at", { ascending: false });
 
         const formatted: Transaction[] = orders?.map(o => ({
