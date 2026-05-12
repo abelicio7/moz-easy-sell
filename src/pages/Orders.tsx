@@ -184,10 +184,14 @@ const OrderCard = ({ order, onRefresh }: { order: Order; onRefresh: () => void }
                       }
                     });
 
-                    if (error) throw error;
+                    if (error) {
+                      console.error("Erro detalhado da Edge Function:", error);
+                      throw error;
+                    }
                     toast.success("Email de recuperação enviado!", { id: toastId });
                   } catch (err: any) {
-                    toast.error("Erro ao enviar: " + err.message, { id: toastId });
+                    console.error("Erro completo ao enviar email:", err);
+                    toast.error("Erro ao enviar: " + (err.message || "Verifique o console (F12)"), { id: toastId });
                   }
                 }}
               >

@@ -285,9 +285,14 @@ const AdminDashboard = () => {
                         }
                       });
 
-                      if (error || data?.success === false) throw new Error(error?.message || data?.error || "Erro no envio");
+                      if (error || data?.success === false) {
+                        const errMsg = error?.message || data?.error || "Erro no envio";
+                        console.error("Erro detalhado na simulação:", { error, data });
+                        throw new Error(errMsg);
+                      }
                       toast.success("E-mail do cliente enviado!", { id: toastId });
                     } catch (err: any) {
+                      console.error("Erro completo na simulação:", err);
                       toast.error("Erro na simulação: " + err.message, { id: toastId });
                     }
                   }}
@@ -302,9 +307,13 @@ const AdminDashboard = () => {
                     const toastId = toast.loading("Disparando recuperação de carrinhos...");
                     try {
                       const { data, error } = await supabase.functions.invoke("abandoned-cart-recovery");
-                      if (error || data?.success === false) throw new Error(error?.message || data?.error || "Erro no disparo");
+                      if (error || data?.success === false) {
+                        console.error("Erro detalhado na recuperação:", { error, data });
+                        throw new Error(error?.message || data?.error || "Erro no disparo");
+                      }
                       toast.success(`Recuperação concluída! Processados: ${data.processed || 0}`, { id: toastId });
                     } catch (err: any) {
+                      console.error("Erro completo na recuperação:", err);
                       toast.error("Erro na recuperação: " + err.message, { id: toastId });
                     }
                   }}
