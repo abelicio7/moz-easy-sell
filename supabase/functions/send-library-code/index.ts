@@ -63,7 +63,7 @@ serve(async (req) => {
         'content-type': 'application/json'
       },
       body: JSON.stringify({
-        sender: { name: "EnsinaPay", email: "suporte@ensinapay.co.mz" },
+        sender: { name: "EnsinaPay", email: "suporte@ensinapay.com" },
         to: [{ email }],
         subject: `Seu código de acesso: ${code}`,
         htmlContent: `
