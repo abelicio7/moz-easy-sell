@@ -213,22 +213,31 @@ const Checkout = () => {
 
         <div className="max-w-2xl mx-auto space-y-6 pt-8 px-4">
           <Card className="border-border/50 bg-card overflow-hidden shadow-2xl">
-            <div className="bg-muted/10 border-b border-border/50">
-              {product.image_url && (
-                <div className="aspect-video w-full overflow-hidden">
-                  <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+            <div className="p-6 bg-card border-b border-border/50">
+              <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start text-center sm:text-left">
+                {product.image_url ? (
+                  <div className="w-40 h-40 shrink-0 rounded-2xl overflow-hidden shadow-xl border border-border/50">
+                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-40 h-40 shrink-0 rounded-2xl bg-muted flex items-center justify-center border border-border/50">
+                    <Package className="w-12 h-12 text-muted-foreground/20" />
+                  </div>
+                )}
+                
+                <div className="flex flex-col h-full justify-between space-y-4">
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-black text-foreground uppercase leading-tight tracking-tight">
+                      {product.name}
+                    </h2>
+                    <p className="text-sm text-muted-foreground font-medium leading-relaxed max-w-md">
+                      {product.description || "Aprenda, execute e comece a vender ainda hoje com cursos, ferramentas e materiais prontos."}
+                    </p>
+                  </div>
+                  <p className="text-4xl font-black text-foreground tracking-tighter">
+                    {product.price.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT
+                  </p>
                 </div>
-              )}
-              <div className="p-6 space-y-3">
-                <h2 className="text-2xl font-black text-foreground uppercase leading-tight tracking-tight">
-                  {product.name}
-                </h2>
-                <p className="text-sm text-muted-foreground font-medium leading-relaxed">
-                  {product.description || "Aprenda, execute e comece a vender ainda hoje com cursos, ferramentas e materiais prontos."}
-                </p>
-                <p className="text-3xl font-bold text-primary tracking-tight">
-                  {product.price.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT
-                </p>
               </div>
             </div>
             
