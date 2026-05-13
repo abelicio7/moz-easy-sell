@@ -39,20 +39,18 @@ serve(async (req) => {
     const code = Math.floor(100000 + Math.random() * 900000).toString()
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15 min
 
-    // 3. Salvar no banco (usando a tabela handle_2fa_codes ou similar)
+    // 3. Salvar no banco (usando a tabela library_access_codes)
     const { error: insertError } = await supabase
-      .from('otp_codes') // Assumindo que existe uma tabela para OTPs genéricos
+      .from('library_access_codes')
       .upsert({ 
         email, 
         code, 
-        expires_at: expiresAt,
-        type: 'library_access'
-      }, { onConflict: 'email, type' })
+        expires_at: expiresAt
+      }, { onConflict: 'email' })
 
-    // Se a tabela otp_codes não existir, tentamos usar a lógica de metadata ou outra
     if (insertError) {
-       console.warn("Tabela otp_codes não encontrada, tentando handle_2fa_codes...")
-       await supabase.from('handle_2fa_codes').upsert({ email, code, expires_at: expiresAt })
+       console.error("Erro ao salvar código:", insertError)
+       throw new Error("Erro ao gerar código de acesso")
     }
 
     // 4. Enviar email via Brevo
