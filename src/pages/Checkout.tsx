@@ -381,7 +381,7 @@ const Checkout = () => {
                     </div>
                   ) : (
                     <div className="flex items-center justify-center gap-2">
-                      <span>PAGAR AGORA — {product.price.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT</span>
+                      <span>FINALIZAR PEDIDO — {product.price.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT</span>
                       <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                     </div>
                   )}
