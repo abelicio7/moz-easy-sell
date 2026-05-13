@@ -214,26 +214,26 @@ const Checkout = () => {
         <div className="max-w-2xl mx-auto space-y-6 pt-8 px-4">
           <Card className="border-border/50 bg-card overflow-hidden shadow-2xl">
             <div className="p-6 bg-card border-b border-border/50">
-              <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start text-center sm:text-left">
+              <div className="flex flex-row gap-4 sm:gap-6 items-center text-left">
                 {product.image_url ? (
-                  <div className="w-40 h-40 shrink-0 rounded-2xl overflow-hidden shadow-xl border border-border/50">
+                  <div className="w-24 h-24 sm:w-40 sm:h-40 shrink-0 rounded-2xl overflow-hidden shadow-xl border border-border/50">
                     <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <div className="w-40 h-40 shrink-0 rounded-2xl bg-muted flex items-center justify-center border border-border/50">
-                    <Package className="w-12 h-12 text-muted-foreground/20" />
+                  <div className="w-24 h-24 sm:w-40 sm:h-40 shrink-0 rounded-2xl bg-muted flex items-center justify-center border border-border/50">
+                    <Package className="w-8 h-8 sm:w-12 sm:h-12 text-muted-foreground/20" />
                   </div>
                 )}
                 
-                <div className="flex flex-col flex-1 justify-center py-2 text-left">
-                  <div className="space-y-1">
-                    <h2 className="text-xl font-black text-foreground uppercase leading-tight tracking-tight">
+                <div className="flex flex-col flex-1 justify-center py-1">
+                  <div className="space-y-0.5 sm:space-y-1">
+                    <h2 className="text-lg sm:text-xl font-black text-foreground uppercase leading-tight tracking-tight line-clamp-2">
                       {product.name}
                     </h2>
-                    <p className="text-sm text-muted-foreground font-medium leading-tight max-w-md">
+                    <p className="text-[11px] sm:text-sm text-muted-foreground font-medium leading-tight max-w-md line-clamp-2 sm:line-clamp-none">
                       {product.description || "Aprenda, execute e comece a vender ainda hoje com cursos, ferramentas e materiais prontos."}
                     </p>
-                    <p className="text-3xl font-black text-foreground tracking-tighter pt-2">
+                    <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tighter pt-1 sm:pt-2">
                       {product.price.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT
                     </p>
                   </div>
