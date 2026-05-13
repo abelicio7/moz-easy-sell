@@ -207,6 +207,22 @@ const ThankYou = () => {
         <p className="text-center text-xs text-muted-foreground">
           Uma cópia também será enviada para o seu email.
         </p>
+
+        <div className="pt-4">
+          <Button 
+            variant="outline" 
+            className="w-full h-14 rounded-xl border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary font-bold transition-all group"
+            onClick={() => window.location.href = '/library'}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <Package className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              <span>Aceder à Minha Biblioteca</span>
+            </div>
+          </Button>
+          <p className="text-[10px] text-center text-muted-foreground mt-2 uppercase tracking-widest font-medium opacity-60">
+            Aceda a todas as suas compras em um só lugar
+          </p>
+        </div>
       </div>
     </div>
   );
