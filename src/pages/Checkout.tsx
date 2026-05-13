@@ -115,6 +115,9 @@ const Checkout = () => {
       });
 
       if (paymentError) throw paymentError;
+      if (paymentData?.success === false) {
+        throw new Error(paymentData.error || paymentData.message || "Falha ao processar pagamento");
+      }
 
       setWaitingForPin(true);
 
