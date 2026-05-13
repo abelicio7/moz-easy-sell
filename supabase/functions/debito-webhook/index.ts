@@ -53,14 +53,13 @@ serve(async (req) => {
 
     console.log(`Processing event: ${event} for reference: ${data?.reference}`);
 
-    // 4. ONLY PROCESS 'payment.completed'
-    if (event === 'payment.completed') {
-      const reference = data.reference;
-      const paymentId = data.payment_id;
+    // 4. PROCESS 'payment.completed' or 'payment_completed'
+    if (event === 'payment.completed' || event === 'payment_completed' || event === 'ORDER_PAID') {
+      const reference = data?.reference || data?.external_reference || data?.source_id;
+      const paymentId = data?.payment_id || data?.id;
 
       if (!reference) {
-        throw new Error("No reference found in webhook data");
-        console.error("ERRO: Nenhuma referência encontrada no corpo do webhook.");
+        console.error("ERRO: Nenhuma referência encontrada no corpo do webhook.", body);
         return new Response(JSON.stringify({ error: "No reference found" }), { status: 200, headers: corsHeaders });
       }
 

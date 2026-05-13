@@ -42,7 +42,7 @@ serve(async (req) => {
 
     const DEBITO_API_KEY = Deno.env.get('DEBITO_API_KEY');
     const MERCHANT_ID = Deno.env.get('DEBITO_MERCHANT_ID');
-    const DEBITO_BASE_URL = "https://gyqoaningqhurhvdugne.supabase.co/functions/v1";
+    const DEBITO_BASE_URL = "https://ekprysxfgkafpwjbocab.supabase.co/functions/v1";
 
     for (const order of pendingOrders) {
       try {

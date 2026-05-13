@@ -51,7 +51,7 @@ serve(async (req) => {
     // 2. POLL DEBITO API (Backup for missing webhook)
     const DEBITO_API_KEY = Deno.env.get('DEBITO_API_KEY')
     const MERCHANT_ID = Deno.env.get('DEBITO_MERCHANT_ID')
-    const DEBITO_BASE_URL = "https://gyqoaningqhurhvdugne.supabase.co/functions/v1"
+    const DEBITO_BASE_URL = "https://ekprysxfgkafpwjbocab.supabase.co/functions/v1"
 
     console.log(`Polling Débito Orchestrator for ref ${ref}...`)
     
