@@ -233,7 +233,7 @@ const Checkout = () => {
                     <p className="text-[11px] sm:text-sm text-muted-foreground font-medium leading-tight max-w-md">
                       {product.description || "Aprenda, execute e comece a vender ainda hoje com cursos, ferramentas e materiais prontos."}
                     </p>
-                    <p className="text-2xl sm:text-3xl font-black text-foreground tracking-tighter pt-1 sm:pt-2">
+                    <p className="text-2xl sm:text-3xl font-black text-primary tracking-tighter pt-1 sm:pt-2">
                       {product.price.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT
                     </p>
                   </div>
