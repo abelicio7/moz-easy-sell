@@ -24,7 +24,7 @@ serve(async (req) => {
     const WALLET_EMOLA = Deno.env.get('DEBITO_WALLET_EMOLA')
     const WALLET_MPESA = Deno.env.get('DEBITO_WALLET_MPESA')
     
-    const DEBITO_BASE_URL = "https://ekprysxfgkafpwjbocab.supabase.co/functions/v1"
+    const DEBITO_BASE_URL = "https://gyqoaningqhurhvdugne.supabase.co/functions/v1"
 
     if (!DEBITO_API_KEY || !MERCHANT_ID) {
       throw new Error('DEBITO configuration missing in Supabase Secrets')
