@@ -365,16 +365,6 @@ const Checkout = () => {
               </div>
 
               <div className="pt-4 space-y-4">
-                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
-                    <Zap className="w-4 h-4 text-emerald-500" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-emerald-500">Envio automático após o pagamento</p>
-                    <p className="text-[11px] text-emerald-500/70">O acesso ao seu produto será enviado para o seu e-mail imediatamente.</p>
-                  </div>
-                </div>
-
                 <Button 
                   className={`w-full h-16 text-white font-black text-xl rounded-xl transition-all duration-500 hover:scale-[1.01] active:scale-[0.98] group relative overflow-hidden shadow-2xl ${
                     form.payment_method === 'mpesa' 
