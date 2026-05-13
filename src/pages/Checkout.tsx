@@ -52,6 +52,52 @@ const Checkout = () => {
 
       setProduct(productData as any);
       setLoading(false);
+
+      // --- INTEGRATIONS START ---
+      if (productData.user_id) {
+        const { data: integrations } = await supabase
+          .from("seller_integrations")
+          .select("*")
+          .eq("user_id", productData.user_id)
+          .eq("is_active", true);
+
+        if (integrations) {
+          integrations.forEach(integration => {
+            if (integration.integration_type === "facebook_pixel" && integration.config?.pixelId) {
+              const pixelId = integration.config.pixelId;
+              console.log(`Injecting Meta Pixel: ${pixelId}`);
+              
+              // Standard Meta Pixel Code
+              const script = document.createElement("script");
+              script.innerHTML = `
+                !function(f,b,e,v,n,t,s)
+                {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+                n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+                if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+                n.queue=[];t=b.createElement(e);t.async=!0;
+                t.src=v;s=b.getElementsByTagName(e)[0];
+                s.parentNode.insertBefore(t,s)}(window, document,'script',
+                'https://connect.facebook.net/en_US/fbevents.js');
+                fbq('init', '${pixelId}');
+                fbq('track', 'PageView');
+                fbq('track', 'InitiateCheckout', {
+                  content_name: '${productData.name}',
+                  content_ids: ['${productData.id}'],
+                  content_type: 'product',
+                  value: ${productData.price},
+                  currency: 'MZN'
+                });
+              `;
+              document.head.appendChild(script);
+
+              const noscript = document.createElement("noscript");
+              noscript.innerHTML = `<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1" />`;
+              document.head.appendChild(noscript);
+            }
+          });
+        }
+      }
+      // --- INTEGRATIONS END ---
     };
 
     initPage();
