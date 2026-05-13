@@ -43,7 +43,7 @@ const Library = () => {
         .from("orders")
         .select("id")
         .eq("customer_email", email.toLowerCase().trim())
-        .eq("status", "paid")
+        .in("status", ["paid", "delivered"])
         .limit(1);
 
       if (ordersError) throw ordersError;
@@ -113,7 +113,7 @@ const Library = () => {
         )
       `)
       .eq("customer_email", userEmail)
-      .eq("status", "paid")
+      .in("status", ["paid", "delivered"])
       .order("created_at", { ascending: false });
 
     if (error) {
