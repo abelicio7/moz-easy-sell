@@ -225,16 +225,16 @@ const Checkout = () => {
                   </div>
                 )}
                 
-                <div className="flex flex-col h-full justify-between space-y-4">
-                  <div className="space-y-2">
-                    <h2 className="text-2xl font-black text-foreground uppercase leading-tight tracking-tight">
+                <div className="flex flex-col flex-1 sm:h-40 justify-between py-1">
+                  <div className="space-y-1">
+                    <h2 className="text-xl font-black text-foreground uppercase leading-tight tracking-tight">
                       {product.name}
                     </h2>
-                    <p className="text-sm text-muted-foreground font-medium leading-relaxed max-w-md">
+                    <p className="text-sm text-muted-foreground font-medium leading-tight max-w-md line-clamp-3">
                       {product.description || "Aprenda, execute e comece a vender ainda hoje com cursos, ferramentas e materiais prontos."}
                     </p>
                   </div>
-                  <p className="text-4xl font-black text-foreground tracking-tighter">
+                  <p className="text-3xl font-black text-foreground tracking-tighter mt-auto">
                     {product.price.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT
                   </p>
                 </div>
