@@ -26,14 +26,39 @@ serve(async (req) => {
 
     console.log("Webhook Signature Received:", signature);
 
-    // 2. VALIDATION (As per docs: HMAC-SHA256)
+    // Parse body early
+    let body: any = {};
+    try {
+      body = JSON.parse(rawBody);
+    } catch (parseErr) {
+      console.error("Failed to parse body JSON:", parseErr);
+    }
+
+    // Capture headers for diagnostic audit log
+    const headersObj: Record<string, string> = {};
+    req.headers.forEach((value, key) => {
+      headersObj[key] = value;
+    });
+
+    // 2. LOG RAW WEBHOOK FIRST FOR AUDIT (Even if signature validation fails!)
+    await supabase.from('webhook_logs').insert({ 
+        payload: {
+          headers: headersObj,
+          body: body,
+          rawBody: rawBody,
+          signature: signature,
+          has_secret: !!webhookSecret
+        }
+    });
+
+    // 3. VALIDATION (As per docs: HMAC-SHA256)
     if (webhookSecret && signature) {
       const hmac = crypto.createHmac("sha256", webhookSecret);
       hmac.update(rawBody);
       const hash = hmac.digest("hex");
 
       if (hash !== signature) {
-        console.error("INVALID WEBHOOK SIGNATURE. Hash mismatch.");
+        console.error(`INVALID WEBHOOK SIGNATURE. Hash mismatch. Calculated: ${hash}, Received: ${signature}`);
         return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401, headers: corsHeaders });
       }
       console.log("Webhook signature validated successfully.");
@@ -41,13 +66,7 @@ serve(async (req) => {
       console.warn("DEBITO_WEBHOOK_SECRET not set. Skipping signature validation (DANGEROUS).");
     }
 
-    const body = JSON.parse(rawBody);
     const { event, data, timestamp } = body;
-
-    // 3. LOG RAW WEBHOOK FOR AUDIT (Only 'payload' exists in the database schema)
-    await supabase.from('webhook_logs').insert({ 
-        payload: body
-    });
 
     // Débito Pay sends the reference in data.transaction_id or data.reference
     const reference = data?.transaction_id || data?.reference || data?.external_reference || data?.source_id || body?.reference || body?.id;
