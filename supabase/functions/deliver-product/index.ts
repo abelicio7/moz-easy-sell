@@ -97,20 +97,128 @@ serve(async (req) => {
 
     if (!emailResponse.ok) {
       const emailError = await emailResponse.text()
-      console.error("Brevo Error:", emailError)
-      throw new Error("Failed to send delivery email")
+      console.log("Brevo Error (Customer Email):", emailError)
+      // We log but still try to mark as delivered so customer at least has library access,
+      // and seller/admin get notified.
     }
 
     // 3. Update order status to delivered
-    await supabase
+    const { error: updateStatusError } = await supabase
       .from('orders')
       .update({ status: 'delivered' })
       .eq('id', orderId)
 
-    console.log(`Product delivered successfully to ${customerEmail}`)
+    if (updateStatusError) {
+      console.error("Error updating status to delivered:", updateStatusError)
+    } else {
+      console.log(`Product delivered successfully to ${customerEmail}`)
+    }
+
+    // 4. Notify Seller and Admins
+    try {
+      const productName = order.products?.name || 'Produto';
+      const sellerId = order.products?.user_id;
+
+      let seller: any = null;
+      if (sellerId) {
+        const { data: sellerData, error: sellerError } = await supabase
+          .from('profiles')
+          .select('email, full_name')
+          .eq('id', sellerId)
+          .single();
+        if (!sellerError) {
+          seller = sellerData;
+        } else {
+          console.error('Error fetching seller details for delivery notifications:', sellerError);
+        }
+      }
+
+      // 4A. Notify Seller
+      if (seller && seller.email) {
+        const sellerSubject = `🎉 Venda Realizada! - ${productName}`;
+        const sellerHtml = `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+            <h2 style="color: #10b981;">Parabéns! Nova venda realizada.</h2>
+            <p>O seu produto <strong>${productName}</strong> foi vendido com sucesso!</p>
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+            <h3>Detalhes da Venda:</h3>
+            <p><strong>Pedido ID:</strong> ${order.id}</p>
+            <p><strong>Cliente:</strong> ${order.customer_name} (${order.customer_email})</p>
+            <p><strong>Valor do Produto:</strong> ${order.price} MT</p>
+            <p><strong>Data:</strong> ${new Date(order.created_at).toLocaleString()}</p>
+            <br />
+            <p>Boas vendas!<br/>Equipe EnsinaPay</p>
+          </div>
+        `;
+        
+        const sellerEmailResp = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'accept': 'application/json',
+            'api-key': BREVO_API_KEY,
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify({
+            sender: { name: "EnsinaPay", email: "suporte@ensinapay.com" },
+            to: [{ email: seller.email, name: seller.full_name }],
+            subject: sellerSubject,
+            htmlContent: sellerHtml
+          })
+        });
+        if (!sellerEmailResp.ok) {
+          console.error('Error sending seller email via Brevo:', await sellerEmailResp.text());
+        }
+      }
+
+      // 4B. Notify Admins
+      const { data: admins, error: adminError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('role', 'admin');
+
+      if (!adminError && admins && admins.length > 0) {
+        const adminEmails = admins.map(a => ({ email: a.email })).filter(a => a.email);
+        const adminSubject = `✅ Pedido pago: ${order.id}`;
+        const adminHtml = `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+            <h2 style="color: #10b981;">Novo pagamento confirmado e produto entregue.</h2>
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+            <ul>
+              <li><strong>Pedido ID:</strong> ${order.id}</li>
+              <li><strong>Produto:</strong> ${productName}</li>
+              <li><strong>Cliente:</strong> ${order.customer_name} (${order.customer_email})</li>
+              <li><strong>Vendedor:</strong> ${seller?.full_name || 'Desconhecido'} (${seller?.email || 'N/A'})</li>
+              <li><strong>Valor:</strong> ${order.price} MT</li>
+              <li><strong>Status:</strong> delivered</li>
+              <li><strong>Data:</strong> ${new Date(order.created_at).toLocaleString()}</li>
+            </ul>
+          </div>
+        `;
+
+        const adminEmailResp = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'accept': 'application/json',
+            'api-key': BREVO_API_KEY,
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify({
+            sender: { name: "EnsinaPay System", email: "suporte@ensinapay.com" },
+            to: adminEmails,
+            subject: adminSubject,
+            htmlContent: adminHtml
+          })
+        });
+        if (!adminEmailResp.ok) {
+          console.error('Error sending admin email via Brevo:', await adminEmailResp.text());
+        }
+      }
+    } catch (err) {
+      console.error('Error processing seller/admin notification emails in deliver-product:', err);
+    }
 
     return new Response(
-      JSON.stringify({ success: true, message: "Product delivered" }),
+      JSON.stringify({ success: true, message: "Product delivered and notifications sent" }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
