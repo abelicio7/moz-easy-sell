@@ -44,20 +44,19 @@ serve(async (req) => {
     const body = JSON.parse(rawBody);
     const { event, data, timestamp } = body;
 
-    // 3. LOG RAW WEBHOOK FOR AUDIT
+    // 3. LOG RAW WEBHOOK FOR AUDIT (Only 'payload' exists in the database schema)
     await supabase.from('webhook_logs').insert({ 
-        payload: body,
-        event_type: event,
-        reference: data?.reference
+        payload: body
     });
 
-    console.log(`Processing event: ${event} for reference: ${data?.reference}`);
+    // Débito Pay sends the reference in data.transaction_id or data.reference
+    const reference = data?.transaction_id || data?.reference || data?.external_reference || data?.source_id || body?.reference || body?.id;
+    const paymentId = data?.payment_id || data?.id || body?.id;
+
+    console.log(`Processing event: ${event} for reference: ${reference}`);
 
     // 4. PROCESS 'payment.completed' or 'payment_completed'
     if (event === 'payment.completed' || event === 'payment_completed' || event === 'ORDER_PAID') {
-      const reference = data?.reference || data?.external_reference || data?.source_id;
-      const paymentId = data?.payment_id || data?.id;
-
       if (!reference) {
         console.error("ERRO: Nenhuma referência encontrada no corpo do webhook.", body);
         return new Response(JSON.stringify({ error: "No reference found" }), { status: 200, headers: corsHeaders });
