@@ -7,6 +7,12 @@
     <meta name="description" content="A plataforma nº1 para vender produtos digitais em Moçambique com M-Pesa e E-Mola.">
     <meta name="author" content="EnsinaPay" />
     <link rel="icon" type="image/png" href="/logo.png">
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#10b981" />
+    <link rel="apple-touch-icon" href="/pwa-icon-192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="EnsinaPay" />
 
     <!-- Google Search Console Verification -->
     <meta name="google-site-verification" content="MAIGDFqT8A_xaEeBOhn86lpwadMNbAXB_GLv2NSg_oU" />
@@ -20,6 +26,15 @@
   <meta name="twitter:title" content="EnsinaPay - Venda Produtos Digitais em Moçambique">
   <meta property="og:description" content="A plataforma nº1 para vender produtos digitais em Moçambique com M-Pesa e E-Mola.">
   <meta name="twitter:description" content="A plataforma nº1 para vender produtos digitais em Moçambique com M-Pesa e E-Mola.">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('Service Worker registrado com sucesso:', reg.scope))
+          .catch(err => console.error('Erro ao registrar Service Worker:', err));
+      });
+    }
+  </script>
 </head>
 
   <body>

@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
-import { Package, ShoppingCart, LogOut, Menu, X, BarChart3, LayoutTemplate, Puzzle, Wallet, ShieldAlert, TrendingUp, UserCircle, Trash2, Users, ShoppingBag } from "lucide-react";
+import { Package, ShoppingCart, LogOut, Menu, X, BarChart3, LayoutTemplate, Puzzle, Wallet, ShieldAlert, TrendingUp, UserCircle, Trash2, Users, ShoppingBag, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -18,8 +18,51 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-
   const [isAdmin, setIsAdmin] = useState(false);
+
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBtn(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      setShowInstallBtn(false);
+    }
+
+    // Detect iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    
+    if (isIOS && !isStandalone) {
+      const timer = setTimeout(() => {
+        toast("📲 Instale o Aplicativo EnsinaPay", {
+          description: "Toque em Compartilhar e depois em 'Adicionar à Tela de Início' para instalar no seu iPhone/iPad.",
+          duration: 8000,
+        });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to PWA prompt: ${outcome}`);
+    setDeferredPrompt(null);
+    setShowInstallBtn(false);
+  };
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -156,6 +199,17 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             ))}
           </div>
           <div className="flex items-center gap-2">
+            {showInstallBtn && (
+              <Button
+                onClick={handleInstallClick}
+                variant="outline"
+                size="sm"
+                className="gap-2 border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium"
+              >
+                <Download className="w-4 h-4 animate-bounce" />
+                <span className="hidden sm:inline">Instalar App</span>
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="gap-2">
@@ -204,6 +258,19 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               </Link>
             </Button>
           ))}
+          {showInstallBtn && (
+            <Button
+              onClick={() => {
+                setMobileOpen(false);
+                handleInstallClick();
+              }}
+              variant="outline"
+              className="justify-start gap-2 border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 w-full mt-2"
+            >
+              <Download className="w-4 h-4 animate-bounce" />
+              Instalar Aplicativo EnsinaPay
+            </Button>
+          )}
           <div className="h-px bg-border my-2" />
           <Button variant="ghost" className="justify-start" asChild onClick={() => setMobileOpen(false)}>
             <Link to="/dashboard/account" className="flex items-center gap-2">
