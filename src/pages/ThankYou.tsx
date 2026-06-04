@@ -212,7 +212,7 @@ const ThankYou = () => {
           <Button 
             variant="outline" 
             className="w-full h-14 rounded-xl border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary font-bold transition-all group"
-            onClick={() => window.location.href = '/library'}
+            onClick={() => window.location.href = '/biblioteca'}
           >
             <div className="flex items-center justify-center gap-2">
               <Package className="w-5 h-5 group-hover:scale-110 transition-transform" />
