@@ -176,14 +176,14 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       <header className="border-b border-border bg-background sticky top-0 z-50">
         <div className="container flex items-center justify-between h-14">
            <div className="flex items-center gap-4">
-            <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
+            <button className="lg:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
             <Link to="/dashboard" className="flex items-center gap-2">
               <Logo size="sm" />
             </Link>
           </div>
-          <div className="hidden md:flex items-center gap-1 overflow-x-auto">
+          <div className="hidden lg:flex items-center gap-1 overflow-x-auto">
             {links.map((link) => (
               <Button
                 key={link.to}
@@ -243,7 +243,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
       {/* Mobile nav */}
       {mobileOpen && (
-        <div className="md:hidden border-b border-border bg-background p-4 flex flex-col gap-2">
+        <div className="lg:hidden border-b border-border bg-background p-4 flex flex-col gap-2">
           {links.map((link) => (
             <Button
               key={link.to}

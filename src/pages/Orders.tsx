@@ -58,9 +58,13 @@ const Orders = () => {
         </Card>
       ) : (
         <Tabs defaultValue="paid" className="w-full">
-          <TabsList className="mb-6 grid w-full grid-cols-2 max-w-md">
-            <TabsTrigger value="paid">Concluídos ({paidOrders.length})</TabsTrigger>
-            <TabsTrigger value="pending">Não Concluídos ({pendingOrders.length})</TabsTrigger>
+          <TabsList className="mb-6 grid w-full grid-cols-2 max-w-md h-auto p-1 bg-muted/60">
+            <TabsTrigger value="paid" className="py-2 text-xs sm:text-sm font-semibold">
+              Concluídos ({paidOrders.length})
+            </TabsTrigger>
+            <TabsTrigger value="pending" className="py-2 text-xs sm:text-sm font-semibold">
+              Não Concluídos ({pendingOrders.length})
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="paid" className="grid gap-3 mt-0">
