@@ -216,8 +216,8 @@ serve(async (req) => {
 
       // 4C. Send Web Push Notification to Seller
       try {
-        const PUBLIC_VAPID_KEY = "BP9Yk2z61GO9KHGSUH4l9WIagqBchLwn20X_QOlqXKsoXlqU_KGc1cr24ii7JvcA1vO9q6ztLMiDe03mweHwr_I";
-        const PRIVATE_VAPID_KEY = "WvfEKf19iHMugcaKusy5RlQMBxlg-eZhWUb4eZm_aP4";
+        const PUBLIC_VAPID_KEY = Deno.env.get('VAPID_PUBLIC_KEY') || "";
+        const PRIVATE_VAPID_KEY = Deno.env.get('VAPID_PRIVATE_KEY') || "";
 
         if (sellerId) {
           const { data: subs, error: subsError } = await supabase

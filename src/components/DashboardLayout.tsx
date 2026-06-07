@@ -25,7 +25,7 @@ const urlBase64ToUint8Array = (base64String: string) => {
   return outputArray;
 };
 
-const PUBLIC_VAPID_KEY = "BP9Yk2z61GO9KHGSUH4l9WIagqBchLwn20X_QOlqXKsoXlqU_KGc1cr24ii7JvcA1vO9q6ztLMiDe03mweHwr_I";
+const PUBLIC_VAPID_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || "";
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();

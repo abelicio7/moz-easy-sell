@@ -29,8 +29,8 @@ serve(async (req) => {
     );
 
     // VAPID Keys
-    const PUBLIC_VAPID_KEY = Deno.env.get('VAPID_PUBLIC_KEY') || "BP9Yk2z61GO9KHGSUH4l9WIagqBchLwn20X_QOlqXKsoXlqU_KGc1cr24ii7JvcA1vO9q6ztLMiDe03mweHwr_I";
-    const PRIVATE_VAPID_KEY = Deno.env.get('VAPID_PRIVATE_KEY') || "WvfEKf19iHMugcaKusy5RlQMBxlg-eZhWUb4eZm_aP4";
+    const PUBLIC_VAPID_KEY = Deno.env.get('VAPID_PUBLIC_KEY') || "";
+    const PRIVATE_VAPID_KEY = Deno.env.get('VAPID_PRIVATE_KEY') || "";
 
     // Get user subscriptions
     const { data: subs, error: subsError } = await supabase
