@@ -14,11 +14,61 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+const urlBase64ToUint8Array = (base64String: string) => {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+};
+
+const PUBLIC_VAPID_KEY = "BP9Yk2z61GO9KHGSUH4l9WIagqBchLwn20X_QOlqXKsoXlqU_KGc1cr24ii7JvcA1vO9q6ztLMiDe03mweHwr_I";
+
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const registerPush = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission !== 'granted') return;
+
+          const registration = await navigator.serviceWorker.ready;
+          let subscription = await registration.pushManager.getSubscription();
+
+          if (!subscription) {
+            subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
+            });
+          }
+
+          const subscriptionData = JSON.parse(JSON.stringify(subscription));
+          if (subscriptionData?.endpoint && subscriptionData?.keys?.p256dh && subscriptionData?.keys?.auth) {
+            await supabase.from('push_subscriptions').upsert({
+              user_id: user.id,
+              endpoint: subscriptionData.endpoint,
+              p256dh: subscriptionData.keys.p256dh,
+              auth: subscriptionData.keys.auth
+            }, { onConflict: 'user_id, endpoint' });
+          }
+        } catch (err) {
+          console.error('Error registering push notification:', err);
+        }
+      }
+    };
+    registerPush();
+  }, []);
 
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);

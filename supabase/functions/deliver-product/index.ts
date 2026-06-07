@@ -213,6 +213,50 @@ serve(async (req) => {
           console.error('Error sending admin email via Brevo:', await adminEmailResp.text());
         }
       }
+
+      // 4C. Send Web Push Notification to Seller
+      try {
+        const PUBLIC_VAPID_KEY = "BP9Yk2z61GO9KHGSUH4l9WIagqBchLwn20X_QOlqXKsoXlqU_KGc1cr24ii7JvcA1vO9q6ztLMiDe03mweHwr_I";
+        const PRIVATE_VAPID_KEY = "WvfEKf19iHMugcaKusy5RlQMBxlg-eZhWUb4eZm_aP4";
+
+        if (sellerId) {
+          const { data: subs, error: subsError } = await supabase
+            .from('push_subscriptions')
+            .select('*')
+            .eq('user_id', sellerId);
+
+          if (!subsError && subs && subs.length > 0) {
+            const webpush = (await import('npm:web-push')).default;
+            webpush.setVapidDetails(
+              'mailto:suporte@ensinapay.com',
+              PUBLIC_VAPID_KEY,
+              PRIVATE_VAPID_KEY
+            );
+
+            for (const sub of subs) {
+              const pushSubscription = {
+                endpoint: sub.endpoint,
+                keys: {
+                  p256dh: sub.p256dh,
+                  auth: sub.auth
+                }
+              };
+
+              const payload = JSON.stringify({
+                title: "Venda realizada! 🎉",
+                body: `Comissão: ${order.price} MT - ID: ${order.id.slice(0, 8).toUpperCase()}`,
+                url: "/dashboard/sales"
+              });
+
+              await webpush.sendNotification(pushSubscription, payload).catch(e => console.error("WebPush send error for sub:", e));
+            }
+            console.log(`Sent push notifications to ${subs.length} devices for seller ${sellerId}`);
+          }
+        }
+      } catch (pushErr) {
+        console.error("Error sending Web Push notification:", pushErr);
+      }
+
     } catch (err) {
       console.error('Error processing seller/admin notification emails in deliver-product:', err);
     }

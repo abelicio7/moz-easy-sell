@@ -60,3 +60,54 @@ self.addEventListener('fetch', (event) => {
       })
   );
 });
+
+self.addEventListener('push', (event) => {
+  let data = { 
+    title: 'Venda Realizada! 🎉', 
+    body: 'Parabéns, você realizou uma nova venda no EnsinaPay!',
+    url: '/dashboard/sales'
+  };
+
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: '/pwa-icon-192.png',
+    badge: '/pwa-icon-192.png', // Monochromatic badge icon for Android
+    vibrate: [200, 100, 200],   // Vibration pattern
+    data: {
+      url: data.url || '/dashboard/sales'
+    },
+    actions: [
+      { action: 'open', title: 'Ver Detalhes' }
+    ]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+// Action when notification is clicked
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      const targetUrl = event.notification.data?.url || '/dashboard/sales';
+      for (const client of clientList) {
+        if (client.url.includes(targetUrl) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
