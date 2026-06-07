@@ -48,7 +48,7 @@ const Finance = () => {
   const [saveMethod, setSaveMethod] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  const WITHDRAWAL_FEE_PERCENT = 0.10; // 10%
+  const WITHDRAWAL_FEE_PERCENT = 0.12; // 12%
 
   useEffect(() => {
     if (!user) return;
@@ -144,8 +144,8 @@ const Finance = () => {
   const handleWithdrawalRequest = async () => {
     if (!user) return;
     
-    if (!numAmount || numAmount <= 0) {
-      toast.error("Insira um valor válido.");
+    if (!numAmount || numAmount < 500) {
+      toast.error("O valor mínimo para saque é de 500 MT.");
       return;
     }
     if (numAmount > availableBalance) {
@@ -191,6 +191,34 @@ const Finance = () => {
 
       toast.success("Solicitação de saque enviada com sucesso!");
       
+      // Notify Seller about the withdrawal processing
+      try {
+        await supabase.functions.invoke("send-email-notification", {
+          body: { 
+            to: user.email, 
+            subject: "Pedido de Saque em Processamento - EnsinaPay", 
+            htmlContent: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
+                <h2 style="color: #f59e0b;">Saque em Processamento ⏳</h2>
+                <p>Olá, <strong>${user.user_metadata?.full_name || 'Vendedor(a)'}</strong>.</p>
+                <p>Confirmamos a receção do seu pedido de saque no valor bruto de <strong>${numAmount.toFixed(2)} MT</strong>.</p>
+                <p>A nossa equipa financeira está neste momento a validar e processar a transferência para o método selecionado.</p>
+                <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb; margin: 20px 0;">
+                  <p style="margin: 5px 0;"><strong>Valor Líquido a Receber:</strong> <span style="color: #10b981; font-weight: bold;">${netAmount.toFixed(2)} MT</span></p>
+                  <p style="margin: 5px 0;"><strong>Método de Recebimento:</strong> ${paymentMethod} (${paymentDetails} - ${accountName})</p>
+                  <p style="margin: 5px 0;"><strong>Prazo Estimado:</strong> 1-2 dias úteis</p>
+                </div>
+                <p>Receberá um novo aviso assim que a transferência for concluída (ou rejeitada caso haja dados incorretos).</p>
+                <p style="font-size: 12px; color: #666; margin-top: 30px;">Obrigado por utilizar a EnsinaPay!</p>
+              </div>
+            `,
+            senderName: "EnsinaPay Financeiro"
+          }
+        });
+      } catch (sellerNotifErr) {
+        console.error("Error notifying seller about withdrawal:", sellerNotifErr);
+      }
+
       // Notify Admins about the withdrawal request
       try {
         await supabase.functions.invoke("notify-admins", {
@@ -257,7 +285,7 @@ const Finance = () => {
                 <div className="relative">
                    <Input 
                     type="number"
-                    placeholder="0.00" 
+                    placeholder="Min: 500 MT" 
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     className="pr-16 text-lg font-bold"
@@ -271,7 +299,7 @@ const Finance = () => {
                       <span>{numAmount.toFixed(2)} MT</span>
                     </div>
                     <div className="flex justify-between text-xs text-destructive">
-                      <span>Taxa EnsinaPay (10%):</span>
+                      <span>Taxa EnsinaPay (12%):</span>
                       <span>- {feeAmount.toFixed(2)} MT</span>
                     </div>
                     <div className="flex justify-between text-sm font-bold border-t border-border/50 pt-1 mt-1 text-foreground">
@@ -417,7 +445,7 @@ const Finance = () => {
             <CardContent className="text-sm text-muted-foreground space-y-4">
               <ul className="list-disc list-inside space-y-1">
                 <li><strong className="text-foreground/80">Processamento:</strong> 1-2 dias úteis, das 7:30h até 17:30h</li>
-                <li><strong className="text-foreground/80">Taxa Administrativa:</strong> 10% fixo por saque</li>
+                <li><strong className="text-foreground/80">Taxa Administrativa:</strong> 12% fixo por saque</li>
                 <li><strong className="text-foreground/80">Canais suportados:</strong> M-Pesa e E-Mola</li>
               </ul>
               <div className="space-y-1 pt-2 border-t border-border/50">
@@ -453,7 +481,7 @@ const Finance = () => {
                         <th className="px-4 py-4 font-bold text-foreground">Data</th>
                         <th className="px-4 py-4 font-bold text-foreground">Destino</th>
                         <th className="px-4 py-4 font-bold text-foreground">Valor Bruto</th>
-                        <th className="px-4 py-4 font-bold text-foreground">Taxa (10%)</th>
+                        <th className="px-4 py-4 font-bold text-foreground">Taxa (12%)</th>
                         <th className="px-4 py-4 font-bold text-foreground">Líquido</th>
                         <th className="px-4 py-4 font-bold text-foreground text-right">Status</th>
                       </tr>

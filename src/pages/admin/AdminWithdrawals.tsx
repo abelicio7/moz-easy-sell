@@ -19,6 +19,7 @@ interface Withdrawal {
   payment_details: string;
   rejection_reason: string;
   created_at: string;
+  user_id: string;
   profiles: { full_name: string; email: string };
 }
 
@@ -132,6 +133,18 @@ const AdminWithdrawals = () => {
               subject, 
               htmlContent,
               senderName: "EnsinaPay Financeiro"
+            }
+          });
+
+          // Enviar Push Notification
+          await supabase.functions.invoke("send-push-notification", {
+            body: {
+              userId: selectedItem.user_id,
+              title: action === "approve" ? "Transferência Realizada! 💰" : "Atenção ao seu Saque! ⚠️",
+              body: action === "approve" 
+                ? `O seu saque de ${selectedItem.amount.toFixed(2)} MT já foi processado e enviado para a sua conta ${selectedItem.payment_method}.`
+                : `O seu pedido de retirada de ${selectedItem.amount.toFixed(2)} MT foi rejeitado. Verifique os dados no painel e tente novamente.`,
+              url: "/dashboard/finance"
             }
           });
         } catch (e) {

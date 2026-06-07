@@ -23,6 +23,7 @@ interface Product {
   status: string;
   rejection_reason: string;
   created_at: string;
+  user_id: string;
   profiles: { full_name: string; email: string };
 }
 
@@ -146,8 +147,20 @@ const AdminProducts = () => {
             }
           });
           console.log("Notificação enviada por email com sucesso.");
+
+          // Enviar Push Notification
+          await supabase.functions.invoke("send-push-notification", {
+            body: {
+              userId: selectedProduct.user_id,
+              title: action === "approve" ? "Produto Ativo! ✅" : "Atenção ao seu Produto ⚠️",
+              body: action === "approve" 
+                ? `O seu produto "${selectedProduct.name}" foi aprovado e já está pronto a vender.`
+                : `O produto "${selectedProduct.name}" não foi aprovado pela equipa. Verifique as correções.`,
+              url: "/dashboard/products"
+            }
+          });
         } catch (emailErr) {
-          console.error("Falha ao enviar email:", emailErr);
+          console.error("Falha ao enviar email/push:", emailErr);
           // Don't stop the flow if email fails, but log it
         }
       }
