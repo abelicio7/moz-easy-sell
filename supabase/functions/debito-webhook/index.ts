@@ -81,6 +81,33 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: "No reference found" }), { status: 200, headers: corsHeaders });
       }
 
+      // Prevenir falsos positivos: validar que o status interno não é de falha ou pendente
+      const possibleStatuses = [
+        data?.status,
+        data?.payment_status,
+        data?.transaction_status,
+        body?.status,
+        body?.payment_status
+      ].filter(Boolean);
+
+      let hasFailure = false;
+      let hasPending = false;
+
+      for (const s of possibleStatuses) {
+        const raw = String(s).toLowerCase();
+        if (['failed', 'fail', 'rejected', 'recusado', 'canceled', 'cancelled', 'error'].includes(raw) || raw.includes('fail') || raw.includes('reject')) {
+          hasFailure = true;
+        }
+        if (['pending', 'pendente', 'processing', 'awaiting'].includes(raw)) {
+          hasPending = true;
+        }
+      }
+
+      if (hasFailure || hasPending) {
+        console.warn(`WEBHOOK ALERTA: Evento ${event} recebido para ${reference}, mas status interno indica falha ou pendente!`, possibleStatuses);
+        return new Response(JSON.stringify({ message: "Ignored. Webhook event status contradicts internal state (failure/pending detected)." }), { status: 200, headers: corsHeaders });
+      }
+
       // 1. Tentar encontrar por debito_reference (ID do Débito Pay)
       console.log(`Procurando pedido com debito_reference: ${reference}`);
       const { data: order, error: orderError } = await supabase

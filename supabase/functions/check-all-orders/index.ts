@@ -92,24 +92,37 @@ serve(async (req) => {
         }
         console.log(`Resposta completa do Gateway para Ref ${order.debito_reference}:`, JSON.stringify(debitoData));
 
-        // Lógica de detecção ultra-flexível (incluindo o novo campo 'payment.status')
-        const status = (
-          debitoData.payment?.status || 
-          debitoData.data?.status || 
-          debitoData.status || 
-          ""
-        ).toLowerCase();
-        
-        const success = debitoData.success === true || debitoData.status === "success" || debitoData.message === "success";
-        
-        const isPaid = (success || status === "success") && (
-          status === "success" || 
-          status === "completed" || 
-          status === "paid" || 
-          status === "pago" || 
-          status === "successful" ||
-          status === "complete"
-        );
+        // Lógica de detecção restrita para evitar falsos positivos
+        const possibleStatuses = [
+          debitoData.payment?.status,
+          debitoData.payment?.payment_status,
+          debitoData.data?.status,
+          debitoData.data?.payment_status,
+          debitoData.data?.transaction_status,
+          debitoData.status,
+          debitoData.payment_status,
+          debitoData.transaction_status
+        ].filter(Boolean);
+
+        let hasFailure = false;
+        let hasPending = false;
+        let definitiveSuccess = false;
+
+        for (const s of possibleStatuses) {
+          const raw = String(s).toLowerCase();
+          if (['failed', 'fail', 'rejected', 'recusado', 'canceled', 'cancelled', 'error'].includes(raw) || raw.includes('fail') || raw.includes('reject')) {
+            hasFailure = true;
+          }
+          if (['pending', 'pendente', 'processing', 'awaiting'].includes(raw)) {
+            hasPending = true;
+          }
+          if (['success', 'completed', 'paid', 'successful', 'pago', 'complete'].includes(raw)) {
+            definitiveSuccess = true;
+          }
+        }
+
+        // Para ser pago, deve ter confirmação de sucesso, ZERO indícios de falha e ZERO pendências.
+        const isPaid = definitiveSuccess && !hasFailure && !hasPending;
 
         if (isPaid) {
           console.log(`✅ PAGAMENTO CONFIRMADO: Pedido ${order.id}. Atualizando para 'paid'...`);

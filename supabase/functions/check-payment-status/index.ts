@@ -100,50 +100,64 @@ serve(async (req) => {
 
     console.log("Resposta do Gateway:", JSON.stringify(debitoData));
 
-    // Lógica de detecção ultra-flexível (Sincronizada com check-all-orders)
-    const status = (
-      debitoData.payment?.status || 
-      debitoData.data?.status || 
-      debitoData.status || 
-      ""
-    ).toLowerCase();
-    
-    const success = debitoData.success === true || debitoData.status === "success" || debitoData.message === "success";
-    
-    const isPaid = (success || status === "success") && (
-      status === "success" || 
-      status === "completed" || 
-      status === "paid" || 
-      status === "pago" || 
-      status === "successful" ||
-      status === "complete"
-    );
+        // Lógica de detecção restrita para evitar falsos positivos
+        const possibleStatuses = [
+          debitoData.payment?.status,
+          debitoData.payment?.payment_status,
+          debitoData.data?.status,
+          debitoData.data?.payment_status,
+          debitoData.data?.transaction_status,
+          debitoData.status,
+          debitoData.payment_status,
+          debitoData.transaction_status
+        ].filter(Boolean);
 
-    if (isPaid) {
-      console.log(`✅ Payment confirmed via Polling for ${order_id}. Updating DB...`)
-      
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({ status: 'paid' })
-        .eq('id', order_id)
+        let hasFailure = false;
+        let hasPending = false;
+        let definitiveSuccess = false;
 
-      if (!updateError) {
-        // TRIGGER DELIVERY
-        fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/deliver-product`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
-          },
-          body: JSON.stringify({ orderId: order_id })
-        }).catch(err => console.error("Error triggering delivery from polling:", err))
-        
-        return new Response(
-          JSON.stringify({ order_status: 'paid' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-    }
+        for (const s of possibleStatuses) {
+          const raw = String(s).toLowerCase();
+          if (['failed', 'fail', 'rejected', 'recusado', 'canceled', 'cancelled', 'error'].includes(raw) || raw.includes('fail') || raw.includes('reject')) {
+            hasFailure = true;
+          }
+          if (['pending', 'pendente', 'processing', 'awaiting'].includes(raw)) {
+            hasPending = true;
+          }
+          if (['success', 'completed', 'paid', 'successful', 'pago', 'complete'].includes(raw)) {
+            definitiveSuccess = true;
+          }
+        }
+
+        // Para ser pago, deve ter confirmação de sucesso, ZERO indícios de falha e ZERO indícios de pendência.
+        // Isso evita que `debitoData.status = "SUCCESS"` (sucesso da API) sobreponha `debitoData.payment.status = "FAILED"`
+        const isPaid = definitiveSuccess && !hasFailure && !hasPending;
+
+        if (isPaid) {
+          console.log(`✅ Payment confirmed via Polling for ${order_id}. Updating DB...`)
+          
+          const { error: updateError } = await supabase
+            .from('orders')
+            .update({ status: 'paid' })
+            .eq('id', order_id)
+
+          if (!updateError) {
+            // TRIGGER DELIVERY
+            fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/deliver-product`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+              },
+              body: JSON.stringify({ orderId: order_id })
+            }).catch(err => console.error("Error triggering delivery from polling:", err))
+            
+            return new Response(
+              JSON.stringify({ order_status: 'paid' }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
+        }
 
     return new Response(
       JSON.stringify({ order_status: order.status }),
