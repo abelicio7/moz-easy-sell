@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Webhook, Facebook, LineChart, Mail, MessageCircle, CheckCircle2 } from "lucide-react";
+import { Webhook, Facebook, Mail, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -297,26 +297,7 @@ const Integrations = () => {
             </CardFooter>
           </Card>
 
-          {/* GOOGLE ANALYTICS - BREVEMENTE */}
-          <Card className="border-border/50 opacity-75">
-            <CardHeader>
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-12 h-12 rounded-lg bg-[#E37400]/10 flex items-center justify-center text-[#E37400]">
-                  <LineChart className="w-6 h-6" />
-                </div>
-                <Badge variant="secondary" className="text-[10px]">Em breve</Badge>
-              </div>
-              <CardTitle>Google Analytics (GA4)</CardTitle>
-              <CardDescription>
-                Acompanhe as conversões e o tráfego do funil das suas páginas de checkout diretamente no painel do Google Analytics.
-              </CardDescription>
-            </CardHeader>
-            <CardFooter>
-              <Button variant="outline" className="w-full" disabled>
-                Cooming Soon
-              </Button>
-            </CardFooter>
-          </Card>
+
 
           {/* EMAIL MARKETING - BREVEMENTE */}
           <Card className="border-border/50 opacity-75">
@@ -339,26 +320,7 @@ const Integrations = () => {
             </CardFooter>
           </Card>
 
-          {/* WHATSAPP - BREVEMENTE */}
-          <Card className="border-border/50 opacity-75">
-            <CardHeader>
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-12 h-12 rounded-lg bg-[#25D366]/10 flex items-center justify-center text-[#25D366]">
-                  <MessageCircle className="w-6 h-6" />
-                </div>
-                <Badge variant="secondary" className="text-[10px]">Em breve</Badge>
-              </div>
-              <CardTitle>Notificações via WhatsApp</CardTitle>
-              <CardDescription>
-                Receba um alerta (Ping) direto no seu WhatsApp toda vez que uma nova venda for realizada com sucesso na plataforma.
-              </CardDescription>
-            </CardHeader>
-            <CardFooter>
-              <Button variant="outline" className="w-full" disabled>
-                Cooming Soon
-              </Button>
-            </CardFooter>
-          </Card>
+
 
         </div>
       )}
