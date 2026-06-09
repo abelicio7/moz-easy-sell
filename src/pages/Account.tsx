@@ -102,68 +102,28 @@ const Account = () => {
     fetchData();
   }, [user]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const hasEmptyFields = !profile?.full_name || !profile?.cpf;
+
+  const handleSaveInitialData = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-
-    // Check if there is already a pending request
-    if (activeRequest?.status === 'pending') {
-      toast.error("Você já tem uma solicitação em análise. Aguarde a aprovação.");
-      return;
-    }
-
-    const requestedData = {
-      full_name: fullName,
-      cpf: cpf,
-      email: email
-    };
-
     setSubmitting(true);
     try {
-      const { data, error } = await supabase
-        .from("profile_update_requests")
-        .insert({
-          user_id: user.id,
-          requested_data: requestedData,
-          status: 'pending'
-        })
-        .select()
-        .single();
+       const updates: any = {};
+       if (!profile?.full_name && fullName) updates.full_name = fullName;
+       if (!profile?.cpf && cpf) updates.cpf = cpf;
 
-      if (error) throw error;
-      
-      setActiveRequest(data as any);
-
-      // Notify Admins
-      try {
-        const adminSubject = `Solicitação de Alteração de Perfil: ${fullName}`;
-        const adminHtml = `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
-            <h2 style="color: #000;">Nova Solicitação de Alteração de Perfil 🛠️</h2>
-            <p>O vendedor <strong>${fullName}</strong> solicitou a alteração de seus dados cadastrais.</p>
-            <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb;">
-              <p style="margin: 5px 0;"><strong>Nome Solicitado:</strong> ${fullName}</p>
-              <p style="margin: 5px 0;"><strong>Documento:</strong> ${cpf}</p>
-              <p style="margin: 5px 0;"><strong>E-mail:</strong> ${email}</p>
-            </div>
-            <div style="text-align: center; margin-top: 25px;">
-              <a href="${window.location.origin}/admin/requests" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Analisar Solicitação</a>
-            </div>
-          </div>
-        `;
-
-        await supabase.functions.invoke("notify-admins", {
-          body: { subject: adminSubject, htmlContent: adminHtml }
-        });
-      } catch (e) {
-        console.error("Erro ao notificar admins sobre alteração de perfil:", e);
-      }
-
-      toast.success("Solicitação de alteração enviada com sucesso!");
-    } catch (error: any) {
-      toast.error(error.message || "Erro ao enviar solicitação.");
+       if (Object.keys(updates).length > 0) {
+         const { error } = await supabase.from('profiles').update(updates).eq('id', user.id);
+         if (error) throw error;
+         
+         setProfile(prev => prev ? { ...prev, ...updates } : null);
+         toast.success("Informações salvas com sucesso!");
+       }
+    } catch (err: any) {
+       toast.error(err.message || "Erro ao salvar informações.");
     } finally {
-      setSubmitting(false);
+       setSubmitting(false);
     }
   };
 
@@ -231,11 +191,13 @@ const Account = () => {
           <CardHeader>
             <CardTitle>Informações Pessoais</CardTitle>
             <CardDescription>
-              Para alterar essas informações, você precisa enviar um pedido de aprovação para a administração da plataforma.
+              {hasEmptyFields 
+                ? "Preencha os seus dados abaixo. Após salvos, não poderão ser alterados por motivos de segurança."
+                : "Por motivos de segurança, as informações pessoais não podem ser alteradas. Contacte o suporte caso necessite de assistência."}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSaveInitialData} className="space-y-6">
               <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border-2 border-primary/20 mb-6 animate-in fade-in slide-in-from-top-4">
                 <div className="space-y-0.5">
                   <Label className="text-base font-bold flex items-center gap-2">
@@ -260,9 +222,9 @@ const Account = () => {
                 <Input 
                   id="fullName" 
                   value={fullName} 
-                  onChange={(e) => setFullName(e.target.value)} 
-                  disabled={isPending}
-                  required 
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={!!profile?.full_name}
+                  required
                 />
               </div>
               
@@ -271,8 +233,9 @@ const Account = () => {
                 <Input 
                   id="cpf" 
                   value={cpf} 
-                  onChange={(e) => setCpf(e.target.value)} 
-                  disabled={isPending}
+                  onChange={(e) => setCpf(e.target.value)}
+                  disabled={!!profile?.cpf}
+                  required={hasEmptyFields && !profile?.cpf}
                 />
               </div>
 
@@ -282,23 +245,19 @@ const Account = () => {
                   id="email" 
                   type="email" 
                   value={email} 
-                  onChange={(e) => setEmail(e.target.value)} 
-                  disabled={isPending}
-                  required 
+                  disabled
                 />
-                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                  <AlertCircle className="w-3 h-3" />
-                  Se alterar o e-mail, será necessário confirmá-lo novamente.
-                </p>
               </div>
 
-              <Button 
-                type="submit" 
-                className="w-full md:w-auto" 
-                disabled={submitting || isPending}
-              >
-                {submitting ? "Enviando..." : "Solicitar Alteração"}
-              </Button>
+              {hasEmptyFields && (
+                <Button 
+                  type="submit" 
+                  className="w-full md:w-auto mt-4" 
+                  disabled={submitting}
+                >
+                  {submitting ? "A Guardar..." : "Guardar Informações"}
+                </Button>
+              )}
             </form>
           </CardContent>
         </Card>

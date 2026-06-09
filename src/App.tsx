@@ -16,7 +16,6 @@ import EditProduct from "./pages/EditProduct";
 
 import Orders from "./pages/Orders";
 import Sales from "./pages/Sales";
-import AbandonedCarts from "./pages/AbandonedCarts";
 import Integrations from "./pages/Integrations";
 import Finance from "./pages/Finance";
 import Checkout from "./pages/Checkout";
@@ -96,7 +95,6 @@ const App = () => {
           <Route path="/dashboard/products/:id/edit" element={<ProtectedRoute><EditProduct /></ProtectedRoute>} />
           <Route path="/dashboard/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
           <Route path="/dashboard/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
-          <Route path="/dashboard/abandoned-carts" element={<ProtectedRoute><AbandonedCarts /></ProtectedRoute>} />
           <Route path="/dashboard/integrations" element={<ProtectedRoute><Integrations /></ProtectedRoute>} />
           <Route path="/dashboard/finance" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
 
