@@ -212,6 +212,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     { to: "/dashboard/products", label: "Produtos", icon: Package },
     { to: "/dashboard/orders", label: "Pedidos", icon: ShoppingCart },
     { to: "/dashboard/sales", label: "Minhas Vendas", icon: TrendingUp },
+    { to: "/dashboard/abandoned-carts", label: "Carrinhos Aba.", icon: ShoppingCart },
     { to: "/dashboard/finance", label: "Financeiro", icon: Wallet },
     { to: "/dashboard/integrations", label: "Integrações", icon: Puzzle },
   ];

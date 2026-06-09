@@ -105,11 +105,13 @@ const Checkout = () => {
 
   useEffect(() => {
     const saveCart = async () => {
-      if (form.email && form.email.includes('@') && product) {
+      if (form.email && form.email.includes('@') && product && (form.name || form.customer_whatsapp)) {
         try {
           await supabase.from("carts").upsert({
             email: form.email,
-            customer_name: form.name,
+            customer_name: form.name || 'Em preenchimento',
+            customer_whatsapp: form.customer_whatsapp || null,
+            payment_phone: form.payment_phone || null,
             product_id: product.id,
             status: "pending",
             contacted_at: null
@@ -122,7 +124,7 @@ const Checkout = () => {
 
     const timer = setTimeout(saveCart, 2000); // Debounce to avoid too many writes
     return () => clearTimeout(timer);
-  }, [form.email, form.name, product]);
+  }, [form.email, form.name, form.customer_whatsapp, form.payment_phone, product]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
