@@ -139,6 +139,21 @@ const AdminUsers = () => {
     }
   };
 
+  const handleViewDocument = async (urlOrPath: string) => {
+    let filePath = urlOrPath;
+    if (filePath.includes('/object/public/kyc_documents/')) {
+      filePath = filePath.split('/object/public/kyc_documents/')[1];
+    }
+    
+    // We expect the file to be just the path string in modern implementation
+    const { data, error } = await supabase.storage.from('kyc_documents').createSignedUrl(filePath, 3600);
+    if (error || !data) {
+      toast.error('Erro ao aceder documento: ' + (error?.message || 'Contacte suporte.'));
+    } else {
+      window.open(data.signedUrl, '_blank');
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
@@ -238,9 +253,12 @@ const AdminUsers = () => {
                                 {user.identity_document_url && (
                                   <div className="col-span-2 pt-2 pb-1 border-t border-border/50">
                                     <span className="text-muted-foreground block text-xs mb-1">Documento Anexado</span>
-                                    <a href={user.identity_document_url} target="_blank" rel="noreferrer" className="text-primary hover:underline text-sm font-bold truncate block bg-primary/5 p-3 rounded border border-primary/20">
+                                    <button 
+                                      onClick={() => handleViewDocument(user.identity_document_url)} 
+                                      className="text-primary hover:underline text-sm font-bold truncate block bg-primary/5 p-3 rounded border border-primary/20 cursor-pointer w-full text-left"
+                                    >
                                       📄 Visualizar Documento Original
-                                    </a>
+                                    </button>
                                   </div>
                                 )}
                               </div>
