@@ -267,7 +267,7 @@ const Account = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="cpf">Documento (CPF / BI)</Label>
+                <Label htmlFor="cpf">Documento (BI ou Passaporte)</Label>
                 <Input 
                   id="cpf" 
                   value={cpf} 

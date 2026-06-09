@@ -37,6 +37,12 @@ const Finance = () => {
   const [savedMethods, setSavedMethods] = useState<SavedMethod[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [identityStatus, setIdentityStatus] = useState<string>("unverified");
+  
+  // KYC Modal state
+  const [kycModalOpen, setKycModalOpen] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [docFile, setDocFile] = useState<File | null>(null);
   
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -74,6 +80,16 @@ const Finance = () => {
     const revenue = (orderData || []).reduce((sum, order) => sum + Number(order.price), 0);
     setTotalRevenue(revenue);
 
+    // Fetch profile identity status
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("identity_status")
+      .eq("id", user.id)
+      .single();
+      
+    if (profile) {
+      setIdentityStatus(profile.identity_status || 'unverified');
+    }
 
     // Fetch withdrawals safely handling missing table structure if migration not run yet
     try {
@@ -140,6 +156,61 @@ const Finance = () => {
   const numAmount = Number(amount) || 0;
   const feeAmount = numAmount * WITHDRAWAL_FEE_PERCENT;
   const netAmount = numAmount - feeAmount;
+
+  const handleKycUpload = async () => {
+    if (!user || !docFile) return;
+    
+    // Check file size (max 5MB)
+    if (docFile.size > 5 * 1024 * 1024) {
+      toast.error("O arquivo deve ter no máximo 5MB.");
+      return;
+    }
+    
+    try {
+      setUploadingDoc(true);
+      
+      const fileExt = docFile.name.split('.').pop();
+      const fileName = `${user.id}_${Math.random()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('kyc_documents')
+        .upload(filePath, docFile, { upsert: true });
+        
+      if (uploadError) throw uploadError;
+      
+      const { data: publicUrlData } = supabase.storage
+        .from('kyc_documents')
+        .getPublicUrl(filePath);
+        
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          identity_status: 'pending',
+          identity_document_url: publicUrlData.publicUrl
+        })
+        .eq('id', user.id);
+        
+      if (updateError) throw updateError;
+      
+      toast.success("Documento enviado com sucesso! Aguarde a análise da nossa equipa (1-2 dias).");
+      setIdentityStatus('pending');
+      setKycModalOpen(false);
+      
+      // Notificar admins
+      await supabase.functions.invoke("notify-admins", {
+        body: { 
+          subject: `Novo Documento KYC de Vendedor`, 
+          htmlContent: `Um vendedor enviou um documento de identidade para análise. Por favor, verifique o painel.`
+        }
+      });
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Erro ao fazer upload do documento.");
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
 
   const handleWithdrawalRequest = async () => {
     if (!user) return;
@@ -264,7 +335,18 @@ const Finance = () => {
           <p className="text-muted-foreground mt-1 text-lg">Acompanhe seu saldo e solicite saques.</p>
         </div>
         
-        <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <Dialog open={modalOpen} onOpenChange={(open) => {
+          if (open) {
+            if (identityStatus === 'unverified' || identityStatus === 'rejected') {
+              setKycModalOpen(true);
+              return;
+            } else if (identityStatus === 'pending') {
+              toast.info("A aguardar verificação de identidade. Por favor, aguarde a aprovação do seu documento para solicitar saques.");
+              return;
+            }
+          }
+          setModalOpen(open);
+        }}>
           <DialogTrigger asChild>
             <Button size="lg" className="font-bold flex items-center gap-2" disabled={availableBalance <= 0 || loading}>
               <ArrowDownToLine className="w-4 h-4" />
@@ -383,6 +465,42 @@ const Finance = () => {
               <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancelar</Button>
               <Button onClick={handleWithdrawalRequest} disabled={submitting || numAmount <= 0} className="px-8">
                 {submitting ? "Processando..." : "Confirmar Saque"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* KYC Verification Modal */}
+        <Dialog open={kycModalOpen} onOpenChange={setKycModalOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Verificação de Identidade Obrigatória</DialogTitle>
+              <DialogDescription>
+                Para garantir a segurança dos seus fundos, novos vendedores ou contas não verificadas precisam enviar um <strong>Documento de Identidade</strong> (BI ou Passaporte) antes de realizar o primeiro saque.
+                <br/><br/>
+                <span className="text-destructive font-semibold">Atenção: O nome no documento deve coincidir com o nome do titular da carteira de destino (M-Pesa ou E-Mola) escolhida para o saque.</span>
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-6 space-y-4">
+               {identityStatus === 'rejected' && (
+                 <div className="p-3 bg-destructive/10 text-destructive text-sm rounded border border-destructive/20 mb-4">
+                   O seu documento anterior foi rejeitado. Por favor, envie uma imagem clara e legível do seu BI ou passaporte.
+                 </div>
+               )}
+               <div className="space-y-3">
+                 <Label>Anexar Imagem do Documento (Máx: 5MB)</Label>
+                 <Input 
+                   type="file" 
+                   accept="image/*,.pdf" 
+                   onChange={(e) => setDocFile(e.target.files?.[0] || null)}
+                 />
+                 <p className="text-xs text-muted-foreground">O processo de aprovação do seu documento levará em média 12 a 24 horas.</p>
+               </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setKycModalOpen(false)}>Cancelar</Button>
+              <Button onClick={handleKycUpload} disabled={!docFile || uploadingDoc}>
+                {uploadingDoc ? "Enviando..." : "Enviar para Verificação"}
               </Button>
             </DialogFooter>
           </DialogContent>
