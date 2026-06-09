@@ -255,10 +255,16 @@ const NewProduct = () => {
                        return;
                      }
                      
-                     // 500MB max per file
-                     const validFiles = files.filter(f => f.size <= 500 * 1024 * 1024);
-                     if (validFiles.length < files.length) {
-                       toast.error("Alguns arquivos foram ignorados por excederem o limite de 500MB.");
+                     let currentTotalSize = hostedFiles.reduce((acc, file) => acc + file.size, 0);
+                     const validFiles = [];
+                     
+                     for (const f of files) {
+                       if (currentTotalSize + f.size > 500 * 1024 * 1024) {
+                         toast.error("O tamanho total excede o limite de 500MB. Alguns ficheiros foram ignorados.");
+                         break;
+                       }
+                       validFiles.push(f);
+                       currentTotalSize += f.size;
                      }
                      
                      setHostedFiles(prev => [...prev, ...validFiles].slice(0, 10));
