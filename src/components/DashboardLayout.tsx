@@ -38,7 +38,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      if ('serviceWorker' in navigator && 'PushManager' in window) {
+      if ('serviceWorker' in navigator && 'PushManager' in window && PUBLIC_VAPID_KEY) {
         try {
           const permission = await Notification.requestPermission();
           if (permission !== 'granted') return;
@@ -46,7 +46,17 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
           const registration = await navigator.serviceWorker.ready;
           let subscription = await registration.pushManager.getSubscription();
 
+          if (subscription) {
+             const key = subscription.options?.applicationServerKey;
+             if (!key) {
+               console.log("Old subscription without applicationServerKey found. Unsubscribing...");
+               await subscription.unsubscribe();
+               subscription = null;
+             }
+          }
+
           if (!subscription) {
+            console.log("Creating new push subscription with VAPID...");
             subscription = await registration.pushManager.subscribe({
               userVisibleOnly: true,
               applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
@@ -61,6 +71,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               p256dh: subscriptionData.keys.p256dh,
               auth: subscriptionData.keys.auth
             }, { onConflict: 'user_id, endpoint' });
+            console.log("Push subscription safely registered in DB.");
           }
         } catch (err) {
           console.error('Error registering push notification:', err);
