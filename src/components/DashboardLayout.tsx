@@ -25,7 +25,8 @@ const urlBase64ToUint8Array = (base64String: string) => {
   return outputArray;
 };
 
-const PUBLIC_VAPID_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || "";
+// A Chave Pública VAPID pode ser exposta no lado do cliente com segurança:
+const PUBLIC_VAPID_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || "BCYwnlQb7Pv3rKXsJko5fjzbm9boL0KrCArxhaJ9radkfUK0AArPpnMPMLwVSyuaaEPikokd5I1ykBsFZdEK81Q";
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
