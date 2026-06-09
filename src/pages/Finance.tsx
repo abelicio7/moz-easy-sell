@@ -337,6 +337,14 @@ const Finance = () => {
         
         <Dialog open={modalOpen} onOpenChange={(open) => {
           if (open) {
+            if (totalRevenue === 0) {
+              toast.error("🔒 Faça pelo menos uma venda para poder registar as suas informações de saque.");
+              return;
+            }
+            if (availableBalance < 500) {
+              toast.error("O valor mínimo para realizar um saque e guardar os seus dados é de 500 MT.");
+              return;
+            }
             if (identityStatus === 'unverified' || identityStatus === 'rejected') {
               setKycModalOpen(true);
               return;
@@ -348,7 +356,7 @@ const Finance = () => {
           setModalOpen(open);
         }}>
           <DialogTrigger asChild>
-            <Button size="lg" className="font-bold flex items-center gap-2" disabled={availableBalance <= 0 || loading}>
+            <Button size="lg" className="font-bold flex items-center gap-2" disabled={loading}>
               <ArrowDownToLine className="w-4 h-4" />
               Solicitar Saque
             </Button>

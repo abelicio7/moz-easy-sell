@@ -18,13 +18,13 @@ const NewProduct = () => {
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [hostedFiles, setHostedFiles] = useState<File[]>([]);
   const [form, setForm] = useState({
     name: "",
     description: "",
     price: "",
     delivery_type: "link",
     delivery_content: "",
-    support_whatsapp: "",
     support_whatsapp: "",
   });
 
@@ -60,9 +60,16 @@ const NewProduct = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
-    if (!form.name || !form.price || !form.delivery_content || !form.support_whatsapp) {
+    if (!form.name || !form.price || !form.support_whatsapp) {
       toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+    if (form.delivery_type === 'hosted' && hostedFiles.length === 0) {
+      toast.error("Anexe pelo menos 1 arquivo para o seu produto.");
+      return;
+    }
+    if (form.delivery_type !== 'hosted' && !form.delivery_content) {
+      toast.error("O conteúdo da entrega é obrigatório.");
       return;
     }
     setLoading(true);
@@ -73,7 +80,7 @@ const NewProduct = () => {
       description: form.description,
       price: parseFloat(form.price),
       delivery_type: form.delivery_type,
-      delivery_content: form.delivery_content,
+      delivery_content: form.delivery_type === 'hosted' ? '[]' : form.delivery_content,
       support_whatsapp: form.support_whatsapp,
     }).select("id").single();
 
@@ -87,6 +94,38 @@ const NewProduct = () => {
       const imageUrl = await uploadImage(data.id);
       if (imageUrl) {
         await supabase.from("products").update({ image_url: imageUrl }).eq("id", data.id);
+      }
+    }
+
+    if (form.delivery_type === 'hosted' && hostedFiles.length > 0) {
+      toast.info("A iniciar envio dos arquivos do produto...");
+      try {
+        const uploadedMeta = [];
+        for (const file of hostedFiles) {
+           const fileExt = file.name.split('.').pop() || 'dat';
+           // Keep name safe by limiting alphanumeric logic
+           const safeName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9-_\.]/g, '').slice(0, 30);
+           const filePath = `${user.id}/${data.id}/${safeName}_${Math.floor(Math.random()*10000)}.${fileExt}`;
+           
+           const { error: uploadError } = await supabase.storage
+             .from('product_files')
+             .upload(filePath, file, { cacheControl: '3600', upsert: false });
+           
+           if (!uploadError) {               
+             uploadedMeta.push({
+               name: file.name,
+               path: filePath,
+               size: file.size,
+               type: file.type
+             });
+           }
+        }
+        
+        await supabase.from("products").update({
+          delivery_content: JSON.stringify(uploadedMeta)
+        }).eq("id", data.id);
+      } catch (err) {
+        console.error("Error uploading product files", err);
       }
     }
 
@@ -194,22 +233,66 @@ const NewProduct = () => {
               <Select value={form.delivery_type} onValueChange={(v) => setForm({ ...form, delivery_type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="link">Link externo</SelectItem>
-                  <SelectItem value="file">Arquivo (URL)</SelectItem>
-                  <SelectItem value="message">Mensagem personalizada</SelectItem>
+                  <SelectItem value="hosted">Upload Directo (Hospedagem EnsinaPay)</SelectItem>
+                  <SelectItem value="file">URL Externo do Arquivo (Ex: Google Drive)</SelectItem>
+                  <SelectItem value="link">Link de Acesso Externo</SelectItem>
+                  <SelectItem value="message">Mensagem Personalizada</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>
-                {form.delivery_type === "link" ? "URL do produto *" : form.delivery_type === "file" ? "URL do arquivo *" : "Mensagem de entrega *"}
-              </Label>
-              {form.delivery_type === "message" ? (
-                <Textarea placeholder="Mensagem que o cliente receberá..." value={form.delivery_content} onChange={(e) => setForm({ ...form, delivery_content: e.target.value })} required />
-              ) : (
-                <Input placeholder="https://..." value={form.delivery_content} onChange={(e) => setForm({ ...form, delivery_content: e.target.value })} required />
-              )}
-            </div>
+            
+            {form.delivery_type === "hosted" ? (
+              <div className="space-y-3 p-4 bg-muted/40 border border-border/50 rounded-lg">
+                <Label>Arquivos do Produto (Máx: 10 arquivos, 500MB cada) *</Label>
+                <div className="flex flex-col gap-2">
+                  <Input 
+                   type="file" 
+                   multiple 
+                   onChange={(e) => {
+                     const files = Array.from(e.target.files || []);
+                     if (files.length + hostedFiles.length > 10) {
+                       toast.error("O limite máximo é de 10 arquivos por produto.");
+                       return;
+                     }
+                     
+                     // 500MB max per file
+                     const validFiles = files.filter(f => f.size <= 500 * 1024 * 1024);
+                     if (validFiles.length < files.length) {
+                       toast.error("Alguns arquivos foram ignorados por excederem o limite de 500MB.");
+                     }
+                     
+                     setHostedFiles(prev => [...prev, ...validFiles].slice(0, 10));
+                     // Clear input to allow re-selecting same file if deleted
+                     e.target.value = '';
+                   }} 
+                  />
+                  {hostedFiles.length > 0 && (
+                    <div className="mt-2 text-xs space-y-1">
+                      {hostedFiles.map((file, i) => (
+                        <div key={i} className="flex items-center justify-between bg-muted p-2 rounded border border-border/50">
+                          <span className="truncate max-w-[200px] font-medium">{file.name}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-muted-foreground">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+                            <button type="button" onClick={() => setHostedFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-destructive font-bold text-base cursor-pointer hover:scale-110">&times;</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>
+                  {form.delivery_type === "link" ? "URL do produto *" : form.delivery_type === "file" ? "URL do arquivo *" : "Mensagem de entrega *"}
+                </Label>
+                {form.delivery_type === "message" ? (
+                  <Textarea placeholder="Mensagem que o cliente receberá..." value={form.delivery_content} onChange={(e) => setForm({ ...form, delivery_content: e.target.value })} required />
+                ) : (
+                  <Input placeholder="https://..." value={form.delivery_content} onChange={(e) => setForm({ ...form, delivery_content: e.target.value })} required />
+                )}
+              </div>
+            )}
 
 
             <div className="flex gap-3 pt-2">

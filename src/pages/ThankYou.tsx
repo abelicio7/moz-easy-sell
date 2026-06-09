@@ -156,7 +156,7 @@ const ThankYou = () => {
 
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
                 <p className="text-xs text-muted-foreground mb-3 font-medium uppercase tracking-wide">
-                  {delivery.delivery_type === "link" ? "Link de acesso" : "Conteúdo do produto"}
+                  {delivery.delivery_type === "link" ? "Link de acesso" : delivery.delivery_type === "hosted" ? "Arquivos do produto" : "Conteúdo do produto"}
                 </p>
 
                 {delivery.delivery_type === "link" ? (
@@ -166,6 +166,34 @@ const ThankYou = () => {
                       Acessar produto
                     </a>
                   </Button>
+                ) : delivery.delivery_type === "hosted" ? (
+                  (() => {
+                    try {
+                      const files = JSON.parse(delivery.delivery_content);
+                      return (
+                        <div className="space-y-3">
+                          {files.map((file: any, idx: number) => {
+                            const { data } = supabase.storage.from('product_files').getPublicUrl(file.path);
+                            return (
+                              <Button key={idx} asChild className="w-full bg-[#10b981] hover:bg-[#059669] text-black font-bold h-auto py-3">
+                                <a href={data.publicUrl} target="_blank" rel="noopener noreferrer" download>
+                                  <div className="flex items-center justify-between gap-2 w-full overflow-hidden">
+                                     <div className="flex items-center gap-2 truncate">
+                                       <ExternalLink className="w-4 h-4 shrink-0" />
+                                       <span className="truncate">{file.name}</span>
+                                     </div>
+                                     <span className="text-xs opacity-80 shrink-0 font-normal">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+                                  </div>
+                                </a>
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      );
+                    } catch (e) {
+                      return <p className="text-sm text-destructive">Erro ao carregar arquivos do produto.</p>;
+                    }
+                  })()
                 ) : (
                   <div className="bg-background rounded-lg p-3 text-sm text-foreground whitespace-pre-wrap break-words">
                     {delivery.delivery_content}
