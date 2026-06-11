@@ -56,7 +56,24 @@ serve(async (req) => {
       .delete()
       .eq('email', email)
 
-    return new Response(JSON.stringify({ success: true }), {
+    // 4. Criar uma sessão de acesso para a biblioteca
+    const token = crypto.randomUUID()
+    const sessionExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 horas
+
+    const { error: sessionError } = await supabase
+      .from('library_sessions')
+      .insert({
+        email: email.toLowerCase().trim(),
+        token: token,
+        expires_at: sessionExpiresAt
+      })
+
+    if (sessionError) {
+      console.error("Error creating library session:", sessionError)
+      throw new Error("Erro ao criar sessão de acesso na biblioteca")
+    }
+
+    return new Response(JSON.stringify({ success: true, token }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 

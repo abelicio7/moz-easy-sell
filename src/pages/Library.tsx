@@ -27,9 +27,10 @@ const Library = () => {
     }
 
     const savedEmail = sessionStorage.getItem("library_email");
-    if (savedEmail) {
+    const savedToken = sessionStorage.getItem("library_token");
+    if (savedEmail && savedToken) {
       setAuthenticatedEmail(savedEmail);
-      fetchPurchases(savedEmail);
+      fetchPurchases(savedEmail, savedToken);
       setStep("content");
     }
   }, []);
@@ -40,24 +41,19 @@ const Library = () => {
     
     setLoading(true);
     try {
-      // 1. Check if email has any paid orders
-      const { data: orders, error: ordersError } = await supabase
-        .from("orders")
-        .select("id")
-        .eq("customer_email", email.toLowerCase().trim())
-        .in("status", ["paid", "delivered"])
-        .limit(1);
+      // 1. Check if email has any paid orders using RPC
+      const { data: hasOrders, error: ordersError } = await supabase
+        .rpc("check_customer_has_orders", { p_email: email.toLowerCase().trim() });
 
       if (ordersError) throw ordersError;
       
-      if (!orders || orders.length === 0) {
+      if (!hasOrders) {
         toast.error("Nenhuma compra encontrada para este e-mail.");
         setLoading(false);
         return;
       }
 
-      // 2. Call Edge Function to send OTP (we'll create this next)
-      // For now, let's simulate success to build the UI
+      // 2. Call Edge Function to send OTP
       const { data, error } = await supabase.functions.invoke("send-library-code", {
         body: { email: email.toLowerCase().trim() }
       });
@@ -85,9 +81,11 @@ const Library = () => {
 
       if (error || !data?.success) throw new Error(data?.error || "Código inválido");
 
+      const token = data.token;
       setAuthenticatedEmail(email.toLowerCase().trim());
       sessionStorage.setItem("library_email", email.toLowerCase().trim());
-      await fetchPurchases(email.toLowerCase().trim());
+      sessionStorage.setItem("library_token", token);
+      await fetchPurchases(email.toLowerCase().trim(), token);
       setStep("content");
       toast.success("Acesso concedido!");
     } catch (error: any) {
@@ -97,43 +95,38 @@ const Library = () => {
     }
   };
 
-  const fetchPurchases = async (userEmail: string) => {
+  const fetchPurchases = async (userEmail: string, userToken?: string) => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("orders")
-      .select(`
-        id,
-        price,
-        created_at,
-        products (
-          id,
-          name,
-          description,
-          image_url,
-          delivery_type,
-          delivery_content
-        )
-      `)
-      .eq("customer_email", userEmail)
-      .in("status", ["paid", "delivered"])
-      .order("created_at", { ascending: false });
+    try {
+      const token = userToken || sessionStorage.getItem("library_token") || "";
+      const { data, error } = await supabase
+        .rpc("get_library_purchases", { p_email: userEmail, p_token: token });
 
-    if (error) {
-      toast.error("Erro ao carregar produtos.");
-    } else {
-      // Flatten products since each order has one product in our current simplified model
-      const items = data.map(order => ({
-        ...order.products,
-        orderId: order.id,
-        purchasedAt: order.created_at
-      }));
-      setPurchases(items);
+      if (error) {
+        toast.error("Erro ao carregar produtos: " + error.message);
+      } else {
+        const items = (data || []).map((item: any) => ({
+          id: item.product_id,
+          name: item.product_name,
+          description: item.product_description,
+          image_url: item.product_image_url,
+          delivery_type: item.product_delivery_type,
+          delivery_content: item.product_delivery_content,
+          orderId: item.id,
+          purchasedAt: item.created_at
+        }));
+        setPurchases(items);
+      }
+    } catch (err: any) {
+      toast.error("Erro inesperado ao buscar produtos: " + err.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleLogout = () => {
     sessionStorage.removeItem("library_email");
+    sessionStorage.removeItem("library_token");
     setStep("email");
     setPurchases([]);
   };
