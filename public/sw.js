@@ -80,7 +80,8 @@ self.addEventListener('push', (event) => {
     body: data.body,
     icon: '/pwa-icon-192.png',
     badge: '/pwa-icon-192.png', // Monochromatic badge icon for Android
-    vibrate: [200, 100, 200],   // Vibration pattern
+    vibrate: [200, 100, 200, 100, 400],   // Vibration pattern for coins
+    sound: '/sale.mp3', // Note: Android Chrome often ignores this unless notification channels are set
     data: {
       url: data.url || '/dashboard/sales'
     },
@@ -90,7 +91,12 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title, options)
+    self.registration.showNotification(data.title, options).then(() => {
+      // Also try to ask open windows to play the sound directly
+      return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+        clients.forEach(client => client.postMessage({ type: 'PLAY_SALE_SOUND' }));
+      });
+    })
   );
 });
 

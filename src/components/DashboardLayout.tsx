@@ -39,6 +39,18 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Listen for custom sounds from SW (when app is open)
+      const swListener = (event: MessageEvent) => {
+        if (event.data && event.data.type === 'PLAY_SALE_SOUND') {
+          try {
+            const audio = new Audio('/sale.mp3');
+            audio.play().catch(e => console.log('Audio play blocked by browser interaction policy:', e));
+          } catch(e) {}
+        }
+      };
+      
+      navigator.serviceWorker.addEventListener('message', swListener);
+
       if ('serviceWorker' in navigator && 'PushManager' in window && PUBLIC_VAPID_KEY) {
         try {
           const permission = await Notification.requestPermission();
