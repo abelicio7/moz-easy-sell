@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import ContentBuilder from "@/components/ContentBuilder";
 
 const EditProduct = () => {
   const { id } = useParams();
@@ -20,7 +21,8 @@ const EditProduct = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [hostedFiles, setHostedFiles] = useState<File[]>([]);
-  const [existingHostedFiles, setExistingHostedFiles] = useState<any[]>([]);
+  const [modules, setModules] = useState<any[]>([]);
+  const [unassigned, setUnassigned] = useState<any[]>([]);
   const [form, setForm] = useState({ 
     name: "", 
     description: "", 
@@ -49,7 +51,18 @@ const EditProduct = () => {
 
         if (data.delivery_type === 'hosted') {
           try {
-            setExistingHostedFiles(JSON.parse(data.delivery_content || '[]'));
+            const parsed = JSON.parse(data.delivery_content || '[]');
+            if (Array.isArray(parsed)) {
+              if (parsed.length > 0 && parsed[0].contents !== undefined) {
+                 setModules(parsed);
+              } else {
+                 // Legacy flat format
+                 setUnassigned(parsed.map((p: any) => ({ ...p, id: Math.random().toString(), source: 'existing', type: p.type || 'file' })));
+              }
+            } else if (parsed && parsed.version === 2) {
+               setModules(parsed.modules || []);
+               setUnassigned(parsed.unassigned || []);
+            }
           } catch(e) {}
         }
       }
@@ -100,40 +113,46 @@ const EditProduct = () => {
     let finalDeliveryContent = form.delivery_type === 'hosted' ? '[]' : form.delivery_content;
     
     if (form.delivery_type === 'hosted') {
-      let finalMeta = [...existingHostedFiles];
-      if (hostedFiles.length > 0) {
-        toast.info("A iniciar envio dos novos arquivos...");
-        try {
-          if (user) {
-            for (const file of hostedFiles) {
-               const fileExt = file.name.split('.').pop() || 'dat';
-               const safeName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9-_\.]/g, '').slice(0, 30);
-               const filePath = `${user.id}/${id}/${safeName}_${Math.floor(Math.random()*10000)}.${fileExt}`;
-               
-               const { error: uploadError } = await supabase.storage
-                 .from('product_files')
-                 .upload(filePath, file, { cacheControl: '3600', upsert: false });
-               
-               if (!uploadError) {               
-                 finalMeta.push({
-                   name: file.name,
-                   path: filePath,
-                   size: file.size,
-                   type: file.type
-                 });
+      try {
+        if (user) {
+          const processNodes = async (nodes: any[]) => {
+             for (const node of nodes) {
+               if (node.source === 'new' && node.fileObj) {
+                 toast.info(`A enviar ficheiro: ${node.name}...`);
+                 const fileExt = node.fileObj.name.split('.').pop() || 'dat';
+                 const safeName = node.fileObj.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9-_\.]/g, '').slice(0, 30);
+                 const filePath = `${user.id}/${id}/${safeName}_${Math.floor(Math.random()*10000)}.${fileExt}`;
+                 
+                 const { error: uploadError } = await supabase.storage.from('product_files').upload(filePath, node.fileObj, { cacheControl: '3600', upsert: false });
+                 if (!uploadError) {               
+                   node.source = 'existing';
+                   node.path = filePath;
+                   delete node.fileObj;
+                 }
                }
-            }
+             }
+          };
+
+          const newModules = JSON.parse(JSON.stringify(modules)); // Deep clone but wait, File objects don't serialize!
+          // We can't JSON clone File objects!
+          const newUnassigned = [...unassigned];
+          
+          for (let i = 0; i < modules.length; i++) {
+             await processNodes(modules[i].contents);
           }
-        } catch (err) {
-          console.error("Error uploading product files", err);
+          await processNodes(unassigned);
+          
+          // Re-copy because original object was mutated
+          const finalDeliveryData = {
+             version: 2,
+             modules: modules.map(m => ({ ...m, contents: m.contents.map(c => { const { fileObj, ...rest } = c; return rest; }) })),
+             unassigned: unassigned.map(c => { const { fileObj, ...rest } = c; return rest; })
+          };
+          
+          finalDeliveryContent = JSON.stringify(finalDeliveryData);
         }
-      }
-      finalDeliveryContent = JSON.stringify(finalMeta);
-      
-      if (finalMeta.length === 0) {
-        toast.error("O produto precisa de pelo menos 1 arquivo anexado.");
-        setLoading(false);
-        return;
+      } catch (err) {
+        console.error("Error uploading product files", err);
       }
     }
 
@@ -223,58 +242,13 @@ const EditProduct = () => {
             </div>
             
             {form.delivery_type === "hosted" ? (
-              <div className="space-y-3 p-4 bg-muted/40 border border-border/50 rounded-lg">
-                <Label>Arquivos do Produto (Máx: 10 arquivos, 500MB cada) *</Label>
-                <div className="flex flex-col gap-2">
-                  <Input 
-                   type="file" 
-                   multiple 
-                   onChange={(e) => {
-                     const files = Array.from(e.target.files || []);
-                     if (files.length + hostedFiles.length + existingHostedFiles.length > 10) {
-                       toast.error("O limite máximo é de 10 arquivos por produto.");
-                       return;
-                     }
-                     
-                     let currentTotalSize = [...hostedFiles, ...existingHostedFiles].reduce((acc, file) => acc + (file.size || 0), 0);
-                     const validFiles = [];
-                     
-                     for (const f of files) {
-                       if (currentTotalSize + f.size > 500 * 1024 * 1024) {
-                         toast.error("O tamanho total excede o limite. Alguns ficheiros ignorados.");
-                         break;
-                       }
-                       validFiles.push(f);
-                       currentTotalSize += f.size;
-                     }
-                     
-                     setHostedFiles(prev => [...prev, ...validFiles].slice(0, 10));
-                     e.target.value = '';
-                   }} 
-                  />
-                  {(hostedFiles.length > 0 || existingHostedFiles.length > 0) && (
-                    <div className="mt-2 text-xs space-y-1">
-                      {existingHostedFiles.map((file, i) => (
-                        <div key={`existing-${i}`} className="flex items-center justify-between bg-secondary/50 p-2 rounded border border-border/50">
-                          <span className="truncate max-w-[200px] font-medium">{file.name}</span>
-                          <div className="flex items-center gap-3">
-                            <span className="text-muted-foreground">Já armazenado</span>
-                            <button type="button" onClick={() => setExistingHostedFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-destructive font-bold text-base cursor-pointer hover:scale-110">&times;</button>
-                          </div>
-                        </div>
-                      ))}
-                      {hostedFiles.map((file, i) => (
-                        <div key={`new-${i}`} className="flex items-center justify-between bg-muted p-2 rounded border border-border/50">
-                          <span className="truncate max-w-[200px] font-medium text-green-600">{file.name} (Novo)</span>
-                          <div className="flex items-center gap-3">
-                            <span className="text-muted-foreground">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
-                            <button type="button" onClick={() => setHostedFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-destructive font-bold text-base cursor-pointer hover:scale-110">&times;</button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+              <div className="pt-4 border-t border-border">
+                <ContentBuilder 
+                  modules={modules} 
+                  setModules={setModules}
+                  unassigned={unassigned}
+                  setUnassigned={setUnassigned}
+                />
               </div>
             ) : (
               <div className="space-y-2">

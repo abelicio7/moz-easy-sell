@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Package, Search, LogOut, ArrowRight, BookOpen, ExternalLink, MessageCircle, X } from "lucide-react";
+import { Package, Search, LogOut, ArrowRight, BookOpen, ExternalLink, MessageCircle, X, Link as LinkIcon, ChevronDown } from "lucide-react";
 import Logo from "@/components/Logo";
 
 const Library = () => {
@@ -349,31 +349,68 @@ const Library = () => {
               {selectedProduct?.delivery_type === "hosted" ? (
                 (() => {
                   try {
-                    const files = JSON.parse(selectedProduct.delivery_content);
-                    if (!Array.isArray(files) || files.length === 0) return <p className="text-sm text-gray-500">Nenhum ficheiro anexado.</p>;
-                    return (
-                      <div className="space-y-3">
-                        <p className="text-sm font-bold text-[#10b981] uppercase tracking-[0.2em] mb-4">Arquivos Inclusos</p>
-                        {files.map((file: any, idx: number) => {
-                          const { data } = supabase.storage.from('product_files').getPublicUrl(file.path);
+                    const parsed = JSON.parse(selectedProduct.delivery_content);
+                    const isNewSchema = !Array.isArray(parsed) && parsed.version === 2;
+
+                    const renderFileParams = (file: any, idx: number) => {
+                          const url = file.url || (file.path ? supabase.storage.from('product_files').getPublicUrl(file.path).data.publicUrl : undefined);
                           return (
                             <Button key={idx} asChild className="w-full bg-[#1c1c1e] hover:bg-[#232326] text-white border border-[#2d2d30] h-auto py-4 sm:py-5 justify-start group rounded-xl transition-all hover:border-[#10b981]/50 hover:shadow-lg">
-                              <a href={data.publicUrl} target="_blank" rel="noopener noreferrer" download className="flex flex-row items-center justify-between w-full gap-2 overflow-hidden">
+                              <a href={url} target="_blank" rel="noopener noreferrer" download={file.type !== 'link'} className="flex flex-row items-center justify-between w-full gap-2 overflow-hidden">
                                 <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
                                   <div className="shrink-0 bg-[#10b981]/10 p-2 sm:p-3 rounded-xl group-hover:bg-[#10b981] group-hover:text-black transition-colors text-[#10b981]">
-                                    <ExternalLink className="w-4 h-4 sm:w-6 sm:h-6" />
+                                    {file.type === "link" ? <LinkIcon className="w-4 h-4 sm:w-6 sm:h-6" /> : <ExternalLink className="w-4 h-4 sm:w-6 sm:h-6" />}
                                   </div>
                                   <span className="truncate font-semibold text-base sm:text-lg block w-full text-left">{file.name}</span>
                                 </div>
+                                {file.size && (
                                 <div className="flex items-center shrink-0 px-1 sm:px-2 opacity-80 sm:opacity-60 group-hover:opacity-100 transition-opacity">
                                   <span className="text-xs sm:text-sm font-medium">{(file.size / 1024 / 1024).toFixed(1)} <span className="hidden sm:inline">MB</span></span>
                                 </div>
+                                )}
                               </a>
                             </Button>
                           );
-                        })}
-                      </div>
-                    );
+                    };
+
+                    if (isNewSchema) {
+                       return (
+                         <div className="space-y-6">
+                            {parsed.modules?.map((m: any, mIdx: number) => (
+                               <details key={mIdx} className="group bg-[#1a1a1c] border border-[#2d2d30] rounded-2xl shadow-sm outline-none" open>
+                                 <summary className="flex items-center justify-between p-5 cursor-pointer list-none bg-[#1c1c1e] hover:bg-[#232326] transition-colors border-b border-transparent group-open:border-[#2d2d30] outline-none">
+                                    <div className="flex items-center gap-4">
+                                      <div className="bg-[#10b981] text-black w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-[0_0_15px_rgba(16,185,129,0.3)]">{mIdx + 1}</div>
+                                      <span className="font-bold text-lg select-none tracking-tight">{m.title}</span>
+                                    </div>
+                                    <div className="w-8 h-8 rounded-full bg-[#10b981]/5 text-[#10b981] flex items-center justify-center group-open:rotate-180 transition-transform duration-300">
+                                      <ChevronDown className="w-5 h-5" />
+                                    </div>
+                                 </summary>
+                                 <div className="p-4 space-y-3 bg-[#141416]/50">
+                                   {m.contents?.length > 0 ? m.contents.map((c: any, i: number) => renderFileParams(c, i)) : <p className="text-sm text-gray-500 py-3 text-center">Nenhum conteúdo neste módulo.</p>}
+                                 </div>
+                               </details>
+                            ))}
+                            
+                            {parsed.unassigned?.length > 0 && (
+                               <div className="space-y-4 pt-6 mt-6 border-t border-[#232326]">
+                                  <p className="text-sm font-bold text-[#10b981] uppercase tracking-[0.2em] mb-4">Módulo Extra</p>
+                                  {parsed.unassigned.map((c: any, i: number) => renderFileParams(c, i))}
+                               </div>
+                            )}
+                         </div>
+                       );
+                    } else {
+                       const files = parsed;
+                       if (!Array.isArray(files) || files.length === 0) return <p className="text-sm text-gray-500">Nenhum ficheiro anexado.</p>;
+                       return (
+                         <div className="space-y-4">
+                           <p className="text-sm font-bold text-[#10b981] uppercase tracking-[0.2em] mb-4">Arquivos Inclusos</p>
+                           {files.map((file: any, idx: number) => renderFileParams(file, idx))}
+                         </div>
+                       );
+                    }
                   } catch (e) {
                     return <p className="text-sm text-red-500">Erro ao carregar ficheiros principais.</p>;
                   }

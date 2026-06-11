@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Upload, X } from "lucide-react";
+import ContentBuilder from "@/components/ContentBuilder";
 
 const NewProduct = () => {
   const { user } = useAuth();
@@ -18,7 +19,8 @@ const NewProduct = () => {
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [hostedFiles, setHostedFiles] = useState<File[]>([]);
+  const [modules, setModules] = useState<any[]>([]);
+  const [unassigned, setUnassigned] = useState<any[]>([]);
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -97,32 +99,39 @@ const NewProduct = () => {
       }
     }
 
-    if (form.delivery_type === 'hosted' && hostedFiles.length > 0) {
+    if (form.delivery_type === 'hosted') {
       toast.info("A iniciar envio dos arquivos do produto...");
       try {
-        const uploadedMeta = [];
-        for (const file of hostedFiles) {
-           const fileExt = file.name.split('.').pop() || 'dat';
-           // Keep name safe by limiting alphanumeric logic
-           const safeName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9-_\.]/g, '').slice(0, 30);
-           const filePath = `${user.id}/${data.id}/${safeName}_${Math.floor(Math.random()*10000)}.${fileExt}`;
-           
-           const { error: uploadError } = await supabase.storage
-             .from('product_files')
-             .upload(filePath, file, { cacheControl: '3600', upsert: false });
-           
-           if (!uploadError) {               
-             uploadedMeta.push({
-               name: file.name,
-               path: filePath,
-               size: file.size,
-               type: file.type
-             });
+        const processNodes = async (nodes: any[]) => {
+           for (const node of nodes) {
+             if (node.source === 'new' && node.fileObj) {
+               const fileExt = node.fileObj.name.split('.').pop() || 'dat';
+               const safeName = node.fileObj.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9-_\.]/g, '').slice(0, 30);
+               const filePath = `${user.id}/${data.id}/${safeName}_${Math.floor(Math.random()*10000)}.${fileExt}`;
+               
+               const { error: uploadError } = await supabase.storage.from('product_files').upload(filePath, node.fileObj, { cacheControl: '3600', upsert: false });
+               if (!uploadError) {               
+                 node.source = 'existing';
+                 node.path = filePath;
+                 delete node.fileObj;
+               }
+             }
            }
+        };
+
+        for (let i = 0; i < modules.length; i++) {
+           await processNodes(modules[i].contents);
         }
+        await processNodes(unassigned);
+        
+        const finalDeliveryData = {
+           version: 2,
+           modules: modules.map(m => ({ ...m, contents: m.contents.map(c => { const { fileObj, ...rest } = c; return rest; }) })),
+           unassigned: unassigned.map(c => { const { fileObj, ...rest } = c; return rest; })
+        };
         
         await supabase.from("products").update({
-          delivery_content: JSON.stringify(uploadedMeta)
+          delivery_content: JSON.stringify(finalDeliveryData)
         }).eq("id", data.id);
       } catch (err) {
         console.error("Error uploading product files", err);
@@ -242,50 +251,13 @@ const NewProduct = () => {
             </div>
             
             {form.delivery_type === "hosted" ? (
-              <div className="space-y-3 p-4 bg-muted/40 border border-border/50 rounded-lg">
-                <Label>Arquivos do Produto (Máx: 10 arquivos, 500MB cada) *</Label>
-                <div className="flex flex-col gap-2">
-                  <Input 
-                   type="file" 
-                   multiple 
-                   onChange={(e) => {
-                     const files = Array.from(e.target.files || []);
-                     if (files.length + hostedFiles.length > 10) {
-                       toast.error("O limite máximo é de 10 arquivos por produto.");
-                       return;
-                     }
-                     
-                     let currentTotalSize = hostedFiles.reduce((acc, file) => acc + file.size, 0);
-                     const validFiles = [];
-                     
-                     for (const f of files) {
-                       if (currentTotalSize + f.size > 500 * 1024 * 1024) {
-                         toast.error("O tamanho total excede o limite de 500MB. Alguns ficheiros foram ignorados.");
-                         break;
-                       }
-                       validFiles.push(f);
-                       currentTotalSize += f.size;
-                     }
-                     
-                     setHostedFiles(prev => [...prev, ...validFiles].slice(0, 10));
-                     // Clear input to allow re-selecting same file if deleted
-                     e.target.value = '';
-                   }} 
-                  />
-                  {hostedFiles.length > 0 && (
-                    <div className="mt-2 text-xs space-y-1">
-                      {hostedFiles.map((file, i) => (
-                        <div key={i} className="flex items-center justify-between bg-muted p-2 rounded border border-border/50">
-                          <span className="truncate max-w-[200px] font-medium">{file.name}</span>
-                          <div className="flex items-center gap-3">
-                            <span className="text-muted-foreground">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
-                            <button type="button" onClick={() => setHostedFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-destructive font-bold text-base cursor-pointer hover:scale-110">&times;</button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+              <div className="pt-4 border-t border-border">
+                <ContentBuilder 
+                  modules={modules} 
+                  setModules={setModules}
+                  unassigned={unassigned}
+                  setUnassigned={setUnassigned}
+                />
               </div>
             ) : (
               <div className="space-y-2">
