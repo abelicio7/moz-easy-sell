@@ -10,13 +10,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Upload, X } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const EditProduct = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [hostedFiles, setHostedFiles] = useState<File[]>([]);
+  const [existingHostedFiles, setExistingHostedFiles] = useState<any[]>([]);
   const [form, setForm] = useState({ 
     name: "", 
     description: "", 
@@ -42,6 +46,12 @@ const EditProduct = () => {
         });
 
         if (data.image_url) setImagePreview(data.image_url);
+
+        if (data.delivery_type === 'hosted') {
+          try {
+            setExistingHostedFiles(JSON.parse(data.delivery_content || '[]'));
+          } catch(e) {}
+        }
       }
     };
     fetchProduct();
@@ -87,12 +97,52 @@ const EditProduct = () => {
       imageUrl = null; // image was removed
     }
 
+    let finalDeliveryContent = form.delivery_type === 'hosted' ? '[]' : form.delivery_content;
+    
+    if (form.delivery_type === 'hosted') {
+      let finalMeta = [...existingHostedFiles];
+      if (hostedFiles.length > 0) {
+        toast.info("A iniciar envio dos novos arquivos...");
+        try {
+          if (user) {
+            for (const file of hostedFiles) {
+               const fileExt = file.name.split('.').pop() || 'dat';
+               const safeName = file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9-_\.]/g, '').slice(0, 30);
+               const filePath = `${user.id}/${id}/${safeName}_${Math.floor(Math.random()*10000)}.${fileExt}`;
+               
+               const { error: uploadError } = await supabase.storage
+                 .from('product_files')
+                 .upload(filePath, file, { cacheControl: '3600', upsert: false });
+               
+               if (!uploadError) {               
+                 finalMeta.push({
+                   name: file.name,
+                   path: filePath,
+                   size: file.size,
+                   type: file.type
+                 });
+               }
+            }
+          }
+        } catch (err) {
+          console.error("Error uploading product files", err);
+        }
+      }
+      finalDeliveryContent = JSON.stringify(finalMeta);
+      
+      if (finalMeta.length === 0) {
+        toast.error("O produto precisa de pelo menos 1 arquivo anexado.");
+        setLoading(false);
+        return;
+      }
+    }
+
     const updateData = {
       name: form.name,
       description: form.description,
       price: parseFloat(form.price),
       delivery_type: form.delivery_type,
-      delivery_content: form.delivery_content,
+      delivery_content: finalDeliveryContent,
       support_whatsapp: form.support_whatsapp,
       ...(imageUrl !== undefined ? { image_url: imageUrl } : {}),
     };
@@ -164,20 +214,78 @@ const EditProduct = () => {
               <Select value={form.delivery_type} onValueChange={(v) => setForm({ ...form, delivery_type: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="link">Link externo</SelectItem>
+                  <SelectItem value="hosted">Upload Directo (Hospedagem EnsinaPay)</SelectItem>
                   <SelectItem value="file">Arquivo (URL)</SelectItem>
+                  <SelectItem value="link">Link externo</SelectItem>
                   <SelectItem value="message">Mensagem personalizada</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>{form.delivery_type === "message" ? "Mensagem *" : "URL *"}</Label>
-              {form.delivery_type === "message" ? (
-                <Textarea value={form.delivery_content} onChange={(e) => setForm({ ...form, delivery_content: e.target.value })} required />
-              ) : (
-                <Input value={form.delivery_content} onChange={(e) => setForm({ ...form, delivery_content: e.target.value })} required />
-              )}
-            </div>
+            
+            {form.delivery_type === "hosted" ? (
+              <div className="space-y-3 p-4 bg-muted/40 border border-border/50 rounded-lg">
+                <Label>Arquivos do Produto (Máx: 10 arquivos, 500MB cada) *</Label>
+                <div className="flex flex-col gap-2">
+                  <Input 
+                   type="file" 
+                   multiple 
+                   onChange={(e) => {
+                     const files = Array.from(e.target.files || []);
+                     if (files.length + hostedFiles.length + existingHostedFiles.length > 10) {
+                       toast.error("O limite máximo é de 10 arquivos por produto.");
+                       return;
+                     }
+                     
+                     let currentTotalSize = [...hostedFiles, ...existingHostedFiles].reduce((acc, file) => acc + (file.size || 0), 0);
+                     const validFiles = [];
+                     
+                     for (const f of files) {
+                       if (currentTotalSize + f.size > 500 * 1024 * 1024) {
+                         toast.error("O tamanho total excede o limite. Alguns ficheiros ignorados.");
+                         break;
+                       }
+                       validFiles.push(f);
+                       currentTotalSize += f.size;
+                     }
+                     
+                     setHostedFiles(prev => [...prev, ...validFiles].slice(0, 10));
+                     e.target.value = '';
+                   }} 
+                  />
+                  {(hostedFiles.length > 0 || existingHostedFiles.length > 0) && (
+                    <div className="mt-2 text-xs space-y-1">
+                      {existingHostedFiles.map((file, i) => (
+                        <div key={`existing-${i}`} className="flex items-center justify-between bg-secondary/50 p-2 rounded border border-border/50">
+                          <span className="truncate max-w-[200px] font-medium">{file.name}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-muted-foreground">Já armazenado</span>
+                            <button type="button" onClick={() => setExistingHostedFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-destructive font-bold text-base cursor-pointer hover:scale-110">&times;</button>
+                          </div>
+                        </div>
+                      ))}
+                      {hostedFiles.map((file, i) => (
+                        <div key={`new-${i}`} className="flex items-center justify-between bg-muted p-2 rounded border border-border/50">
+                          <span className="truncate max-w-[200px] font-medium text-green-600">{file.name} (Novo)</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-muted-foreground">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+                            <button type="button" onClick={() => setHostedFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-destructive font-bold text-base cursor-pointer hover:scale-110">&times;</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label>{form.delivery_type === "message" ? "Mensagem *" : "URL *"}</Label>
+                {form.delivery_type === "message" ? (
+                  <Textarea value={form.delivery_content} onChange={(e) => setForm({ ...form, delivery_content: e.target.value })} required />
+                ) : (
+                  <Input value={form.delivery_content} onChange={(e) => setForm({ ...form, delivery_content: e.target.value })} required />
+                )}
+              </div>
+            )}
 
 
             <div className="flex gap-3 pt-2">

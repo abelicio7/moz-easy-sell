@@ -45,7 +45,29 @@ serve(async (req) => {
 
     const customerEmail = order.customer_email
     const productName = order.products.name
-    const deliveryContent = order.products.delivery_content
+    
+    let deliveryContentHtml = order.products.delivery_content
+    if (order.products.delivery_type === 'hosted') {
+       try {
+         const files = JSON.parse(deliveryContentHtml);
+         if (Array.isArray(files)) {
+           deliveryContentHtml = `<ul style="list-style-type: none; padding: 0; margin: 0;">`;
+           const supaUrl = Deno.env.get('SUPABASE_URL');
+           files.forEach(f => {
+             const publicUrl = `${supaUrl}/storage/v1/object/public/product_files/${f.path}`;
+             deliveryContentHtml += `<li style="margin-bottom: 15px; padding: 15px; background-color: #1c1c1e; border-radius: 12px; border: 1px solid #2d2d30;">
+               <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; word-break: break-all;">${f.name}</div>
+               <div style="font-size: 12px; color: #9ca3af; margin-bottom: 12px;">Tamanho: ${(f.size/1024/1024).toFixed(2)} MB</div>
+               <a href="${publicUrl}" style="display: inline-block; background-color: #10b981; color: #000; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold;">📥 Baixar Arquivo</a>
+             </li>`;
+           });
+           deliveryContentHtml += `</ul>`;
+         }
+       } catch (e) {
+         console.error('Failed to parse hosted files JSON', e);
+         deliveryContentHtml = "Os seus ficheiros encontram-se disponíveis na sua Biblioteca EnsinaPay.";
+       }
+    }
 
     // 2. Send email via Brevo
     const BREVO_API_KEY = Deno.env.get('BREVO_API_KEY')
@@ -65,7 +87,7 @@ serve(async (req) => {
           <div style="background-color: #141416; padding: 25px; border-radius: 16px; border: 1px solid #232326; text-align: left; margin-bottom: 40px;">
             <h3 style="color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 15px 0;">Conteúdo do Produto:</h3>
             <div style="color: #ffffff; font-size: 16px; line-height: 1.6;">
-              ${deliveryContent}
+              ${deliveryContentHtml}
             </div>
           </div>
 

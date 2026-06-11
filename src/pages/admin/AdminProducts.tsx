@@ -279,9 +279,42 @@ const AdminProducts = () => {
                               
                               <div className="bg-muted/30 p-4 rounded-lg border border-border/50">
                                 <Label className="text-xs uppercase text-muted-foreground mb-2 block">Conteúdo para Entrega (Entregável)</Label>
-                                <div className="bg-background p-3 rounded border text-sm font-mono break-all whitespace-pre-wrap max-h-32 overflow-y-auto">
-                                  {product.delivery_content || "Nenhum conteúdo configurado"}
-                                </div>
+                                {product.delivery_type === 'hosted' ? (
+                                  <div className="space-y-2 mt-2">
+                                    {(() => {
+                                      try {
+                                        const files = JSON.parse(product.delivery_content);
+                                        if (!Array.isArray(files)) return <span className="text-sm">Vazio</span>;
+                                        return files.map((f: any, i: number) => (
+                                          <div key={i} className="flex justify-between items-center bg-background p-2 rounded border border-border">
+                                            <span className="truncate text-sm font-medium pr-2">{f.name} ({(f.size/1024/1024).toFixed(2)} MB)</span>
+                                            <Button size="sm" variant="secondary" onClick={async () => {
+                                              const toastId = toast.loading("Gerando link seguro...");
+                                              const { data, error } = await supabase.storage.from('product_files').createSignedUrl(f.path, 3600);
+                                              if (error || !data) {
+                                                toast.error("Erro ao acessar ficheiro.", { id: toastId });
+                                                // Fallback to public url just in case
+                                                const pub = supabase.storage.from('product_files').getPublicUrl(f.path);
+                                                window.open(pub.data.publicUrl, '_blank');
+                                              } else {
+                                                toast.success("Abrindo arquivo...", { id: toastId });
+                                                window.open(data.signedUrl, '_blank');
+                                              }
+                                            }}>
+                                              Abrir <ExternalLink className="w-3 h-3 ml-2" />
+                                            </Button>
+                                          </div>
+                                        ));
+                                      } catch(e) {
+                                        return <div className="text-red-500 text-xs">Erro estrutural ao ler ficheiros</div>;
+                                      }
+                                    })()}
+                                  </div>
+                                ) : (
+                                  <div className="bg-background p-3 rounded border text-sm font-mono break-all whitespace-pre-wrap max-h-32 overflow-y-auto mt-2">
+                                    {product.delivery_content || "Nenhum conteúdo configurado"}
+                                  </div>
+                                )}
                                 {product.delivery_type === 'link' && product.delivery_content && (
                                   <Button variant="link" size="sm" className="p-0 h-auto mt-2 text-xs" asChild>
                                     <a href={product.delivery_content} target="_blank" rel="noreferrer" className="flex items-center gap-1">
