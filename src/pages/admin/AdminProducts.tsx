@@ -281,30 +281,49 @@ const AdminProducts = () => {
                                 <Label className="text-xs uppercase text-muted-foreground mb-2 block">Conteúdo para Entrega (Entregável)</Label>
                                 {product.delivery_type === 'hosted' ? (
                                   <div className="space-y-2 mt-2">
-                                    {(() => {
-                                      try {
-                                        const files = JSON.parse(product.delivery_content);
-                                        if (!Array.isArray(files)) return <span className="text-sm">Vazio</span>;
-                                        return files.map((f: any, i: number) => (
-                                          <div key={i} className="flex justify-between items-center bg-background p-2 rounded border border-border">
-                                            <span className="truncate text-sm font-medium pr-2">{f.name} ({(f.size/1024/1024).toFixed(2)} MB)</span>
-                                            <Button size="sm" variant="secondary" onClick={async () => {
-                                              const toastId = toast.loading("Gerando link seguro...");
-                                              const { data, error } = await supabase.storage.from('product_files').createSignedUrl(f.path, 3600);
-                                              if (error || !data) {
-                                                toast.error("Erro ao acessar ficheiro.", { id: toastId });
-                                                // Fallback to public url just in case
-                                                const pub = supabase.storage.from('product_files').getPublicUrl(f.path);
-                                                window.open(pub.data.publicUrl, '_blank');
-                                              } else {
-                                                toast.success("Abrindo arquivo...", { id: toastId });
-                                                window.open(data.signedUrl, '_blank');
-                                              }
-                                            }}>
-                                              Abrir <ExternalLink className="w-3 h-3 ml-2" />
-                                            </Button>
-                                          </div>
-                                        ));
+                                     {(() => {
+                                       try {
+                                         const parsed = JSON.parse(product.delivery_content);
+                                        let allFiles: any[] = [];
+                                        
+                                        if (Array.isArray(parsed)) {
+                                            allFiles = parsed;
+                                        } else if (parsed && parsed.version === 2) {
+                                            const moduleContents = (parsed.modules || []).filter((m: any) => Array.isArray(m.contents)).flatMap((m: any) => m.contents);
+                                            const unassignedContents = Array.isArray(parsed.unassigned) ? parsed.unassigned : [];
+                                            allFiles = [...moduleContents, ...unassignedContents];
+                                        }
+
+                                        if (allFiles.length === 0) return <span className="text-sm">Vazio</span>;
+                                        return allFiles.map((f: any, i: number) => {
+                                          const isLink = f.type === 'link';
+                                          const url = f.url || (f.path ? supabase.storage.from('product_files').getPublicUrl(f.path).data.publicUrl : undefined);
+                                          
+                                          return (
+                                            <div key={i} className="flex justify-between items-center bg-background p-2 rounded border border-border">
+                                              <span className="truncate text-sm font-medium pr-2">
+                                                {isLink ? `🔗 ${f.name}` : `📄 ${f.name} ({(f.size/1024/1024).toFixed(2)} MB)`}
+                                              </span>
+                                              <Button size="sm" variant={isLink ? "default" : "secondary"} onClick={async () => {
+                                                if (isLink) {
+                                                   window.open(url, '_blank');
+                                                   return;
+                                                }
+                                                const toastId = toast.loading("Gerando link seguro...");
+                                                const { data, error } = await supabase.storage.from('product_files').createSignedUrl(f.path, 3600);
+                                                if (error || !data) {
+                                                  toast.error("Erro ao acessar ficheiro.", { id: toastId });
+                                                  window.open(url, '_blank');
+                                                } else {
+                                                  toast.success("Abrindo arquivo...", { id: toastId });
+                                                  window.open(data.signedUrl, '_blank');
+                                                }
+                                              }}>
+                                                Abrir <ExternalLink className="w-3 h-3 ml-2" />
+                                              </Button>
+                                            </div>
+                                          )
+                                        });
                                       } catch(e) {
                                         return <div className="text-red-500 text-xs">Erro estrutural ao ler ficheiros</div>;
                                       }

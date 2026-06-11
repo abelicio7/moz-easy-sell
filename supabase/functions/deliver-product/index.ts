@@ -49,16 +49,27 @@ serve(async (req) => {
     let deliveryContentHtml = order.products.delivery_content
     if (order.products.delivery_type === 'hosted') {
        try {
-         const files = JSON.parse(deliveryContentHtml);
-         if (Array.isArray(files)) {
-           deliveryContentHtml = `<ul style="list-style-type: none; padding: 0; margin: 0;">`;
+         const parsed = JSON.parse(deliveryContentHtml);
+         let allFiles: any[] = [];
+         
+         if (Array.isArray(parsed)) {
+             allFiles = parsed;
+         } else if (parsed && parsed.version === 2) {
+             const moduleContents = (parsed.modules || []).filter((m: any) => Array.isArray(m.contents)).flatMap((m: any) => m.contents);
+             const unassignedContents = Array.isArray(parsed.unassigned) ? parsed.unassigned : [];
+             allFiles = [...moduleContents, ...unassignedContents];
+         }
+
+         if (allFiles.length > 0) {
+           deliveryContentHtml = `<p style="margin-bottom: 10px; color: #9ca3af; font-size: 14px;">Você também encontrará uma cópia vitalícia deste curso estruturado em Módulos na sua *Área de Membros Biblioteca* da EnsinaPay!</p><ul style="list-style-type: none; padding: 0; margin: 0;">`;
            const supaUrl = Deno.env.get('SUPABASE_URL');
-           files.forEach(f => {
-             const publicUrl = `${supaUrl}/storage/v1/object/public/product_files/${f.path}`;
+           allFiles.forEach(f => {
+             const isLink = f.type === 'link';
+             const publicUrl = f.url || (f.path ? `${supaUrl}/storage/v1/object/public/product_files/${f.path}` : '#');
              deliveryContentHtml += `<li style="margin-bottom: 15px; padding: 15px; background-color: #1c1c1e; border-radius: 12px; border: 1px solid #2d2d30;">
-               <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; word-break: break-all;">${f.name}</div>
-               <div style="font-size: 12px; color: #9ca3af; margin-bottom: 12px;">Tamanho: ${(f.size/1024/1024).toFixed(2)} MB</div>
-               <a href="${publicUrl}" style="display: inline-block; background-color: #10b981; color: #000; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold;">📥 Baixar Arquivo</a>
+               <div style="font-weight: 600; font-size: 14px; margin-bottom: 8px; word-break: break-all;">${isLink ? '🔗 ' : '📄 '}${f.name}</div>
+               ${!isLink && f.size ? `<div style="font-size: 12px; color: #9ca3af; margin-bottom: 12px;">Tamanho: ${(f.size/1024/1024).toFixed(2)} MB</div>` : ''}
+               <a href="${publicUrl}" style="display: inline-block; background-color: ${isLink ? '#3b82f6' : '#10b981'}; color: ${isLink ? '#fff' : '#000'}; padding: 8px 16px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold;">${isLink ? 'Aceder Link Externo' : '📥 Baixar Arquivo'}</a>
              </li>`;
            });
            deliveryContentHtml += `</ul>`;
