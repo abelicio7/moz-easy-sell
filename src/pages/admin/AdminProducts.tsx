@@ -300,8 +300,8 @@ const AdminProducts = () => {
                                           const url = f.url || (f.path ? supabase.storage.from('product_files').getPublicUrl(f.path).data.publicUrl : undefined);
                                           
                                           return (
-                                            <div key={i} className="flex justify-between items-center bg-background p-2 rounded border border-border">
-                                              <span className="truncate text-sm font-medium pr-2">
+                                            <div key={i} className="flex justify-between items-center bg-background p-2 rounded border border-border min-w-0 overflow-hidden">
+                                              <span className="truncate text-sm font-medium pr-2 max-w-[65%] sm:max-w-[200px]" title={f.name}>
                                                 {isLink ? `🔗 ${f.name}` : `📄 ${f.name} ({(f.size/1024/1024).toFixed(2)} MB)`}
                                               </span>
                                               <Button size="sm" variant={isLink ? "default" : "secondary"} onClick={async () => {
