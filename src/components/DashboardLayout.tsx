@@ -66,16 +66,23 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
 
           const subscriptionData = JSON.parse(JSON.stringify(subscription));
           if (subscriptionData?.endpoint && subscriptionData?.keys?.p256dh && subscriptionData?.keys?.auth) {
-            await supabase.from('push_subscriptions').upsert({
+            const { error: upsertError } = await supabase.from('push_subscriptions').upsert({
               user_id: user.id,
               endpoint: subscriptionData.endpoint,
               p256dh: subscriptionData.keys.p256dh,
               auth: subscriptionData.keys.auth
             }, { onConflict: 'user_id, endpoint' });
-            console.log("Push subscription safely registered in DB.");
+            
+            if (upsertError) {
+              console.error("Falha silenciosa ao guardar assinatura na base de dados:", upsertError);
+              alert("Erro técnico PWA: " + upsertError.message);
+            } else {
+              console.log("Push subscription safely registered in DB.");
+            }
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error('Error registering push notification:', err);
+          alert("Erro técnico PWA: " + err.message);
         }
       }
     };
