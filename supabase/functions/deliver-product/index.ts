@@ -247,14 +247,22 @@ serve(async (req) => {
                 body: `Comissão: ${order.price} MT - ID: ${order.id.slice(0, 8).toUpperCase()}`,
                 url: "/dashboard/sales"
               });
-
-              await webpush.sendNotification(pushSubscription, payload).catch(e => console.error("WebPush send error for sub:", e));
+              let pushError = null;
+              await webpush.sendNotification(pushSubscription, payload).catch((e: any) => {
+                console.error("WebPush send error for sub:", e);
+                pushError = e.message || String(e);
+              });
+              
+              if (pushError) {
+                return new Response(JSON.stringify({ success: false, message: "Push error: " + pushError }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }});
+              }
             }
             console.log(`Sent push notifications to ${subs.length} devices for seller ${sellerId}`);
           }
         }
       } catch (pushErr) {
         console.error("Error sending Web Push notification:", pushErr);
+        return new Response(JSON.stringify({ success: false, message: "Fatal Push error: " + pushErr.message }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }});
       }
 
     } catch (err) {

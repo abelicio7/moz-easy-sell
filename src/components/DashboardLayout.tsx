@@ -71,7 +71,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               endpoint: subscriptionData.endpoint,
               p256dh: subscriptionData.keys.p256dh,
               auth: subscriptionData.keys.auth
-            }, { onConflict: 'user_id, endpoint' });
+            }, { onConflict: 'unique_user_endpoint' });
             
             if (upsertError) {
               console.error("Falha silenciosa ao guardar assinatura na base de dados:", upsertError);
