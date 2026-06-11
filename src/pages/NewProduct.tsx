@@ -66,8 +66,8 @@ const NewProduct = () => {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
-    if (form.delivery_type === 'hosted' && hostedFiles.length === 0) {
-      toast.error("Anexe pelo menos 1 arquivo para o seu produto.");
+    if (form.delivery_type === 'hosted' && modules.length === 0 && unassigned.length === 0) {
+      toast.error("Anexe pelo menos 1 arquivo ou link para o seu produto.");
       return;
     }
     if (form.delivery_type !== 'hosted' && !form.delivery_content) {
