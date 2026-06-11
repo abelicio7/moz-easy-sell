@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Package, Search, LogOut, ArrowRight, BookOpen, ExternalLink, MessageCircle } from "lucide-react";
 import Logo from "@/components/Logo";
@@ -15,6 +16,7 @@ const Library = () => {
   const [loading, setLoading] = useState(false);
   const [purchases, setPurchases] = useState<any[]>([]);
   const [authenticatedEmail, setAuthenticatedEmail] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
 
   // Check if already authenticated or has email in URL
   useEffect(() => {
@@ -298,7 +300,7 @@ const Library = () => {
                       if (item.delivery_type === 'link') {
                         window.open(item.delivery_content, '_blank');
                       } else {
-                        window.location.href = `/thank-you?orderId=${item.orderId}`;
+                        setSelectedProduct(item);
                       }
                     }}
                   >
@@ -311,6 +313,74 @@ const Library = () => {
           </div>
         )}
       </main>
+
+      {/* Product Detail Modal (Netflix Style) */}
+      <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
+        <DialogContent className="max-w-3xl bg-[#141416] border-[#232326] text-white p-0 overflow-hidden sm:rounded-2xl">
+          <div className="relative h-48 md:h-64 bg-[#0a0a0b] w-full border-b border-[#232326]">
+            {selectedProduct?.image_url ? (
+              <>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#141416] via-[#141416]/60 to-transparent z-10" />
+                <img src={selectedProduct.image_url} alt="" className="w-full h-full object-cover opacity-80" />
+              </>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#10b981]/20 to-[#0a0a0b]">
+                <Package className="w-20 h-20 text-[#10b981]/40" />
+              </div>
+            )}
+          </div>
+          <div className="px-6 md:px-10 pb-10 pt-4 relative z-20 -mt-24 md:-mt-32">
+            <DialogHeader>
+              <DialogTitle className="text-3xl md:text-5xl font-black mb-4 tracking-tight drop-shadow-xl">{selectedProduct?.name}</DialogTitle>
+              <DialogDescription className="text-gray-300 text-base md:text-lg max-w-2xl leading-relaxed drop-shadow-md">
+                {selectedProduct?.description || "Acesse o seu conteúdo digital exclusivo selecionando-o abaixo."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="mt-8 space-y-6">
+              {selectedProduct?.delivery_type === "hosted" ? (
+                (() => {
+                  try {
+                    const files = JSON.parse(selectedProduct.delivery_content);
+                    if (!Array.isArray(files) || files.length === 0) return <p className="text-sm text-gray-500">Nenhum ficheiro anexado.</p>;
+                    return (
+                      <div className="space-y-3">
+                        <p className="text-sm font-bold text-[#10b981] uppercase tracking-[0.2em] mb-4">Arquivos Inclusos</p>
+                        {files.map((file: any, idx: number) => {
+                          const { data } = supabase.storage.from('product_files').getPublicUrl(file.path);
+                          return (
+                            <Button key={idx} asChild className="w-full bg-[#1c1c1e] hover:bg-[#232326] text-white border border-[#2d2d30] h-auto py-5 justify-between group rounded-xl transition-all hover:border-[#10b981]/50 hover:shadow-lg">
+                              <a href={data.publicUrl} target="_blank" rel="noopener noreferrer" download>
+                                <div className="flex items-center gap-4 truncate">
+                                  <div className="bg-[#10b981]/10 p-3 rounded-xl group-hover:bg-[#10b981] group-hover:text-black transition-colors text-[#10b981]">
+                                    <ExternalLink className="w-6 h-6" />
+                                  </div>
+                                  <span className="truncate font-semibold text-lg">{file.name}</span>
+                                </div>
+                                <div className="flex items-center gap-4 shrink-0 px-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                                  <span className="text-sm font-medium">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+                                </div>
+                              </a>
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    );
+                  } catch (e) {
+                    return <p className="text-sm text-red-500">Erro ao carregar ficheiros.</p>;
+                  }
+                })()
+              ) : selectedProduct?.delivery_type === "message" ? (
+                <div className="space-y-3">
+                  <p className="text-sm font-bold text-[#10b981] uppercase tracking-[0.2em] mb-2">Mensagem do Vendedor</p>
+                  <div className="bg-[#1c1c1e] border border-[#2d2d30] rounded-2xl p-6 text-gray-300 whitespace-pre-wrap leading-relaxed">
+                    {selectedProduct.delivery_content}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Floating Support Button */}
       <a 
