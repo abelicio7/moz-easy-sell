@@ -4,9 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Package, Search, LogOut, ArrowRight, BookOpen, ExternalLink, MessageCircle } from "lucide-react";
+import { Package, Search, LogOut, ArrowRight, BookOpen, ExternalLink, MessageCircle, X } from "lucide-react";
 import Logo from "@/components/Logo";
 
 const Library = () => {
@@ -316,12 +316,21 @@ const Library = () => {
 
       {/* Product Detail Modal (Netflix Style) */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
-        <DialogContent className="max-w-3xl bg-[#141416] border-[#232326] text-white p-0 overflow-y-auto max-h-[90vh] sm:rounded-2xl shadow-2xl">
-          <div className="relative h-48 md:h-64 bg-[#0a0a0b] w-full border-b border-[#232326]">
+        <DialogContent className="w-[calc(100vw-2rem)] sm:w-full max-w-[calc(100vw-2rem)] sm:max-w-3xl bg-[#141416] border-[#232326] text-white p-0 overflow-y-auto overflow-x-hidden max-h-[85vh] sm:max-h-[90vh] rounded-2xl shadow-2xl">
+          {/* Custom High-Priority Close Button */}
+          <DialogClose className="absolute right-4 top-4 z-[60] bg-black/60 backdrop-blur-md rounded-full p-2 text-white hover:bg-black hover:text-[#10b981] transition-all border border-white/10 shadow-2xl active:scale-95 focus:outline-none">
+            <X className="w-5 h-5" />
+          </DialogClose>
+          
+          <div className="relative h-56 md:h-72 bg-[#0a0a0b] w-full border-b border-[#232326] overflow-hidden">
             {selectedProduct?.image_url ? (
               <>
-                <div className="absolute inset-0 bg-gradient-to-t from-[#141416] via-[#141416]/60 to-transparent z-10" />
-                <img src={selectedProduct.image_url} alt="" className="w-full h-full object-cover opacity-80" />
+                {/* Blurred Background to fill empty spaces without clipping */}
+                <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#141416] via-[#141416]/40 to-transparent" />
+                <img src={selectedProduct.image_url} alt="" className="absolute inset-0 w-full h-full object-cover opacity-20 blur-md scale-110" />
+                
+                {/* Main uncropped image */}
+                <img src={selectedProduct.image_url} alt="Capa" className="relative z-0 w-full h-full object-contain p-2 md:p-6 opacity-100" />
               </>
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#10b981]/20 to-[#0a0a0b]">
