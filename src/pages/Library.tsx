@@ -316,7 +316,7 @@ const Library = () => {
 
       {/* Product Detail Modal (Netflix Style) */}
       <Dialog open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
-        <DialogContent className="max-w-3xl bg-[#141416] border-[#232326] text-white p-0 overflow-hidden sm:rounded-2xl">
+        <DialogContent className="max-w-3xl bg-[#141416] border-[#232326] text-white p-0 overflow-y-auto max-h-[90vh] sm:rounded-2xl shadow-2xl">
           <div className="relative h-48 md:h-64 bg-[#0a0a0b] w-full border-b border-[#232326]">
             {selectedProduct?.image_url ? (
               <>
@@ -348,16 +348,16 @@ const Library = () => {
                         {files.map((file: any, idx: number) => {
                           const { data } = supabase.storage.from('product_files').getPublicUrl(file.path);
                           return (
-                            <Button key={idx} asChild className="w-full bg-[#1c1c1e] hover:bg-[#232326] text-white border border-[#2d2d30] h-auto py-5 justify-between group rounded-xl transition-all hover:border-[#10b981]/50 hover:shadow-lg">
-                              <a href={data.publicUrl} target="_blank" rel="noopener noreferrer" download>
-                                <div className="flex items-center gap-4 truncate">
-                                  <div className="bg-[#10b981]/10 p-3 rounded-xl group-hover:bg-[#10b981] group-hover:text-black transition-colors text-[#10b981]">
-                                    <ExternalLink className="w-6 h-6" />
+                            <Button key={idx} asChild className="w-full bg-[#1c1c1e] hover:bg-[#232326] text-white border border-[#2d2d30] h-auto py-4 sm:py-5 justify-start group rounded-xl transition-all hover:border-[#10b981]/50 hover:shadow-lg">
+                              <a href={data.publicUrl} target="_blank" rel="noopener noreferrer" download className="flex flex-row items-center justify-between w-full gap-2 overflow-hidden">
+                                <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                                  <div className="shrink-0 bg-[#10b981]/10 p-2 sm:p-3 rounded-xl group-hover:bg-[#10b981] group-hover:text-black transition-colors text-[#10b981]">
+                                    <ExternalLink className="w-4 h-4 sm:w-6 sm:h-6" />
                                   </div>
-                                  <span className="truncate font-semibold text-lg">{file.name}</span>
+                                  <span className="truncate font-semibold text-base sm:text-lg block w-full text-left">{file.name}</span>
                                 </div>
-                                <div className="flex items-center gap-4 shrink-0 px-2 opacity-60 group-hover:opacity-100 transition-opacity">
-                                  <span className="text-sm font-medium">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+                                <div className="flex items-center shrink-0 px-1 sm:px-2 opacity-80 sm:opacity-60 group-hover:opacity-100 transition-opacity">
+                                  <span className="text-xs sm:text-sm font-medium">{(file.size / 1024 / 1024).toFixed(1)} <span className="hidden sm:inline">MB</span></span>
                                 </div>
                               </a>
                             </Button>
