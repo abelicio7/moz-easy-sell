@@ -366,7 +366,7 @@ const Library = () => {
                       </div>
                     );
                   } catch (e) {
-                    return <p className="text-sm text-red-500">Erro ao carregar ficheiros.</p>;
+                    return <p className="text-sm text-red-500">Erro ao carregar ficheiros principais.</p>;
                   }
                 })()
               ) : selectedProduct?.delivery_type === "message" ? (
@@ -376,7 +376,28 @@ const Library = () => {
                     {selectedProduct.delivery_content}
                   </div>
                 </div>
-              ) : null}
+              ) : selectedProduct?.delivery_type === "file" ? (
+                <div className="space-y-3">
+                  <p className="text-sm font-bold text-[#10b981] uppercase tracking-[0.2em] mb-4">Transferência Direta</p>
+                  <Button asChild className="w-full bg-[#1c1c1e] hover:bg-[#232326] text-white border border-[#2d2d30] h-auto py-5 justify-between group rounded-xl transition-all hover:border-[#10b981]/50 hover:shadow-lg">
+                    <a href={selectedProduct.delivery_content} target="_blank" rel="noopener noreferrer" download>
+                      <div className="flex items-center gap-4 truncate">
+                        <div className="bg-[#10b981]/10 p-3 rounded-xl group-hover:bg-[#10b981] group-hover:text-black transition-colors text-[#10b981]">
+                          <ExternalLink className="w-6 h-6" />
+                        </div>
+                        <span className="truncate font-semibold text-lg">Download Seguro</span>
+                      </div>
+                    </a>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm font-bold text-[#10b981] uppercase tracking-[0.2em] mb-2">Conteúdo de Acesso</p>
+                  <div className="bg-[#1c1c1e] border border-[#2d2d30] rounded-2xl p-6 text-gray-300 whitespace-pre-wrap leading-relaxed break-words break-all">
+                    {selectedProduct?.delivery_content}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </DialogContent>
