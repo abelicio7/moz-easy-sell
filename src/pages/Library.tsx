@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Package, Search, LogOut, ArrowRight, BookOpen, ExternalLink, MessageCircle, X, Link as LinkIcon, ChevronDown } from "lucide-react";
+import { Package, Search, LogOut, ArrowRight, BookOpen, ExternalLink, MessageCircle, X, Link as LinkIcon, ChevronDown, Download } from "lucide-react";
 import Logo from "@/components/Logo";
 
 const Library = () => {
@@ -356,18 +356,25 @@ const Library = () => {
                           const url = file.url || (file.path ? supabase.storage.from('product_files').getPublicUrl(file.path).data.publicUrl : undefined);
                           return (
                             <Button key={idx} asChild className="w-full bg-[#1c1c1e] hover:bg-[#232326] text-white border border-[#2d2d30] h-auto p-4 sm:p-5 justify-start group rounded-xl transition-all hover:border-[#10b981]/50 hover:shadow-lg">
-                              <a href={url} target="_blank" rel="noopener noreferrer" download={file.type !== 'link'} className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-3 sm:gap-2">
+                              <a href={url} target="_blank" rel="noopener noreferrer" download={file.type !== 'link'} className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full gap-4 sm:gap-3">
                                 <div className="flex items-start sm:items-center gap-3 sm:gap-4 flex-1 w-full min-w-0">
                                   <div className="shrink-0 bg-[#10b981]/10 p-2 sm:p-3 rounded-xl group-hover:bg-[#10b981] group-hover:text-black transition-colors text-[#10b981] mt-0.5 sm:mt-0">
                                     {file.type === "link" ? <LinkIcon className="w-4 h-4 sm:w-5 sm:h-5" /> : <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5" />}
                                   </div>
                                   <span className="font-semibold text-[15px] sm:text-lg block w-full text-left whitespace-normal break-words leading-snug">{file.name}</span>
                                 </div>
-                                {file.size && (
-                                <div className="flex items-center shrink-0 pl-[44px] sm:pl-2 opacity-70 group-hover:opacity-100 transition-opacity">
-                                  <span className="text-xs sm:text-sm font-bold bg-white/5 px-2 py-1 rounded-md text-gray-300">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+                                <div className="flex flex-wrap items-center gap-2 pl-[44px] sm:pl-2 shrink-0">
+                                  {file.size && (
+                                    <span className="text-xs sm:text-xs font-bold bg-white/5 border border-white/10 px-2.5 py-1.5 rounded-lg text-gray-300">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+                                  )}
+                                  <div className="flex items-center gap-1.5 text-xs sm:text-sm font-bold bg-[#10b981]/10 text-[#10b981] group-hover:bg-[#10b981] group-hover:text-black px-4 py-1.5 rounded-lg transition-colors border border-[#10b981]/20 group-hover:border-[#10b981]">
+                                    {file.type === "link" ? (
+                                      <>Aceder <ExternalLink className="w-3.5 h-3.5" /></>
+                                    ) : (
+                                      <>Baixar <Download className="w-3.5 h-3.5" /></>
+                                    )}
+                                  </div>
                                 </div>
-                                )}
                               </a>
                             </Button>
                           );
