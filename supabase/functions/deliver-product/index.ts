@@ -269,15 +269,13 @@ serve(async (req) => {
                 body: `Comissão: ${order.price} MT - ID: ${order.id.slice(0, 8).toUpperCase()}`,
                 url: "/dashboard/sales"
               });
-              let pushError = null;
-              await webpush.sendNotification(pushSubscription, payload).catch((e: any) => {
+              await webpush.sendNotification(pushSubscription, payload).catch(async (e: any) => {
                 console.error("WebPush send error for sub:", e);
-                pushError = e.message || String(e);
+                if (e.statusCode === 410 || e.statusCode === 404) {
+                   console.log("Removing dead subscription:", sub.endpoint);
+                   await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
+                }
               });
-              
-              if (pushError) {
-                return new Response(JSON.stringify({ success: false, message: "Push error: " + pushError }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }});
-              }
             }
             console.log(`Sent push notifications to ${subs.length} devices for seller ${sellerId}`);
           }
