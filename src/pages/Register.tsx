@@ -60,26 +60,7 @@ const Register = () => {
           }
         });
 
-        // Notify Admins
-        const adminSubject = "Novo Vendedor Aguardando Aprovação - EnsinaPay";
-        const adminHtml = `
-          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
-            <h2 style="color: #000;">Novo Registro de Vendedor 👤</h2>
-            <p>Um novo usuário se cadastrou e está aguardando aprovação para começar a vender.</p>
-            <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #e5e7eb;">
-              <p style="margin: 5px 0;"><strong>Nome:</strong> ${name}</p>
-              <p style="margin: 5px 0;"><strong>E-mail:</strong> ${email}</p>
-              <p style="margin: 5px 0;"><strong>Data:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
-            </div>
-            <div style="text-align: center; margin-top: 25px;">
-              <a href="${window.location.origin}/admin/users" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Analisar Vendedor</a>
-            </div>
-          </div>
-        `;
 
-        await supabase.functions.invoke("notify-admins", {
-          body: { subject: adminSubject, htmlContent: adminHtml }
-        });
       } catch (e) {
         console.error("Erro ao enviar notificações:", e);
       }
