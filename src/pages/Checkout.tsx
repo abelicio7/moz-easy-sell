@@ -36,6 +36,32 @@ const Checkout = () => {
     payment_method: "mpesa",
   });
 
+  const [trackingParams, setTrackingParams] = useState<any>({});
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tracking: any = {};
+    const keys = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "src"];
+    keys.forEach(key => {
+      const val = params.get(key);
+      if (val) tracking[key] = val;
+    });
+
+    if (Object.keys(tracking).length > 0) {
+      setTrackingParams(tracking);
+      sessionStorage.setItem("utm_tracking", JSON.stringify(tracking));
+    } else {
+      const saved = sessionStorage.getItem("utm_tracking");
+      if (saved) {
+        try {
+          setTrackingParams(JSON.parse(saved));
+        } catch (e) {
+          console.error("Failed to parse saved tracking parameters", e);
+        }
+      }
+    }
+  }, []);
+
   useEffect(() => {
     const initPage = async () => {
       const { data: productData, error: productError } = await supabase
@@ -148,7 +174,8 @@ const Checkout = () => {
         customer_whatsapp: form.customer_whatsapp,
         payment_method: form.payment_method,
         price: product.price,
-        status: "pending"
+        status: "pending",
+        tracking_parameters: trackingParams
       });
 
       if (error) throw error;

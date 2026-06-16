@@ -147,6 +147,114 @@ serve(async (req) => {
       console.log(`Product delivered successfully to ${customerEmail}`)
     }
 
+    // 3.B. Trigger Seller Integrations (Utmify & Webhooks)
+    try {
+      const sellerId = order.products?.user_id;
+      if (sellerId) {
+        const { data: integrations, error: integrationsError } = await supabase
+          .from('seller_integrations')
+          .select('*')
+          .eq('user_id', sellerId)
+          .eq('is_active', true);
+
+        if (!integrationsError && integrations && integrations.length > 0) {
+          for (const integration of integrations) {
+            // WEBHOOK INTEGRATION
+            if (integration.integration_type === 'webhook' && integration.config?.url) {
+              try {
+                console.log(`Firing webhook to: ${integration.config.url}`);
+                const payload = {
+                  event: 'order.paid',
+                  order: {
+                    id: order.id,
+                    product_id: order.product_id,
+                    product_name: order.products.name,
+                    price: order.price,
+                    customer_name: order.customer_name,
+                    customer_email: order.customer_email,
+                    customer_whatsapp: order.customer_whatsapp,
+                    payment_method: order.payment_method,
+                    status: 'paid',
+                    created_at: order.created_at,
+                    tracking_parameters: order.tracking_parameters || {}
+                  }
+                };
+                
+                const response = await fetch(integration.config.url, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(payload)
+                });
+                console.log(`Webhook response status: ${response.status}`);
+              } catch (webhookErr) {
+                console.error(`Error firing webhook integration for order ${order.id}:`, webhookErr);
+              }
+            }
+
+            // UTMIFY INTEGRATION
+            if (integration.integration_type === 'utmify' && integration.config?.token) {
+              try {
+                console.log(`Sending purchase conversion to Utmify for order: ${order.id}`);
+                const priceInCents = Math.round(Number(order.price) * 100);
+                const platformFeeInCents = Math.round(priceInCents * 0.10); // 10% fee
+                const userCommissionInCents = priceInCents - platformFeeInCents;
+
+                // Format phone to DDI (258) + number if it matches Mozambique format
+                let cleanPhone = (order.customer_whatsapp || "").replace(/\D/g, "");
+                if (cleanPhone.length === 9 && (cleanPhone.startsWith("84") || cleanPhone.startsWith("85") || cleanPhone.startsWith("86") || cleanPhone.startsWith("87") || cleanPhone.startsWith("82"))) {
+                  cleanPhone = "258" + cleanPhone;
+                }
+
+                const utmifyPayload = {
+                  isTest: false,
+                  status: 'paid',
+                  orderId: order.id,
+                  platform: 'EnsinaPay',
+                  createdAt: order.created_at,
+                  customer: {
+                    name: order.customer_name,
+                    email: order.customer_email,
+                    phone: cleanPhone,
+                    country: 'MZ'
+                  },
+                  products: [
+                    {
+                      id: order.product_id,
+                      name: order.products.name,
+                      quantity: 1,
+                      priceInCents: priceInCents
+                    }
+                  ],
+                  trackingParameters: order.tracking_parameters || {},
+                  commission: {
+                    totalPriceInCents: priceInCents,
+                    gatewayFeeInCents: platformFeeInCents,
+                    userCommissionInCents: userCommissionInCents
+                  }
+                };
+
+                const response = await fetch('https://api.utmify.com.br/api-credentials/orders', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-token': integration.config.token
+                  },
+                  body: JSON.stringify(utmifyPayload)
+                });
+                
+                const respText = await response.text();
+                console.log(`Utmify response status: ${response.status}. Body: ${respText}`);
+              } catch (utmifyErr) {
+                console.error(`Error firing Utmify integration for order ${order.id}:`, utmifyErr);
+              }
+            }
+          }
+        }
+      }
+    } catch (integrationErr) {
+      console.error("Critical error inside integrations execution block:", integrationErr);
+    }
+
     // 4. Notify Seller and Admins
     try {
       const productName = order.products?.name || 'Produto';

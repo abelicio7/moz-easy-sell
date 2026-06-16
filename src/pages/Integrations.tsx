@@ -33,6 +33,11 @@ const Integrations = () => {
   const [savingPixel, setSavingPixel] = useState(false);
   const [pixelModalOpen, setPixelModalOpen] = useState(false);
 
+  // Utmify form state
+  const [utmifyToken, setUtmifyToken] = useState("");
+  const [savingUtmify, setSavingUtmify] = useState(false);
+  const [utmifyModalOpen, setUtmifyModalOpen] = useState(false);
+
   useEffect(() => {
     if (!user) return;
     
@@ -54,6 +59,9 @@ const Integrations = () => {
         }
         if (mapped["facebook_pixel"] && mapped["facebook_pixel"].config?.pixelId) {
           setPixelId(mapped["facebook_pixel"].config.pixelId);
+        }
+        if (mapped["utmify"] && mapped["utmify"].config?.token) {
+          setUtmifyToken(mapped["utmify"].config.token);
         }
       }
       setLoading(false);
@@ -168,6 +176,56 @@ const Integrations = () => {
       toast.error(error.message || "Erro ao salvar Pixel.");
     } finally {
       setSavingPixel(false);
+    }
+  };
+
+  const handleSaveUtmify = async () => {
+    if (!user) return;
+    
+    try {
+      setSavingUtmify(true);
+      
+      const tokenStr = utmifyToken.trim();
+      const is_active = tokenStr.length > 0;
+      
+      const existing = integrations["utmify"];
+      
+      if (existing) {
+        if (!tokenStr) {
+           await supabase.from("seller_integrations").delete().eq("id", existing.id);
+           setIntegrations(prev => { const n = {...prev}; delete n["utmify"]; return n; });
+        } else {
+           const { data, error } = await supabase.from("seller_integrations")
+             .update({ config: { token: tokenStr }, is_active })
+             .eq("id", existing.id)
+             .select()
+             .single();
+             
+           if (error) throw error;
+           if (data) setIntegrations(prev => ({ ...prev, utmify: data }));
+        }
+      } else if (tokenStr) {
+        const { data, error } = await supabase.from("seller_integrations")
+           .insert({
+             user_id: user.id,
+             integration_type: "utmify",
+             config: { token: tokenStr },
+             is_active: true
+           })
+           .select()
+           .single();
+           
+         if (error) throw error;
+         if (data) setIntegrations(prev => ({ ...prev, utmify: data }));
+      }
+      
+      toast.success("Integração do Utmify salva com sucesso!");
+      setUtmifyModalOpen(false);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Erro ao salvar Utmify.");
+    } finally {
+      setSavingUtmify(false);
     }
   };
 
@@ -290,6 +348,63 @@ const Integrations = () => {
                     <Button variant="outline" onClick={() => setPixelModalOpen(false)}>Cancelar</Button>
                     <Button onClick={handleSavePixel} disabled={savingPixel}>
                       {savingPixel ? "Salvando..." : "Salvar Configuração"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </CardFooter>
+          </Card>
+
+          {/* UTMIFY - NOVO */}
+          <Card className={`border-border/50 transition-all ${integrations["utmify"]?.is_active ? 'border-primary/50 shadow-md ring-1 ring-primary/20' : 'hover:border-foreground/20'}`}>
+            <CardHeader>
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-12 h-12 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 font-black text-sm">
+                  UTM
+                </div>
+                {integrations["utmify"]?.is_active && (
+                  <Badge variant="default" className="bg-primary hover:bg-primary text-xs">
+                    <CheckCircle2 className="w-3 h-3 mr-1" /> Ativo
+                  </Badge>
+                )}
+              </div>
+              <CardTitle>Utmify</CardTitle>
+              <CardDescription>
+                Rastreie vendas e atribua a origem exata (UTMs) para suas campanhas de tráfego pago de forma automática.
+              </CardDescription>
+            </CardHeader>
+            <CardFooter>
+              <Dialog open={utmifyModalOpen} onOpenChange={setUtmifyModalOpen}>
+                <DialogTrigger asChild>
+                  <Button variant={integrations["utmify"]?.is_active ? "outline" : "default"} className="w-full">
+                    {integrations["utmify"]?.is_active ? "Configurar" : "Ativar Utmify"}
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Configurar Utmify</DialogTitle>
+                    <DialogDescription>
+                      Insira o seu API Token (gerado no painel da Utmify em Integrações > Webhooks > Credenciais API).
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="utmifyToken">API Token (x-api-token)</Label>
+                      <Input 
+                        id="utmifyToken"
+                        placeholder="Ex: sbp_a31a464f04d..." 
+                        value={utmifyToken}
+                        onChange={(e) => setUtmifyToken(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Deixe em branco para desativar esta integração.
+                      </p>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setUtmifyModalOpen(false)}>Cancelar</Button>
+                    <Button onClick={handleSaveUtmify} disabled={savingUtmify}>
+                      {savingUtmify ? "Salvando..." : "Salvar Configuração"}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
