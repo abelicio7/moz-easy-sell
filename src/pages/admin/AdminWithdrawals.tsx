@@ -232,7 +232,7 @@ const AdminWithdrawals = () => {
                               Processar
                             </Button>
                           </DialogTrigger>
-                          <DialogContent>
+                          <DialogContent className="w-[calc(100vw-2rem)] sm:w-full max-w-[calc(100vw-2rem)] sm:max-w-lg max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
                               <DialogTitle>Processar Pedido de Saque</DialogTitle>
                               <DialogDescription>
@@ -250,12 +250,12 @@ const AdminWithdrawals = () => {
                                 </div>
                                 <div>
                                   <span className="text-muted-foreground text-xs block">Detalhes da Conta / Número</span>
-                                  <span className="font-mono text-foreground font-semibold bg-background p-1 px-2 rounded border border-border inline-block mt-1">{item.payment_details}</span>
+                                  <span className="font-mono text-foreground font-semibold bg-background p-1 px-2 rounded border border-border inline-block mt-1 break-all">{item.payment_details}</span>
                                 </div>
                               </div>
                               
                               {!action ? (
-                                <div className="flex gap-2 pt-2">
+                                <div className="flex flex-col sm:flex-row gap-2 pt-2">
                                   <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={() => setAction("approve")}>
                                     <CheckCircle2 className="w-4 h-4 mr-2" /> Marcar como Concluído
                                   </Button>
@@ -283,11 +283,11 @@ const AdminWithdrawals = () => {
                                     </div>
                                   )}
                                   
-                                  <div className="flex justify-end gap-2">
-                                    <Button variant="outline" onClick={() => setAction(null)}>Voltar</Button>
+                                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+                                    <Button variant="outline" className="w-full sm:w-auto" onClick={() => setAction(null)}>Voltar</Button>
                                     <Button 
                                       variant={action === "reject" ? "destructive" : "default"}
-                                      className={action === "approve" ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+                                      className={action === "approve" ? "bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto" : "w-full sm:w-auto"}
                                       onClick={handleAction}
                                       disabled={processing}
                                     >

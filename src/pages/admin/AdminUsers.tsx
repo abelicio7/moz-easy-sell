@@ -224,7 +224,7 @@ const AdminUsers = () => {
                               Analisar
                             </Button>
                           </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="w-[calc(100vw-2rem)] sm:w-full max-w-[calc(100vw-2rem)] sm:max-w-lg max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
                               <DialogHeader>
                                 <DialogTitle>Análise de Identidade (KYC)</DialogTitle>
                                 <DialogDescription>
@@ -232,80 +232,80 @@ const AdminUsers = () => {
                                 </DialogDescription>
                               </DialogHeader>
                             
-                            <div className="py-4 space-y-4">
-                              <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                  <span className="text-muted-foreground block text-xs">Nome Completo</span>
-                                  <span className="font-medium text-foreground">{user.full_name || "Não informado"}</span>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground block text-xs">Email</span>
-                                  <span className="font-medium text-foreground">{user.email || "Não informado"}</span>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground block text-xs">Documento (BI ou Passaporte)</span>
-                                  <span className="font-medium text-foreground">{user.cpf || "Não informado"}</span>
-                                </div>
-                                <div>
-                                  <span className="text-muted-foreground block text-xs">Status KYC</span>
-                                  <span className="font-medium text-foreground uppercase">{user.identity_status}</span>
-                                </div>
-                                {user.identity_document_url && (
-                                  <div className="col-span-2 pt-2 pb-1 border-t border-border/50">
-                                    <span className="text-muted-foreground block text-xs mb-1">Documento Anexado</span>
-                                    <button 
-                                      onClick={() => handleViewDocument(user.identity_document_url)} 
-                                      className="text-primary hover:underline text-sm font-bold truncate block bg-primary/5 p-3 rounded border border-primary/20 cursor-pointer w-full text-left"
-                                    >
-                                      📄 Visualizar Documento Original
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                              
-                              {!action ? (
-                                <div className="flex gap-2 pt-4">
-                                  <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={() => setAction("approve")}>
-                                    <CheckCircle2 className="w-4 h-4 mr-2" /> Aprovar Saques
-                                  </Button>
-                                  <Button className="flex-1" variant="destructive" onClick={() => setAction("reject")}>
-                                    <XCircle className="w-4 h-4 mr-2" /> Rejeitar
-                                  </Button>
-                                </div>
-                              ) : (
-                                <div className="space-y-4 pt-4 animate-in fade-in zoom-in-95">
-                                  {action === "reject" && (
-                                    <div className="space-y-2">
-                                      <Label>Motivo da Rejeição (Será enviado ao usuário)</Label>
-                                      <Textarea 
-                                        placeholder="Ex: Documentação inválida..." 
-                                        value={reason}
-                                        onChange={(e) => setReason(e.target.value)}
-                                        required
-                                      />
-                                    </div>
-                                  )}
-                                  {action === "approve" && (
-                                    <div className="p-3 bg-green-500/10 text-green-700 rounded-lg text-sm border border-green-500/20">
-                                      O usuário será notificado por e-mail e os saques para a conta bancária dele ficarão permanentemente ativos.
-                                    </div>
-                                  )}
-                                  
-                                  <div className="flex justify-end gap-2">
-                                    <Button variant="outline" onClick={() => setAction(null)}>Voltar</Button>
-                                    <Button 
-                                      variant={action === "reject" ? "destructive" : "default"}
-                                      className={action === "approve" ? "bg-green-600 hover:bg-green-700 text-white" : ""}
-                                      onClick={handleAction}
-                                      disabled={processing}
-                                    >
-                                      {processing ? "Processando..." : "Confirmar"}
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </DialogContent>
+                             <div className="py-4 space-y-4">
+                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                                 <div>
+                                   <span className="text-muted-foreground block text-xs">Nome Completo</span>
+                                   <span className="font-medium text-foreground">{user.full_name || "Não informado"}</span>
+                                 </div>
+                                 <div>
+                                   <span className="text-muted-foreground block text-xs">Email</span>
+                                   <span className="font-medium text-foreground">{user.email || "Não informado"}</span>
+                                 </div>
+                                 <div>
+                                   <span className="text-muted-foreground block text-xs">Documento (BI ou Passaporte)</span>
+                                   <span className="font-medium text-foreground">{user.cpf || "Não informado"}</span>
+                                 </div>
+                                 <div>
+                                   <span className="text-muted-foreground block text-xs">Status KYC</span>
+                                   <span className="font-medium text-foreground uppercase">{user.identity_status}</span>
+                                 </div>
+                                 {user.identity_document_url && (
+                                   <div className="col-span-1 sm:col-span-2 pt-2 pb-1 border-t border-border/50">
+                                     <span className="text-muted-foreground block text-xs mb-1">Documento Anexado</span>
+                                     <button 
+                                       onClick={() => handleViewDocument(user.identity_document_url)} 
+                                       className="text-primary hover:underline text-sm font-bold truncate block bg-primary/5 p-3 rounded border border-primary/20 cursor-pointer w-full text-left"
+                                     >
+                                       📄 Visualizar Documento Original
+                                     </button>
+                                   </div>
+                                 )}
+                               </div>
+                               
+                               {!action ? (
+                                 <div className="flex flex-col sm:flex-row gap-2 pt-4">
+                                   <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={() => setAction("approve")}>
+                                     <CheckCircle2 className="w-4 h-4 mr-2" /> Aprovar Saques
+                                   </Button>
+                                   <Button className="flex-1" variant="destructive" onClick={() => setAction("reject")}>
+                                     <XCircle className="w-4 h-4 mr-2" /> Rejeitar
+                                   </Button>
+                                 </div>
+                               ) : (
+                                 <div className="space-y-4 pt-4 animate-in fade-in zoom-in-95">
+                                   {action === "reject" && (
+                                     <div className="space-y-2">
+                                       <Label>Motivo da Rejeição (Será enviado ao usuário)</Label>
+                                       <Textarea 
+                                         placeholder="Ex: Documentação inválida..." 
+                                         value={reason}
+                                         onChange={(e) => setReason(e.target.value)}
+                                         required
+                                       />
+                                     </div>
+                                   )}
+                                   {action === "approve" && (
+                                     <div className="p-3 bg-green-500/10 text-green-700 rounded-lg text-sm border border-green-500/20">
+                                       O usuário será notificado por e-mail e os saques para a conta bancária dele ficarão permanentemente ativos.
+                                     </div>
+                                   )}
+                                   
+                                   <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+                                     <Button variant="outline" className="w-full sm:w-auto" onClick={() => setAction(null)}>Voltar</Button>
+                                     <Button 
+                                       variant={action === "reject" ? "destructive" : "default"}
+                                       className={action === "approve" ? "bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto" : "w-full sm:w-auto"}
+                                       onClick={handleAction}
+                                       disabled={processing}
+                                     >
+                                       {processing ? "Processando..." : "Confirmar"}
+                                     </Button>
+                                   </div>
+                                 </div>
+                               )}
+                             </div>
+                           </DialogContent>
                         </Dialog>
                       </td>
                     </tr>

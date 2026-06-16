@@ -255,7 +255,7 @@ const AdminProducts = () => {
                               Analisar
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="max-w-xl">
+                          <DialogContent className="w-[calc(100vw-2rem)] sm:w-full max-w-[calc(100vw-2rem)] sm:max-w-xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
                               <DialogTitle>Análise de Produto</DialogTitle>
                               <DialogDescription>
@@ -264,12 +264,12 @@ const AdminProducts = () => {
                             </DialogHeader>
                             
                             <div className="py-4 space-y-6">
-                              <div className="flex gap-4">
-                                {product.image_url && <img src={product.image_url} alt="" className="w-24 h-24 rounded-lg object-cover" />}
+                              <div className="flex flex-col sm:flex-row gap-4">
+                                {product.image_url && <img src={product.image_url} alt="" className="w-24 h-24 rounded-lg object-cover shrink-0 mx-auto sm:mx-0" />}
                                 <div>
-                                  <h3 className="font-bold text-lg text-foreground">{product.name}</h3>
-                                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{product.description}</p>
-                                  <div className="flex gap-4 mt-3 text-sm">
+                                  <h3 className="font-bold text-lg text-foreground text-center sm:text-left">{product.name}</h3>
+                                  <p className="text-sm text-muted-foreground mt-1 line-clamp-2 text-center sm:text-left">{product.description}</p>
+                                  <div className="flex flex-wrap gap-4 mt-3 text-sm justify-center sm:justify-start">
                                     <div><span className="text-muted-foreground text-xs block">Preço</span><span className="font-bold text-primary">{product.price.toFixed(2)} MT</span></div>
                                     <div><span className="text-muted-foreground text-xs block">Entrega</span><span className="font-medium capitalize">{product.delivery_type}</span></div>
                                     <div><span className="text-muted-foreground text-xs block">Vendedor</span><span className="font-medium">{product.profiles?.full_name}</span></div>
@@ -344,7 +344,7 @@ const AdminProducts = () => {
                               </div>
                               
                               {!action ? (
-                                <div className="flex gap-2 pt-4 border-t border-border">
+                                <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-border">
                                   <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={() => setAction("approve")}>
                                     <CheckCircle2 className="w-4 h-4 mr-2" /> Aprovar Produto
                                   </Button>
@@ -371,11 +371,11 @@ const AdminProducts = () => {
                                     </div>
                                   )}
                                   
-                                  <div className="flex justify-end gap-2">
-                                    <Button variant="outline" onClick={() => setAction(null)}>Voltar</Button>
+                                  <div className="flex flex-col-reverse sm:flex-row justify-end gap-2">
+                                    <Button variant="outline" className="w-full sm:w-auto" onClick={() => setAction(null)}>Voltar</Button>
                                     <Button 
                                       variant={action === "reject" ? "destructive" : "default"}
-                                      className={action === "approve" ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+                                      className={action === "approve" ? "bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto" : "w-full sm:w-auto"}
                                       onClick={handleAction}
                                       disabled={processing}
                                     >
