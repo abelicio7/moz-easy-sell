@@ -384,7 +384,7 @@ const Integrations = () => {
                   <DialogHeader>
                     <DialogTitle>Configurar Utmify</DialogTitle>
                     <DialogDescription>
-                      Insira o seu API Token (gerado no painel da Utmify em Integrações > Webhooks > Credenciais API).
+                      Insira o seu API Token (gerado no painel da Utmify em Integrações &gt; Webhooks &gt; Credenciais API).
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 py-4">

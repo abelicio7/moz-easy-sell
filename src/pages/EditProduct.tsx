@@ -30,7 +30,6 @@ const EditProduct = () => {
     delivery_type: "link", 
     delivery_content: "", 
     support_whatsapp: "",
-    support_whatsapp: "",
   });
 
 
