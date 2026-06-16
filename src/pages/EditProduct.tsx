@@ -9,9 +9,36 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Upload, X } from "lucide-react";
+import { Upload, X, Cloud, File, Link, MessageSquare } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import ContentBuilder from "@/components/ContentBuilder";
+
+const deliveryOptions = [
+  {
+    value: "hosted",
+    label: "Hospedagem EnsinaPay",
+    description: "Upload direto de arquivos",
+    icon: Cloud,
+  },
+  {
+    value: "file",
+    label: "Arquivo externo",
+    description: "Google Drive, Dropbox, etc.",
+    icon: File,
+  },
+  {
+    value: "link",
+    label: "Link Externo",
+    description: "Link de acesso/membros",
+    icon: Link,
+  },
+  {
+    value: "message",
+    label: "Mensagem",
+    description: "Mensagem pós-venda",
+    icon: MessageSquare,
+  },
+];
 
 const EditProduct = () => {
   const { id } = useParams();
@@ -227,17 +254,30 @@ const EditProduct = () => {
               <Label>Preço (MT) *</Label>
               <Input type="number" min="0" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Label>Tipo de entrega</Label>
-              <Select value={form.delivery_type} onValueChange={(v) => setForm({ ...form, delivery_type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="hosted">Upload Directo (Hospedagem EnsinaPay)</SelectItem>
-                  <SelectItem value="file">Arquivo (URL)</SelectItem>
-                  <SelectItem value="link">Link externo</SelectItem>
-                  <SelectItem value="message">Mensagem personalizada</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="grid grid-cols-2 gap-3">
+                {deliveryOptions.map((option) => {
+                  const Icon = option.icon;
+                  const isSelected = form.delivery_type === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setForm({ ...form, delivery_type: option.value })}
+                      className={`flex flex-col items-center justify-center p-4 rounded-xl border text-center transition-all ${
+                        isSelected
+                          ? "border-primary bg-primary/5 text-primary font-medium ring-2 ring-primary/20"
+                          : "border-border bg-card hover:border-foreground/20 hover:bg-accent/50 text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Icon className={`w-6 h-6 mb-2 ${isSelected ? "text-primary scale-110 transition-transform" : "text-muted-foreground"}`} />
+                      <span className="text-xs font-bold leading-tight">{option.label}</span>
+                      <span className="text-[10px] text-muted-foreground/80 mt-1 block leading-tight">{option.description}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             
             {form.delivery_type === "hosted" ? (
