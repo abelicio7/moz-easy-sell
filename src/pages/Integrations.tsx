@@ -359,8 +359,17 @@ const Integrations = () => {
           <Card className={`border-border/50 transition-all ${integrations["utmify"]?.is_active ? 'border-primary/50 shadow-md ring-1 ring-primary/20' : 'hover:border-foreground/20'}`}>
             <CardHeader>
               <div className="flex items-center justify-between mb-2">
-                <div className="w-12 h-12 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 font-black text-sm">
-                  UTM
+                <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center text-[#00094B] dark:text-white">
+                  <svg viewBox="10 0 72 80" className="w-6 h-6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10 10 C10 4.47715 14.4772 0 20 0 H32 C37.5228 0 42 4.47715 42 10 V42 C42 46.4183 45.5817 50 50 50 C54.4183 50 58 46.4183 58 42 V22 L82 46 V50 C82 66.5685 67.6731 80 50 80 C32.3269 80 18 66.5685 18 50 V10 H10 Z" fill="currentColor"/>
+                    <path d="M58 0 L82 24 H58 V0 Z" fill="url(#utmify-gradient)"/>
+                    <defs>
+                      <linearGradient id="utmify-gradient" x1="58" y1="0" x2="82" y2="24" gradientUnits="userSpaceOnUse">
+                        <stop stopColor="#00D2FF"/>
+                        <stop offset="1" stopColor="#0057FF"/>
+                      </linearGradient>
+                    </defs>
+                  </svg>
                 </div>
                 {integrations["utmify"]?.is_active && (
                   <Badge variant="default" className="bg-primary hover:bg-primary text-xs">
