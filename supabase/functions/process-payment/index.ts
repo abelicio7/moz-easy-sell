@@ -14,8 +14,84 @@ serve(async (req) => {
   }
 
   try {
-    const { order_id, amount, phone, payment_method } = await req.json()
+    const { order_id, amount, phone, payment_method, name, email, cpf, product_name } = await req.json()
     
+    // MERCADO PAGO PIX PAYMENT PROCESS
+    if (payment_method === 'pix') {
+      const MP_ACCESS_TOKEN = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')
+      if (!MP_ACCESS_TOKEN) {
+        throw new Error('MERCADOPAGO_ACCESS_TOKEN configuration missing in Supabase Secrets')
+      }
+
+      console.log(`Generating Pix payment for order ${order_id}, amount ${amount}, email ${email}`)
+
+      const mpResponse = await fetch('https://api.mercadopago.com/v1/payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${MP_ACCESS_TOKEN}`,
+          'X-Idempotency-Key': order_id
+        },
+        body: JSON.stringify({
+          transaction_amount: Number(amount),
+          description: product_name || 'Venda EnsinaPay',
+          payment_method_id: 'pix',
+          payer: {
+            email: email,
+            first_name: name.split(' ')[0] || "Cliente",
+            last_name: name.split(' ').slice(1).join(' ') || "EnsinaPay",
+            identification: {
+              type: "CPF",
+              number: cpf.replace(/\D/g, "")
+            }
+          }
+        })
+      })
+
+      const mpData = await mpResponse.json()
+      console.log("MERCADO PAGO RESPONSE (DEBUG):", JSON.stringify(mpData))
+
+      if (!mpResponse.ok || mpData.status === 'rejected') {
+        throw new Error(mpData.message || mpData.cause?.[0]?.description || 'Error processing payment with Mercado Pago')
+      }
+
+      const paymentId = String(mpData.id)
+      const qrCode = mpData.point_of_interaction?.transaction_data?.qr_code
+      const qrCodeBase64 = mpData.point_of_interaction?.transaction_data?.qr_code_base64
+
+      // Update order in database
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      )
+
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({ 
+          payment_id: paymentId,
+          pix_qr_code: qrCodeBase64,
+          pix_copia_cola: qrCode,
+          currency: 'BRL',
+          status: 'pending'
+        })
+        .eq('id', order_id)
+
+      if (updateError) {
+        console.error("Error updating BRL order:", updateError)
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          payment_id: paymentId,
+          pix_qr_code: qrCodeBase64,
+          pix_copia_cola: qrCode
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // MOZAMBIQUE LOCAL PAYMENT PROCESS (MPESA / EMOLA)
     // SANITIZE PHONE: Remove +258 and non-digits
     const cleanPhone = phone.replace(/\D/g, '').replace(/^258/, '')
     

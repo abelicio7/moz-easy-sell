@@ -55,6 +55,7 @@ const NewProduct = () => {
     delivery_type: "link",
     delivery_content: "",
     support_whatsapp: "",
+    currency: "MZN",
   });
 
 
@@ -111,6 +112,7 @@ const NewProduct = () => {
       delivery_type: form.delivery_type,
       delivery_content: form.delivery_type === 'hosted' ? '[]' : form.delivery_content,
       support_whatsapp: form.support_whatsapp,
+      currency: form.currency,
     }).select("id").single();
 
     if (error || !data) {
@@ -261,8 +263,36 @@ const NewProduct = () => {
               <Input type="tel" placeholder="Ex: 840000000" value={form.support_whatsapp} onChange={(e) => setForm({ ...form, support_whatsapp: e.target.value })} required />
             </div>
             <div className="space-y-2">
-              <Label>Preço (MT) *</Label>
-              <Input type="number" min="0" step="0.01" placeholder="150.00" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required />
+              <Label>Moeda *</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, currency: "MZN" })}
+                  className={`py-2.5 px-3 rounded-xl border text-center transition-all text-xs font-bold uppercase ${
+                    form.currency === "MZN"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-card text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Moçambique (MZN)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, currency: "BRL" })}
+                  className={`py-2.5 px-3 rounded-xl border text-center transition-all text-xs font-bold uppercase ${
+                    form.currency === "BRL"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-card text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Brasil (BRL)
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Preço ({form.currency === "BRL" ? "R$" : "MT"}) *</Label>
+              <Input type="number" min="0" step="0.01" placeholder={form.currency === "BRL" ? "50.00" : "150.00"} value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required />
             </div>
             <div className="space-y-3">
               <Label>Tipo de entrega *</Label>

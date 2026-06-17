@@ -4,27 +4,49 @@ import { Trophy, Star, Target, Crown } from "lucide-react";
 
 interface SellerProgressProps {
   revenue: number;
+  currency?: string;
 }
 
-const MILESTONES = [
-  { value: 0, label: "Iniciante", badge: "🌱", icon: Target, color: "text-slate-400", bgColor: "bg-slate-400" },
-  { value: 100000, label: "100K", badge: "🥉", icon: Star, color: "text-amber-700", bgColor: "bg-amber-700" },
-  { value: 500000, label: "500K", badge: "🥈", icon: Star, color: "text-slate-400", bgColor: "bg-slate-400" },
-  { value: 1000000, label: "1 Milhão", badge: "🥇", icon: Trophy, color: "text-yellow-500", bgColor: "bg-yellow-500" },
-  { value: 5000000, label: "5 Milhões", badge: "🏆", icon: Crown, color: "text-indigo-500", bgColor: "bg-indigo-500" },
-  { value: 10000000, label: "10 Milhões+", badge: "💎", icon: Crown, color: "text-cyan-400", bgColor: "bg-cyan-400" },
-];
+export const SellerProgress = ({ revenue, currency = "MZN" }: SellerProgressProps) => {
+  const isBrl = currency === "BRL";
 
-export const SellerProgress = ({ revenue }: SellerProgressProps) => {
-  const currentTier = [...MILESTONES].reverse().find(m => revenue >= m.value) || MILESTONES[0];
-  const currentTierIndex = MILESTONES.findIndex(m => m.value === currentTier.value);
-  const nextTier = MILESTONES[currentTierIndex + 1];
+  const milestones = isBrl ? [
+    { value: 0, label: "Iniciante", badge: "🌱", icon: Target, color: "text-slate-400", bgColor: "bg-slate-400" },
+    { value: 10000, label: "10K", badge: "🥉", icon: Star, color: "text-amber-700", bgColor: "bg-amber-700" },
+    { value: 50000, label: "50K", badge: "🥈", icon: Star, color: "text-slate-400", bgColor: "bg-slate-400" },
+    { value: 100000, label: "100K", badge: "🥇", icon: Trophy, color: "text-yellow-500", bgColor: "bg-yellow-500" },
+    { value: 500000, label: "500K", badge: "🏆", icon: Crown, color: "text-indigo-500", bgColor: "bg-indigo-500" },
+    { value: 1000000, label: "1 Milhão+", badge: "💎", icon: Crown, color: "text-cyan-400", bgColor: "bg-cyan-400" },
+  ] : [
+    { value: 0, label: "Iniciante", badge: "🌱", icon: Target, color: "text-slate-400", bgColor: "bg-slate-400" },
+    { value: 100000, label: "100K", badge: "🥉", icon: Star, color: "text-amber-700", bgColor: "bg-amber-700" },
+    { value: 500000, label: "500K", badge: "🥈", icon: Star, color: "text-slate-400", bgColor: "bg-slate-400" },
+    { value: 1000000, label: "1 Milhão", badge: "🥇", icon: Trophy, color: "text-yellow-500", bgColor: "bg-yellow-500" },
+    { value: 5000000, label: "5 Milhões", badge: "🏆", icon: Crown, color: "text-indigo-500", bgColor: "bg-indigo-500" },
+    { value: 10000000, label: "10 Milhões+", badge: "💎", icon: Crown, color: "text-cyan-400", bgColor: "bg-cyan-400" },
+  ];
+
+  const currentTier = [...milestones].reverse().find(m => revenue >= m.value) || milestones[0];
+  const currentTierIndex = milestones.findIndex(m => m.value === currentTier.value);
+  const nextTier = milestones[currentTierIndex + 1];
   
   const progressPercent = nextTier 
     ? Math.min(100, Math.max(0, ((revenue - currentTier.value) / (nextTier.value - currentTier.value)) * 100))
     : 100;
 
   const CurrentIcon = currentTier.icon;
+
+  const formatValue = (val: number) => {
+    return isBrl 
+      ? val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 })
+      : `${val.toLocaleString('pt-MZ')} MT`;
+  };
+
+  const formatValueFull = (val: number) => {
+    return isBrl 
+      ? val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+      : `${val.toLocaleString('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MT`;
+  };
 
   return (
     <Card className="mb-8 border border-border/50 shadow-lg bg-gradient-to-br from-card to-muted/30 relative overflow-hidden">
@@ -48,7 +70,7 @@ export const SellerProgress = ({ revenue }: SellerProgressProps) => {
           <div className="text-left md:text-right bg-background/50 p-4 rounded-xl border border-border/50">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Faturamento Total</p>
             <p className="text-3xl font-black bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              {revenue.toLocaleString('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MT
+              {formatValueFull(revenue)}
             </p>
           </div>
         </div>
@@ -81,9 +103,9 @@ export const SellerProgress = ({ revenue }: SellerProgressProps) => {
             </div>
             
             <div className="flex justify-between items-center text-sm">
-              <span className="font-semibold text-muted-foreground">{currentTier.value.toLocaleString('pt-MZ')} MT</span>
-              <span className="font-medium text-primary">Faltam {(nextTier.value - revenue).toLocaleString('pt-MZ')} MT</span>
-              <span className="font-semibold text-muted-foreground">{nextTier.value.toLocaleString('pt-MZ')} MT</span>
+              <span className="font-semibold text-muted-foreground">{formatValue(currentTier.value)}</span>
+              <span className="font-medium text-primary">Faltam {formatValue(nextTier.value - revenue)}</span>
+              <span className="font-semibold text-muted-foreground">{formatValue(nextTier.value)}</span>
             </div>
           </div>
         ) : (

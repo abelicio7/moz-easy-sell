@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,9 @@ import { SellerProgress } from "@/components/SellerProgress";
 const Dashboard = () => {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
-  const [stats, setStats] = useState<OrderStats>({ total: 0, pending: 0, paid: 0, revenue: 0, availableBalance: 0, methodStats: {} });
+  const [rawOrders, setRawOrders] = useState<any[]>([]);
+  const [rawWithdrawals, setRawWithdrawals] = useState<any[]>([]);
+  const [currency, setCurrency] = useState<"MZN" | "BRL">("MZN");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,51 +49,58 @@ const Dashboard = () => {
       const [{ data: prods }, { data: orders }, { data: withdrawals }] = await Promise.all([
         supabase.from("products").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("orders").select("*, products!inner(name, user_id)").eq("products.user_id", user.id),
-        supabase.from("withdrawals").select("amount, status").eq("user_id", user.id),
+        supabase.from("withdrawals").select("amount, status, currency").eq("user_id", user.id),
       ]);
 
       setProducts(prods || []);
-      const allOrders = orders || [];
-      const allWithdrawals = withdrawals || [];
-      
-      const methodStats = allOrders.reduce((acc: any, order: any) => {
-        const method = order.payment_method || 'Outro';
-        if (!acc[method]) acc[method] = { totalOrders: 0, paidOrders: 0, revenue: 0, conversion: 0 };
-        acc[method].totalOrders++;
-        if (["paid", "delivered"].includes(order.status)) {
-          acc[method].paidOrders++;
-          acc[method].revenue += (order.price || 0);
-        }
-        return acc;
-      }, {});
-
-      Object.keys(methodStats).forEach(key => {
-        methodStats[key].conversion = methodStats[key].totalOrders > 0 
-          ? (methodStats[key].paidOrders / methodStats[key].totalOrders) * 100 
-          : 0;
-      });
-
-      // 1. Direct Revenue (Sum of all paid orders)
-      const totalNetEarnings = allOrders
-        .filter((o: any) => ["paid", "delivered"].includes(o.status))
-        .reduce((sum: number, o: any) => sum + Number(o.price), 0);
-      
-      const totalWithdrawnAndPending = allWithdrawals
-        .filter((w: any) => w.status === "completed" || w.status === "pending")
-        .reduce((sum: number, w: any) => sum + Number(w.amount), 0);
-        
-      setStats({
-        total: allOrders.length,
-        pending: allOrders.filter((o: any) => o.status === "pending").length,
-        paid: allOrders.filter((o: any) => ["paid", "delivered"].includes(o.status)).length,
-        revenue: totalNetEarnings, 
-        availableBalance: totalNetEarnings - totalWithdrawnAndPending,
-        methodStats
-      });
+      setRawOrders(orders || []);
+      setRawWithdrawals(withdrawals || []);
       setLoading(false);
     };
     fetchData();
   }, [user]);
+
+  const stats = useMemo(() => {
+    const filteredOrders = rawOrders.filter(o => (o.currency || "MZN") === currency);
+    const filteredWithdrawals = rawWithdrawals.filter(w => (w.currency || "MZN") === currency);
+    const filteredProductsCount = products.filter(p => (p.currency || "MZN") === currency).length;
+
+    const methodStats = filteredOrders.reduce((acc: any, order: any) => {
+      const method = order.payment_method || 'Outro';
+      const cleanMethod = method.toLowerCase() === 'pix' ? 'Pix' : method.toLowerCase() === 'mpesa' ? 'M-Pesa' : method.toLowerCase() === 'emola' ? 'E-Mola' : method;
+      if (!acc[cleanMethod]) acc[cleanMethod] = { totalOrders: 0, paidOrders: 0, revenue: 0, conversion: 0 };
+      acc[cleanMethod].totalOrders++;
+      if (["paid", "delivered"].includes(order.status)) {
+        acc[cleanMethod].paidOrders++;
+        acc[cleanMethod].revenue += (order.price || 0);
+      }
+      return acc;
+    }, {});
+
+    Object.keys(methodStats).forEach(key => {
+      methodStats[key].conversion = methodStats[key].totalOrders > 0 
+        ? (methodStats[key].paidOrders / methodStats[key].totalOrders) * 100 
+        : 0;
+    });
+
+    const totalNetEarnings = filteredOrders
+      .filter((o: any) => ["paid", "delivered"].includes(o.status))
+      .reduce((sum: number, o: any) => sum + Number(o.price), 0);
+    
+    const totalWithdrawnAndPending = filteredWithdrawals
+      .filter((w: any) => w.status === "completed" || w.status === "pending")
+      .reduce((sum: number, w: any) => sum + Number(w.amount), 0);
+
+    return {
+      productsCount: filteredProductsCount,
+      total: filteredOrders.length,
+      pending: filteredOrders.filter((o: any) => o.status === "pending").length,
+      paid: filteredOrders.filter((o: any) => ["paid", "delivered"].includes(o.status)).length,
+      revenue: totalNetEarnings, 
+      availableBalance: totalNetEarnings - totalWithdrawnAndPending,
+      methodStats
+    };
+  }, [rawOrders, rawWithdrawals, products, currency]);
 
   const copyCheckoutLink = (productId: string) => {
     const link = `${window.location.origin}/checkout/${productId}`;
@@ -101,14 +110,40 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground tracking-tight">
-          Olá, {user?.user_metadata?.name?.split(' ')[0] || user?.user_metadata?.full_name?.split(' ')[0] || "Empreendedor"}! 👋
-        </h1>
-        <p className="text-muted-foreground mt-1 text-lg">Aqui está o resumo das suas vendas de hoje.</p>
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">
+            Olá, {user?.user_metadata?.name?.split(' ')[0] || user?.user_metadata?.full_name?.split(' ')[0] || "Empreendedor"}! 👋
+          </h1>
+          <p className="text-muted-foreground mt-1 text-lg">Aqui está o resumo das suas vendas de hoje.</p>
+        </div>
+
+        {/* Currency Switcher */}
+        <div className="flex bg-muted/65 p-1.5 rounded-2xl border border-border/50 shrink-0">
+          <button
+            onClick={() => setCurrency("MZN")}
+            className={`py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
+              currency === "MZN"
+                ? "bg-primary text-white shadow-lg"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Moçambique (MZN)
+          </button>
+          <button
+            onClick={() => setCurrency("BRL")}
+            className={`py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
+              currency === "BRL"
+                ? "bg-primary text-white shadow-lg"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Brasil (BRL)
+          </button>
+        </div>
       </div>
 
-      <SellerProgress revenue={stats.revenue} />
+      <SellerProgress revenue={stats.revenue} currency={currency} />
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -119,7 +154,7 @@ const Dashboard = () => {
                 <Package className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{products.length}</p>
+                <p className="text-2xl font-bold text-foreground">{stats.productsCount}</p>
                 <p className="text-xs text-muted-foreground">Produtos</p>
               </div>
             </div>
@@ -132,7 +167,11 @@ const Dashboard = () => {
                 <Wallet className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{stats.availableBalance.toFixed(0)} MT</p>
+                <p className="text-2xl font-bold text-foreground">
+                  {currency === "BRL" 
+                    ? stats.availableBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                    : `${stats.availableBalance.toFixed(0)} MT`}
+                </p>
                 <p className="text-xs text-muted-foreground">Saldo Disponível</p>
               </div>
             </div>
@@ -179,7 +218,9 @@ const Dashboard = () => {
                     ? 'bg-gradient-to-br from-[#E51B24] to-[#8A0A12]' 
                     : method.toLowerCase() === 'emola' 
                       ? 'bg-gradient-to-br from-[#F57C00] to-[#b34700]' 
-                      : 'bg-gradient-to-br from-primary to-primary/80'
+                      : method.toLowerCase() === 'pix'
+                        ? 'bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8]'
+                        : 'bg-gradient-to-br from-primary to-primary/80'
                 }`}
               >
                 {/* Decorative circles */}
@@ -194,7 +235,9 @@ const Dashboard = () => {
                         ? 'text-[#DD0512]' 
                         : method.toLowerCase() === 'emola' 
                           ? 'text-[#EC7028]' 
-                          : 'text-primary'
+                          : method.toLowerCase() === 'pix'
+                            ? 'text-[#1d4ed8]'
+                            : 'text-primary'
                     }`}>
                       <Smartphone className="w-7 h-7 mb-1" />
                       <span className="text-[11px] font-black tracking-tight uppercase leading-none">{method}</span>
@@ -204,10 +247,14 @@ const Dashboard = () => {
                   {/* Right: Stats */}
                   <div className="text-right text-white">
                     <p className="text-3xl md:text-4xl font-black tracking-tight mb-1">
-                      {data.revenue.toFixed(2)} <span className="text-white/90 text-2xl">MZN</span>
+                      {currency === "BRL" 
+                        ? data.revenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                        : `${data.revenue.toFixed(2)} MZN`}
                     </p>
                     <p className="text-sm md:text-base font-medium text-white/90 mb-3">
-                      Total Coletado: {data.revenue.toFixed(2)} MZN
+                      Total Coletado: {currency === "BRL" 
+                        ? data.revenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                        : `${data.revenue.toFixed(2)} MZN`}
                     </p>
                     
                     <div className="flex items-center justify-end gap-3 text-xs md:text-sm text-white/75 bg-black/10 px-3 py-1.5 rounded-full inline-flex">

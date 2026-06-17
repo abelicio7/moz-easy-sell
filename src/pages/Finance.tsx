@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ interface Withdrawal {
   payment_method: string;
   payment_details: string;
   created_at: string;
+  currency?: string;
 }
 
 interface SavedMethod {
@@ -33,9 +34,10 @@ interface SavedMethod {
 
 const Finance = () => {
   const { user } = useAuth();
+  const [currency, setCurrency] = useState<"MZN" | "BRL">("MZN");
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [savedMethods, setSavedMethods] = useState<SavedMethod[]>([]);
-  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [orders, setOrders] = useState<{ price: number; currency: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [identityStatus, setIdentityStatus] = useState<string>("unverified");
   
@@ -69,7 +71,7 @@ const Finance = () => {
     // Fetch all paid/delivered orders for this user's products
     const { data: orderData, error: orderError } = await supabase
       .from("orders")
-      .select("price, products!inner(user_id)")
+      .select("price, currency, products!inner(user_id)")
       .in("status", ["paid", "delivered"])
       .eq("products.user_id", user.id);
 
@@ -77,8 +79,9 @@ const Finance = () => {
       console.error("Error fetching orders for revenue:", orderError);
     }
 
-    const revenue = (orderData || []).reduce((sum, order) => sum + Number(order.price), 0);
-    setTotalRevenue(revenue);
+    if (orderData) {
+      setOrders(orderData.map(o => ({ price: Number(o.price), currency: o.currency })));
+    }
 
     // Fetch profile identity status
     const { data: profile } = await supabase
@@ -146,16 +149,59 @@ const Finance = () => {
     }
   };
 
+  // Auto-select saved method based on selected currency
+  useEffect(() => {
+    const filtered = savedMethods.filter(m => {
+      if (currency === "BRL") {
+        return m.method_type === "Pix" || m.method_type === "Transferência Bancária";
+      } else {
+        return m.method_type === "M-Pesa" || m.method_type === "E-Mola";
+      }
+    });
+    if (filtered.length > 0) {
+      handleMethodSelect(filtered[0].id, savedMethods);
+    } else {
+      handleMethodSelect("new", savedMethods);
+    }
+  }, [currency, savedMethods]);
+
   // Compute metrics
-  const totalWithdrawnAndPending = withdrawals
-    .filter(w => w.status === 'completed' || w.status === 'pending')
-    .reduce((sum, w) => sum + Number(w.amount), 0);
+  const totalRevenue = useMemo(() => {
+    return orders
+      .filter(o => (o.currency || 'MZN') === currency)
+      .reduce((sum, o) => sum + Number(o.price), 0);
+  }, [orders, currency]);
+
+  const filteredWithdrawals = useMemo(() => {
+    return withdrawals.filter(w => (w.currency || 'MZN') === currency);
+  }, [withdrawals, currency]);
+
+  const totalWithdrawnAndPending = useMemo(() => {
+    return filteredWithdrawals
+      .filter(w => w.status === 'completed' || w.status === 'pending')
+      .reduce((sum, w) => sum + Number(w.amount), 0);
+  }, [filteredWithdrawals]);
     
   const availableBalance = totalRevenue - totalWithdrawnAndPending;
 
   const numAmount = Number(amount) || 0;
   const feeAmount = numAmount * WITHDRAWAL_FEE_PERCENT;
   const netAmount = numAmount - feeAmount;
+
+  const formatCurrency = (val: number) => {
+    if (currency === "BRL") {
+      return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+    return `${val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MT`;
+  };
+
+  const formatWithdrawalCurrency = (val: number, wCurrency?: string) => {
+    const curr = wCurrency || "MZN";
+    if (curr === "BRL") {
+      return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+    return `${val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MT`;
+  };
 
   const handleKycUpload = async () => {
     if (!user || !docFile) return;
@@ -215,8 +261,11 @@ const Finance = () => {
   const handleWithdrawalRequest = async () => {
     if (!user) return;
     
-    if (!numAmount || numAmount < 500) {
-      toast.error("O valor mínimo para saque é de 500 MT.");
+    const minAmount = currency === "BRL" ? 50 : 500;
+    const currencySymbol = currency === "BRL" ? "R$" : "MT";
+
+    if (!numAmount || numAmount < minAmount) {
+      toast.error(`O valor mínimo para saque é de ${currencySymbol} ${minAmount}.`);
       return;
     }
     if (numAmount > availableBalance) {
@@ -255,13 +304,17 @@ const Finance = () => {
           net_amount: netAmount,
           payment_method: paymentMethod,
           payment_details: `${paymentDetails} (${accountName})`,
-          status: 'pending'
+          status: 'pending',
+          currency: currency
         });
 
       if (error) throw error;
 
       toast.success("Solicitação de saque enviada com sucesso!");
       
+      const formattedAmount = formatCurrency(numAmount);
+      const formattedNetAmount = formatCurrency(netAmount);
+
       // Notify Seller about the withdrawal processing
       try {
         await supabase.functions.invoke("send-email-notification", {
@@ -272,10 +325,10 @@ const Finance = () => {
               <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
                 <h2 style="color: #f59e0b;">Saque em Processamento ⏳</h2>
                 <p>Olá, <strong>${user.user_metadata?.full_name || 'Vendedor(a)'}</strong>.</p>
-                <p>Confirmamos a receção do seu pedido de saque no valor bruto de <strong>${numAmount.toFixed(2)} MT</strong>.</p>
+                <p>Confirmamos a receção do seu pedido de saque no valor bruto de <strong>${formattedAmount}</strong>.</p>
                 <p>A nossa equipa financeira está neste momento a validar e processar a transferência para o método selecionado.</p>
                 <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb; margin: 20px 0;">
-                  <p style="margin: 5px 0;"><strong>Valor Líquido a Receber:</strong> <span style="color: #10b981; font-weight: bold;">${netAmount.toFixed(2)} MT</span></p>
+                  <p style="margin: 5px 0;"><strong>Valor Líquido a Receber:</strong> <span style="color: #10b981; font-weight: bold;">${formattedNetAmount}</span></p>
                   <p style="margin: 5px 0;"><strong>Método de Recebimento:</strong> ${paymentMethod} (${paymentDetails} - ${accountName})</p>
                   <p style="margin: 5px 0;"><strong>Prazo Estimado:</strong> 1-2 dias úteis</p>
                 </div>
@@ -294,15 +347,15 @@ const Finance = () => {
       try {
         await supabase.functions.invoke("notify-admins", {
           body: { 
-            subject: `💰 NOVO PEDIDO DE SAQUE: ${numAmount} MT`, 
+            subject: `💰 NOVO PEDIDO DE SAQUE: ${formattedAmount}`, 
             htmlContent: `
               <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;">
                 <h2 style="color: #111827;">Novo Pedido de Saque 💰</h2>
                 <p>Um vendedor solicitou um levantamento de fundos:</p>
                 <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; border: 1px solid #e5e7eb; margin: 20px 0;">
                   <p><strong>Vendedor:</strong> ${user.user_metadata?.full_name || user.email}</p>
-                  <p><strong>Valor Bruto:</strong> ${numAmount} MT</p>
-                  <p><strong>Valor Líquido (após taxas):</strong> ${netAmount} MT</p>
+                  <p><strong>Valor Bruto:</strong> ${formattedAmount}</p>
+                  <p><strong>Valor Líquido (após taxas):</strong> ${formattedNetAmount}</p>
                   <p><strong>Método:</strong> ${paymentMethod}</p>
                   <p><strong>Dados:</strong> ${paymentDetails} (${accountName})</p>
                 </div>
@@ -335,148 +388,206 @@ const Finance = () => {
           <p className="text-muted-foreground mt-1 text-lg">Acompanhe seu saldo e solicite saques.</p>
         </div>
         
-        <Dialog open={modalOpen} onOpenChange={(open) => {
-          if (open) {
-            if (totalRevenue === 0) {
-              toast.error("🔒 Faça pelo menos uma venda para poder registar as suas informações de saque.");
-              return;
-            }
-            if (availableBalance < 500) {
-              toast.error("O valor mínimo para realizar um saque e guardar os seus dados é de 500 MT.");
-              return;
-            }
-            if (identityStatus === 'unverified' || identityStatus === 'rejected') {
-              setKycModalOpen(true);
-              return;
-            } else if (identityStatus === 'pending') {
-              toast.info("A aguardar verificação de identidade. Por favor, aguarde a aprovação do seu documento para solicitar saques.");
-              return;
-            }
-          }
-          setModalOpen(open);
-        }}>
-          <DialogTrigger asChild>
-            <Button size="lg" className="font-bold flex items-center gap-2" disabled={loading}>
-              <ArrowDownToLine className="w-4 h-4" />
-              Solicitar Saque
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Solicitação de Saque</DialogTitle>
-              <DialogDescription>
-                Disponível para saque: <strong className="text-primary">{availableBalance.toFixed(2)} MT</strong>
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-6 py-4">
-              <div className="space-y-2">
-                <Label>Valor do Saque (MT)</Label>
-                <div className="relative">
-                   <Input 
-                    type="number"
-                    placeholder="Min: 500 MT" 
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="pr-16 text-lg font-bold"
-                  />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">MT</div>
-                </div>
-                {numAmount > 0 && (
-                  <div className="p-3 bg-muted/50 rounded-lg space-y-1 border border-border/50 animate-in fade-in slide-in-from-top-1">
-                    <div className="flex justify-between text-xs">
-                      <span>Subtotal:</span>
-                      <span>{numAmount.toFixed(2)} MT</span>
-                    </div>
-                    <div className="flex justify-between text-xs text-destructive">
-                      <span>Taxa EnsinaPay (12%):</span>
-                      <span>- {feeAmount.toFixed(2)} MT</span>
-                    </div>
-                    <div className="flex justify-between text-sm font-bold border-t border-border/50 pt-1 mt-1 text-foreground">
-                      <span>Você Receberá:</span>
-                      <span className="text-primary">{netAmount.toFixed(2)} MT</span>
-                    </div>
-                  </div>
-                )}
-              </div>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full md:w-auto">
+          {/* Currency Switcher */}
+          <div className="flex bg-muted/65 p-1.5 rounded-2xl border border-border/50 shrink-0">
+            <button
+              onClick={() => setCurrency("MZN")}
+              className={`py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
+                currency === "MZN"
+                  ? "bg-primary text-white shadow-lg"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Moçambique (MZN)
+            </button>
+            <button
+              onClick={() => setCurrency("BRL")}
+              className={`py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
+                currency === "BRL"
+                  ? "bg-primary text-white shadow-lg"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Brasil (BRL)
+            </button>
+          </div>
 
-              <div className="space-y-4 border-t pt-4">
-                <div className="space-y-2">
-                  <Label>Método de Saque</Label>
-                  <Select value={selectedMethodId} onValueChange={handleMethodSelect}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Escolha um método" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="new">+ Usar novo método</SelectItem>
-                      {savedMethods.map(m => (
-                        <SelectItem key={m.id} value={m.id}>
-                          {m.method_type}: {m.account_number} ({m.account_name})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {selectedMethodId === "new" && (
-                  <div className="space-y-4 p-4 bg-muted/30 rounded-lg border border-border/50 animate-in fade-in zoom-in-95">
-                    <div className="space-y-2">
-                      <Label className="text-xs">Tipo de Carteira</Label>
-                      <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="M-Pesa">M-Pesa</SelectItem>
-                          <SelectItem value="E-Mola">E-Mola</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label className="text-xs">Número</Label>
-                        <Input 
-                          placeholder="84/85..." 
-                          value={paymentDetails}
-                          onChange={(e) => setPaymentDetails(e.target.value)}
-                          className="h-9"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs">Titular da Conta</Label>
-                        <Input 
-                          placeholder="Nome completo" 
-                          value={accountName}
-                          onChange={(e) => setAccountName(e.target.value)}
-                          className="h-9"
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2 pt-1">
-                      <input 
-                        type="checkbox" 
-                        id="save_method" 
-                        checked={saveMethod} 
-                        onChange={(e) => setSaveMethod(e.target.checked)}
-                        className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
-                      />
-                      <label htmlFor="save_method" className="text-xs text-muted-foreground cursor-pointer">
-                        Salvar este método para saques futuros
-                      </label>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <DialogFooter className="bg-muted/30 -mx-6 -mb-6 p-6 rounded-b-lg mt-2">
-              <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancelar</Button>
-              <Button onClick={handleWithdrawalRequest} disabled={submitting || numAmount <= 0} className="px-8">
-                {submitting ? "Processando..." : "Confirmar Saque"}
+          <Dialog open={modalOpen} onOpenChange={(open) => {
+            if (open) {
+              const minVal = currency === "BRL" ? 50 : 500;
+              const unitSymbol = currency === "BRL" ? "R$" : "MT";
+              if (totalRevenue === 0) {
+                toast.error("🔒 Faça pelo menos uma venda para poder registar as suas informações de saque.");
+                return;
+              }
+              if (availableBalance < minVal) {
+                toast.error(`O valor mínimo para realizar um saque e guardar os seus dados é de ${unitSymbol} ${minVal}.`);
+                return;
+              }
+              if (identityStatus === 'unverified' || identityStatus === 'rejected') {
+                setKycModalOpen(true);
+                return;
+              } else if (identityStatus === 'pending') {
+                toast.info("A aguardar verificação de identidade. Por favor, aguarde a aprovação do seu documento para solicitar saques.");
+                return;
+              }
+            }
+            setModalOpen(open);
+          }}>
+            <DialogTrigger asChild>
+              <Button size="lg" className="font-bold flex items-center gap-2 w-full sm:w-auto justify-center" disabled={loading}>
+                <ArrowDownToLine className="w-4 h-4" />
+                Solicitar Saque
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Solicitação de Saque</DialogTitle>
+                <DialogDescription>
+                  Disponível para saque: <strong className="text-primary">{formatCurrency(availableBalance)}</strong>
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-6 py-4">
+                <div className="space-y-2">
+                  <Label>Valor do Saque ({currency === "BRL" ? "R$" : "MT"})</Label>
+                  <div className="relative">
+                     <Input 
+                      type="number"
+                      placeholder={currency === "BRL" ? "Min: R$ 50" : "Min: 500 MT"} 
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="pr-16 text-lg font-bold"
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">
+                      {currency === "BRL" ? "R$" : "MT"}
+                    </div>
+                  </div>
+                  {numAmount > 0 && (
+                    <div className="p-3 bg-muted/50 rounded-lg space-y-1 border border-border/50 animate-in fade-in slide-in-from-top-1">
+                      <div className="flex justify-between text-xs">
+                        <span>Subtotal:</span>
+                        <span>{formatCurrency(numAmount)}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-destructive">
+                        <span>Taxa EnsinaPay (12%):</span>
+                        <span>- {formatCurrency(feeAmount)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm font-bold border-t border-border/50 pt-1 mt-1 text-foreground">
+                        <span>Você Receberá:</span>
+                        <span className="text-primary">{formatCurrency(netAmount)}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4 border-t pt-4">
+                  <div className="space-y-2">
+                    <Label>Método de Saque</Label>
+                    <Select value={selectedMethodId} onValueChange={handleMethodSelect}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Escolha um método" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="new">+ Usar novo método</SelectItem>
+                        {savedMethods
+                          .filter(m => {
+                            if (currency === "BRL") {
+                              return m.method_type === "Pix" || m.method_type === "Transferência Bancária";
+                            } else {
+                              return m.method_type === "M-Pesa" || m.method_type === "E-Mola";
+                            }
+                          })
+                          .map(m => (
+                            <SelectItem key={m.id} value={m.id}>
+                              {m.method_type}: {m.account_number} ({m.account_name})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {selectedMethodId === "new" && (
+                    <div className="space-y-4 p-4 bg-muted/30 rounded-lg border border-border/50 animate-in fade-in zoom-in-95">
+                      <div className="space-y-2">
+                        <Label className="text-xs">Tipo de Carteira / Método</Label>
+                        <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {currency === "BRL" ? (
+                              <>
+                                <SelectItem value="Pix">Pix</SelectItem>
+                                <SelectItem value="Transferência Bancária">Transferência Bancária</SelectItem>
+                              </>
+                            ) : (
+                              <>
+                                <SelectItem value="M-Pesa">M-Pesa</SelectItem>
+                                <SelectItem value="E-Mola">E-Mola</SelectItem>
+                              </>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <Label className="text-xs">
+                            {currency === "BRL" 
+                              ? (paymentMethod === "Pix" ? "Chave Pix" : "Agência / Conta")
+                              : "Número"
+                            }
+                          </Label>
+                          <Input 
+                            placeholder={currency === "BRL" 
+                              ? (paymentMethod === "Pix" ? "CPF, E-mail, Celular..." : "Agência e Conta")
+                              : "84/85..."
+                            } 
+                            value={paymentDetails}
+                            onChange={(e) => setPaymentDetails(e.target.value)}
+                            className="h-9"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-xs">
+                            {currency === "BRL" ? "Nome do Beneficiário" : "Titular da Conta"}
+                          </Label>
+                          <Input 
+                            placeholder="Nome completo" 
+                            value={accountName}
+                            onChange={(e) => setAccountName(e.target.value)}
+                            className="h-9"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2 pt-1">
+                        <input 
+                          type="checkbox" 
+                          id="save_method" 
+                          checked={saveMethod} 
+                          onChange={(e) => setSaveMethod(e.target.checked)}
+                          className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                        />
+                        <label htmlFor="save_method" className="text-xs text-muted-foreground cursor-pointer">
+                          Salvar este método para saques futuros
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <DialogFooter className="bg-muted/30 -mx-6 -mb-6 p-6 rounded-b-lg mt-2">
+                <Button variant="ghost" onClick={() => setModalOpen(false)}>Cancelar</Button>
+                <Button onClick={handleWithdrawalRequest} disabled={submitting || numAmount <= 0} className="px-8">
+                  {submitting ? "Processando..." : "Confirmar Saque"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         {/* KYC Verification Modal */}
         <Dialog open={kycModalOpen} onOpenChange={setKycModalOpen}>
@@ -486,7 +597,9 @@ const Finance = () => {
               <DialogDescription>
                 Para garantir a segurança dos seus fundos, novos vendedores ou contas não verificadas precisam enviar um <strong>Documento de Identidade</strong> (BI ou Passaporte) antes de realizar o primeiro saque.
                 <br/><br/>
-                <span className="text-destructive font-semibold">Atenção: O nome no documento deve coincidir com o nome do titular da carteira de destino (M-Pesa ou E-Mola) escolhida para o saque.</span>
+                <span className="text-destructive font-semibold">
+                  Atenção: O nome no documento deve coincidir com o nome do titular da conta de destino ({currency === "BRL" ? "Pix ou Conta Bancária" : "M-Pesa ou E-Mola"}) escolhida para o saque.
+                </span>
               </DialogDescription>
             </DialogHeader>
             <div className="py-6 space-y-4">
@@ -529,7 +642,7 @@ const Finance = () => {
                   </div>
                   <p className="text-sm font-medium text-muted-foreground">Saldo Disponível</p>
                 </div>
-                <p className="text-3xl font-black text-foreground">{availableBalance.toFixed(2)} MZN</p>
+                <p className="text-3xl font-black text-foreground">{formatCurrency(availableBalance)}</p>
               </CardContent>
             </Card>
 
@@ -542,7 +655,7 @@ const Finance = () => {
                   <p className="text-sm font-medium text-muted-foreground">Saques Pendentes</p>
                 </div>
                 <p className="text-3xl font-black text-foreground">
-                  {withdrawals.filter(w => w.status === 'pending').reduce((s, w) => s + Number(w.amount), 0).toFixed(2)} MZN
+                  {formatCurrency(filteredWithdrawals.filter(w => w.status === 'pending').reduce((s, w) => s + Number(w.amount), 0))}
                 </p>
               </CardContent>
             </Card>
@@ -555,7 +668,7 @@ const Finance = () => {
                   </div>
                   <p className="text-sm font-medium text-muted-foreground">Ganhos Totais (Vitalício)</p>
                 </div>
-                <p className="text-3xl font-black text-foreground">{totalRevenue.toFixed(2)} MZN</p>
+                <p className="text-3xl font-black text-foreground">{formatCurrency(totalRevenue)}</p>
               </CardContent>
             </Card>
           </div>
@@ -572,7 +685,10 @@ const Finance = () => {
               <ul className="list-disc list-inside space-y-1">
                 <li><strong className="text-foreground/80">Processamento:</strong> 1-2 dias úteis, das 7:30h até 17:30h</li>
                 <li><strong className="text-foreground/80">Taxa Administrativa:</strong> 12% fixo por saque</li>
-                <li><strong className="text-foreground/80">Canais suportados:</strong> M-Pesa e E-Mola</li>
+                <li>
+                  <strong className="text-foreground/80">Canais suportados:</strong>{" "}
+                  {currency === "BRL" ? "Pix e Transferência Bancária" : "M-Pesa e E-Mola"}
+                </li>
               </ul>
               <div className="space-y-1 pt-2 border-t border-border/50">
                 <p className="flex items-start gap-2">
@@ -594,10 +710,10 @@ const Finance = () => {
               <CardDescription>Acompanhe aqui o andamento de todos os seus pedidos de transferência.</CardDescription>
             </CardHeader>
             <CardContent>
-              {withdrawals.length === 0 ? (
+              {filteredWithdrawals.length === 0 ? (
                 <div className="py-12 text-center flex flex-col items-center justify-center">
                   <Banknote className="w-10 h-10 text-muted-foreground/30 mb-3" />
-                  <p className="text-muted-foreground">Nenhum saque solicitado ainda.</p>
+                  <p className="text-muted-foreground">Nenhum saque solicitado ainda para esta moeda.</p>
                 </div>
               ) : (
                 <div className="relative overflow-x-auto">
@@ -613,7 +729,7 @@ const Finance = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {withdrawals.map((w) => (
+                      {filteredWithdrawals.map((w) => (
                         <tr key={w.id} className="border-b border-border/20 last:border-0 hover:bg-muted/30 transition-colors">
                           <td className="px-4 py-4 whitespace-nowrap text-muted-foreground">
                             {new Date(w.created_at).toLocaleDateString('pt-BR')}
@@ -625,13 +741,13 @@ const Finance = () => {
                             </span>
                           </td>
                           <td className="px-4 py-4 font-semibold text-foreground">
-                            {Number(w.amount).toFixed(2)} MT
+                            {formatWithdrawalCurrency(Number(w.amount), w.currency)}
                           </td>
                           <td className="px-4 py-4 text-destructive/80">
-                            - {(Number(w.fee_amount) || 0).toFixed(2)} MT
+                            - {formatWithdrawalCurrency(Number(w.fee_amount) || 0, w.currency)}
                           </td>
                           <td className="px-4 py-4 font-black text-primary">
-                            {(Number(w.net_amount) || Number(w.amount)).toFixed(2)} MT
+                            {formatWithdrawalCurrency(Number(w.net_amount) || Number(w.amount), w.currency)}
                           </td>
                           <td className="px-4 py-4 text-right">
                             {w.status === 'completed' && <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-0 shadow-none"><CheckCircle2 className="w-3 h-3 mr-1" /> Pago</Badge>}

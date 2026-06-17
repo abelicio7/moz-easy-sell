@@ -27,6 +27,7 @@ interface Product {
   delivery_type: string;
   created_at: string;
   status: string;
+  currency?: string;
 }
 
 const Products = () => {
@@ -121,7 +122,11 @@ const Products = () => {
                     <div>
                       <h3 className="font-bold text-lg text-foreground leading-tight mb-1">{product.name}</h3>
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-black text-primary">{product.price.toFixed(2)} MT</span>
+                        <span className="text-sm font-black text-primary">
+                          {product.currency === "BRL" 
+                            ? product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                            : `${product.price.toFixed(2)} MT`}
+                        </span>
                         <span className="text-muted-foreground/30">•</span>
                         <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider bg-muted text-muted-foreground border-0">
                           {product.delivery_type === "link" ? "Link" : product.delivery_type === "file" ? "Arquivo" : "Mensagem"}

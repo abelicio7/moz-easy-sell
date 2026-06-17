@@ -16,12 +16,18 @@ interface Transaction {
   product_name: string;
   created_at: string;
   payment_method?: string;
+  currency?: string;
 }
 
 const Sales = () => {
   const { user } = useAuth();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [rawTransactions, setRawTransactions] = useState<Transaction[]>([]);
+  const [currency, setCurrency] = useState<"MZN" | "BRL">("MZN");
   const [loading, setLoading] = useState(true);
+
+  const transactions = useMemo(() => {
+    return rawTransactions.filter(t => (t.currency || "MZN") === currency);
+  }, [rawTransactions, currency]);
 
   useEffect(() => {
     if (!user) return;
@@ -31,7 +37,7 @@ const Sales = () => {
         // 1. Fetch direct orders
         const { data: orders } = await supabase
           .from("orders")
-          .select("id, price, payment_method, created_at, products!inner(name, user_id)")
+          .select("id, price, payment_method, created_at, currency, products!inner(name, user_id)")
           .eq("products.user_id", user.id)
           .in("status", ["paid", "delivered"])
           .order("created_at", { ascending: false });
@@ -42,10 +48,11 @@ const Sales = () => {
           amount: o.price,
           product_name: (o.products as any).name,
           created_at: o.created_at,
-          payment_method: o.payment_method
+          payment_method: o.payment_method,
+          currency: o.currency || "MZN"
         })) || [];
 
-        setTransactions(formatted);
+        setRawTransactions(formatted);
 
       } catch (err) {
         console.error("Error fetching sales data:", err);
@@ -85,6 +92,30 @@ const Sales = () => {
             <h2 className="text-3xl font-black text-foreground tracking-tight italic uppercase">Minhas Vendas & Faturamento</h2>
             <p className="text-muted-foreground font-medium">Histórico completo de todas as suas vendas realizadas.</p>
           </div>
+
+          {/* Currency Switcher */}
+          <div className="flex bg-muted/65 p-1.5 rounded-2xl border border-border/50 shrink-0">
+            <button
+              onClick={() => setCurrency("MZN")}
+              className={`py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
+                currency === "MZN"
+                  ? "bg-primary text-white shadow-lg"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Moçambique (MZN)
+            </button>
+            <button
+              onClick={() => setCurrency("BRL")}
+              className={`py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
+                currency === "BRL"
+                  ? "bg-primary text-white shadow-lg"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Brasil (BRL)
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -111,7 +142,9 @@ const Sales = () => {
                 <CardContent className="p-8 relative z-10">
                   <p className="text-xs font-black text-primary uppercase tracking-[0.2em] mb-2 italic">Faturamento Total</p>
                   <p className="text-4xl font-black text-foreground tracking-tighter">
-                    {totalBilling.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}
+                    {currency === "BRL"
+                      ? totalBilling.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                      : totalBilling.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}
                   </p>
                   <div className="flex items-center gap-2 mt-4 text-[10px] font-bold text-muted-foreground uppercase">
                     <TrendingUp className="w-3 h-3 text-emerald-500" /> Rendimento direto
@@ -206,10 +239,12 @@ const Sales = () => {
                       
                       <div className="text-right">
                         <p className="text-xl font-black tracking-tighter text-foreground">
-                          {t.amount.toFixed(2)} MT
+                          {currency === "BRL" 
+                            ? t.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                            : `${t.amount.toFixed(2)} MT`}
                         </p>
                         <p className="text-[10px] text-muted-foreground font-bold uppercase flex items-center justify-end gap-1">
-                          {t.payment_method || 'M-PESA'} <ArrowUpRight className="w-3 h-3" />
+                          {t.payment_method || (currency === 'BRL' ? 'Pix' : 'M-PESA')} <ArrowUpRight className="w-3 h-3" />
                         </p>
                       </div>
                     </CardContent>

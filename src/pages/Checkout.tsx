@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Shield, Smartphone, ShoppingBag, User, Mail, Phone, MessageCircle, ShieldCheck, Zap, ArrowRight, Package } from "lucide-react";
+import { Shield, Smartphone, ShoppingBag, User, Mail, Phone, MessageCircle, ShieldCheck, Zap, ArrowRight, Package, Copy } from "lucide-react";
 import Logo from "@/components/Logo";
 
 interface Product {
@@ -18,6 +18,7 @@ interface Product {
   price: number;
   image_url: string | null;
   user_id?: string;
+  currency?: string;
 }
 
 const Checkout = () => {
@@ -34,7 +35,11 @@ const Checkout = () => {
     customer_whatsapp: "",
     payment_phone: "",
     payment_method: "mpesa",
+    cpf: "",
   });
+
+  const [pixQrCode, setPixQrCode] = useState<string | null>(null);
+  const [pixCopiaCola, setPixCopiaCola] = useState<string | null>(null);
 
   const [trackingParams, setTrackingParams] = useState<any>({});
 
@@ -66,7 +71,7 @@ const Checkout = () => {
     const initPage = async () => {
       const { data: productData, error: productError } = await supabase
         .from("products")
-        .select(`id, name, description, price, image_url, user_id, status`)
+        .select(`id, name, description, price, image_url, user_id, status, currency`)
         .eq("id", productId)
         .maybeSingle();
       
@@ -77,6 +82,9 @@ const Checkout = () => {
       }
 
       setProduct(productData as any);
+      if (productData.currency === "BRL") {
+        setForm(prev => ({ ...prev, payment_method: "pix" }));
+      }
       setLoading(false);
 
       // --- INTEGRATIONS START ---
@@ -156,7 +164,8 @@ const Checkout = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!product || submitting) return;
-    if (!form.name || !form.email || !form.customer_whatsapp || !form.payment_phone) {
+    const isBrl = product.currency === "BRL";
+    if (!form.name || !form.email || !form.customer_whatsapp || (!isBrl && !form.payment_phone) || (isBrl && !form.cpf)) {
       toast.error("Preencha todos os campos obrigatórios.");
       return;
     }
@@ -175,7 +184,8 @@ const Checkout = () => {
         payment_method: form.payment_method,
         price: product.price,
         status: "pending",
-        tracking_parameters: trackingParams
+        tracking_parameters: trackingParams,
+        currency: product.currency || "MZN"
       });
 
       if (error) throw error;
@@ -187,12 +197,20 @@ const Checkout = () => {
           amount: product.price,
           phone: form.payment_phone,
           product_name: product.name,
+          name: form.name,
+          email: form.email,
+          cpf: form.cpf,
         }
       });
 
       if (paymentError) throw paymentError;
       if (paymentData?.success === false) {
         throw new Error(paymentData.error || paymentData.message || "Falha ao processar pagamento");
+      }
+
+      if (form.payment_method === 'pix') {
+        setPixQrCode(paymentData.pix_qr_code);
+        setPixCopiaCola(paymentData.pix_copia_cola);
       }
 
       setWaitingForPin(true);
@@ -313,7 +331,9 @@ const Checkout = () => {
                       {product.description || "Aprenda, execute e comece a vender ainda hoje com cursos, ferramentas e materiais prontos."}
                     </p>
                     <p className="text-2xl sm:text-3xl font-black text-primary tracking-tighter pt-1 sm:pt-2">
-                      {product.price.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT
+                      {product.currency === "BRL" 
+                        ? product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                        : `${product.price.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT`}
                     </p>
                   </div>
                 </div>
@@ -379,76 +399,118 @@ const Checkout = () => {
                   onValueChange={(v) => setForm({ ...form, payment_method: v })}
                   className="grid grid-cols-2 gap-2"
                 >
-                  <label
-                    htmlFor="mpesa"
-                    className={`relative overflow-hidden flex items-center gap-2 rounded-xl p-3 cursor-pointer transition-all bg-gradient-to-br from-[#E51B24] to-[#8A0A12] text-white hover:scale-[1.01] ${
-                      form.payment_method === "mpesa"
-                        ? "shadow-lg ring-2 ring-primary/20 opacity-100"
-                        : "opacity-80 hover:opacity-100"
-                    }`}
-                  >
-                    <RadioGroupItem value="mpesa" id="mpesa" className="w-3 h-3 border-white text-white fill-white" />
-                    <div className="flex items-center gap-2 flex-1">
-                      <div className="w-7 h-7 rounded-full flex flex-col items-center justify-center bg-white text-[#DD0512]">
-                        <span className="font-black text-[9px] uppercase">M</span>
+                  {product?.currency === "BRL" ? (
+                    <label
+                      htmlFor="pix"
+                      className={`relative overflow-hidden col-span-2 flex items-center gap-2 rounded-xl p-3 cursor-pointer transition-all bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white hover:scale-[1.01] shadow-lg ring-2 ring-primary/20 opacity-100`}
+                    >
+                      <RadioGroupItem value="pix" id="pix" className="w-3 h-3 border-white text-white fill-white" />
+                      <div className="flex items-center gap-2 flex-1">
+                        <div className="w-7 h-7 rounded-full flex flex-col items-center justify-center bg-white text-[#1d4ed8]">
+                          <span className="font-black text-[9px] uppercase">P</span>
+                        </div>
+                        <div>
+                          <p className="font-bold text-white text-[11px] leading-tight">Pix</p>
+                          <p className="text-[8px] text-white/70 leading-none">Pagamento Instantâneo</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-bold text-white text-[11px] leading-tight">M-Pesa</p>
-                        <p className="text-[8px] text-white/70 leading-none">Vodacom</p>
-                      </div>
-                    </div>
-                  </label>
-                  
-                  <label
-                    htmlFor="emola"
-                    className={`relative overflow-hidden flex items-center gap-2 rounded-xl p-3 cursor-pointer transition-all bg-gradient-to-br from-[#F57C00] to-[#b34700] text-white hover:scale-[1.01] ${
-                      form.payment_method === "emola"
-                        ? "shadow-lg ring-2 ring-primary/20 opacity-100"
-                        : "opacity-80 hover:opacity-100"
-                    }`}
-                  >
-                    <RadioGroupItem value="emola" id="emola" className="w-3 h-3 border-white text-white fill-white" />
-                    <div className="flex items-center gap-2 flex-1">
-                      <div className="w-7 h-7 rounded-full flex flex-col items-center justify-center bg-white text-[#F57C00]">
-                        <span className="font-black text-[9px] uppercase">E</span>
-                      </div>
-                      <div>
-                        <p className="font-bold text-white text-[11px] leading-tight">E-Mola</p>
-                        <p className="text-[8px] text-white/70 leading-none">Movitel</p>
-                      </div>
-                    </div>
-                  </label>
+                    </label>
+                  ) : (
+                    <>
+                      <label
+                        htmlFor="mpesa"
+                        className={`relative overflow-hidden flex items-center gap-2 rounded-xl p-3 cursor-pointer transition-all bg-gradient-to-br from-[#E51B24] to-[#8A0A12] text-white hover:scale-[1.01] ${
+                          form.payment_method === "mpesa"
+                            ? "shadow-lg ring-2 ring-primary/20 opacity-100"
+                            : "opacity-80 hover:opacity-100"
+                        }`}
+                      >
+                        <RadioGroupItem value="mpesa" id="mpesa" className="w-3 h-3 border-white text-white fill-white" />
+                        <div className="flex items-center gap-2 flex-1">
+                          <div className="w-7 h-7 rounded-full flex flex-col items-center justify-center bg-white text-[#DD0512]">
+                            <span className="font-black text-[9px] uppercase">M</span>
+                          </div>
+                          <div>
+                            <p className="font-bold text-white text-[11px] leading-tight">M-Pesa</p>
+                            <p className="text-[8px] text-white/70 leading-none">Vodacom</p>
+                          </div>
+                        </div>
+                      </label>
+                      
+                      <label
+                        htmlFor="emola"
+                        className={`relative overflow-hidden flex items-center gap-2 rounded-xl p-3 cursor-pointer transition-all bg-gradient-to-br from-[#F57C00] to-[#b34700] text-white hover:scale-[1.01] ${
+                          form.payment_method === "emola"
+                            ? "shadow-lg ring-2 ring-primary/20 opacity-100"
+                            : "opacity-80 hover:opacity-100"
+                        }`}
+                      >
+                        <RadioGroupItem value="emola" id="emola" className="w-3 h-3 border-white text-white fill-white" />
+                        <div className="flex items-center gap-2 flex-1">
+                          <div className="w-7 h-7 rounded-full flex flex-col items-center justify-center bg-white text-[#F57C00]">
+                            <span className="font-black text-[9px] uppercase">E</span>
+                          </div>
+                          <div>
+                            <p className="font-bold text-white text-[11px] leading-tight">E-Mola</p>
+                            <p className="text-[8px] text-white/70 leading-none">Movitel</p>
+                          </div>
+                        </div>
+                      </label>
+                    </>
+                  )}
                 </RadioGroup>
 
                 <div className="mt-6 space-y-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-muted-foreground flex items-center justify-between uppercase tracking-wider font-bold">
-                      <span className="flex items-center gap-1 font-bold text-foreground">Número de Pagamento *</span>
-                      <span className="text-[10px] text-primary font-bold">
-                        {form.payment_method === 'mpesa' ? 'Vodacom (84/85)' : 'Movitel (86/87)'}
-                      </span>
-                    </Label>
-                    <Input
-                      type="tel"
-                      placeholder={form.payment_method === 'mpesa' ? "Ex: 840000000" : "Ex: 860000000"}
-                      value={form.payment_phone}
-                      onChange={(e) => setForm({ ...form, payment_phone: e.target.value })}
-                      required
-                      className="h-14 bg-background/50 border-border rounded-xl text-xl font-black text-center"
-                    />
-                    <p className="text-[10px] text-muted-foreground italic text-center">
-                      Irás receber um pedido de confirmação (PIN) neste número via {form.payment_method === "mpesa" ? "M-Pesa" : "E-Mola"}.
-                    </p>
-                  </div>
+                  {product?.currency === "BRL" ? (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground flex items-center justify-between uppercase tracking-wider font-bold">
+                        <span className="flex items-center gap-1 font-bold text-foreground">CPF do Comprador *</span>
+                        <span className="text-[10px] text-primary font-bold">Cadastro de Pessoas Físicas</span>
+                      </Label>
+                      <Input
+                        type="text"
+                        placeholder="Ex: 000.000.000-00"
+                        value={form.cpf}
+                        onChange={(e) => setForm({ ...form, cpf: e.target.value })}
+                        required
+                        className="h-14 bg-background/50 border-border rounded-xl text-xl font-black text-center"
+                      />
+                      <p className="text-[10px] text-muted-foreground italic text-center">
+                        Necessário para emissão e confirmação do Pix no Banco Central.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground flex items-center justify-between uppercase tracking-wider font-bold">
+                        <span className="flex items-center gap-1 font-bold text-foreground">Número de Pagamento *</span>
+                        <span className="text-[10px] text-primary font-bold">
+                          {form.payment_method === 'mpesa' ? 'Vodacom (84/85)' : 'Movitel (86/87)'}
+                        </span>
+                      </Label>
+                      <Input
+                        type="tel"
+                        placeholder={form.payment_method === 'mpesa' ? "Ex: 840000000" : "Ex: 860000000"}
+                        value={form.payment_phone}
+                        onChange={(e) => setForm({ ...form, payment_phone: e.target.value })}
+                        required
+                        className="h-14 bg-background/50 border-border rounded-xl text-xl font-black text-center"
+                      />
+                      <p className="text-[10px] text-muted-foreground italic text-center">
+                        Irás receber um pedido de confirmação (PIN) neste número via {form.payment_method === "mpesa" ? "M-Pesa" : "E-Mola"}.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="pt-4 space-y-4">
                 <Button 
                   className={`w-full h-16 text-white font-black text-xl rounded-xl transition-all duration-500 hover:scale-[1.01] active:scale-[0.98] group relative overflow-hidden shadow-2xl ${
-                    form.payment_method === 'mpesa' 
-                      ? 'bg-gradient-to-r from-[#E51B24] to-[#8A0A12] hover:shadow-[#E51B24]/40' 
-                      : 'bg-gradient-to-r from-[#F57C00] to-[#b34700] hover:shadow-[#F57C00]/40'
+                    form.payment_method === 'pix'
+                      ? 'bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] hover:shadow-[#3b82f6]/40'
+                      : form.payment_method === 'mpesa' 
+                        ? 'bg-gradient-to-r from-[#E51B24] to-[#8A0A12] hover:shadow-[#E51B24]/40' 
+                        : 'bg-gradient-to-r from-[#F57C00] to-[#b34700] hover:shadow-[#F57C00]/40'
                   }`}
                   onClick={handleSubmit}
                   disabled={submitting}
@@ -488,46 +550,99 @@ const Checkout = () => {
       {waitingForPin && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 backdrop-blur-xl bg-black/80 animate-in fade-in duration-300">
           <Card className="w-full max-w-md bg-card border-primary/20 shadow-2xl shadow-primary/10 rounded-[2.5rem] overflow-hidden border-2">
-            <CardContent className="p-10 text-center space-y-8">
-              <div className="relative mx-auto w-24 h-24">
-                <div className={`absolute inset-0 rounded-3xl animate-ping opacity-20 ${
-                  form.payment_method === 'mpesa' ? 'bg-[#E51B24]' : 'bg-[#F57C00]'
-                }`} />
-                <div className={`relative w-24 h-24 rounded-3xl flex items-center justify-center shadow-xl ${
-                  form.payment_method === 'mpesa' ? 'bg-[#E51B24]' : 'bg-[#F57C00]'
-                }`}>
-                  <Smartphone className="w-10 h-10 text-white animate-bounce" />
+            {form.payment_method === 'pix' ? (
+              <CardContent className="p-8 text-center space-y-6">
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-black italic uppercase tracking-tight text-foreground">
+                    Pagamento via Pix
+                  </h2>
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Escaneie o QR Code abaixo ou copie o código Pix Copia e Cola para pagar.
+                  </p>
                 </div>
-              </div>
 
-              <div className="space-y-4">
-                <h2 className="text-3xl font-black italic uppercase tracking-tighter text-foreground">
-                  Aguardando PIN
-                </h2>
-                <p className="text-muted-foreground font-medium leading-relaxed">
-                  Enviamos um pedido de pagamento para o número <span className="text-foreground font-bold">{form.payment_phone}</span>. 
-                  Por favor, introduza o seu PIN no telemóvel para confirmar.
-                </p>
-              </div>
+                {pixQrCode && (
+                  <div className="mx-auto w-48 h-48 bg-white p-2 rounded-2xl flex items-center justify-center shadow-lg border border-border">
+                    <img src={`data:image/png;base64,${pixQrCode}`} alt="Pix QR Code" className="w-full h-full object-contain" />
+                  </div>
+                )}
 
-              <div className="space-y-4 pt-4">
-                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-primary animate-progress-fast" style={{ width: '60%' }} />
+                {pixCopiaCola && (
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(pixCopiaCola);
+                        toast.success("Código Pix copiado!");
+                      }}
+                      className="w-full py-3 px-4 rounded-xl bg-primary text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-primary/95 transition-colors shadow-md active:scale-95"
+                    >
+                      <Copy className="w-4 h-4" /> Copiar Código Pix
+                    </button>
+                    <p className="text-[10px] text-muted-foreground/80 leading-normal max-w-xs mx-auto truncate">
+                      {pixCopiaCola}
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-4 pt-2 border-t border-border/50">
+                  <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary animate-pulse">
+                    <div className="w-2.5 h-2.5 rounded-full bg-primary animate-ping" />
+                    Aguardando confirmação do pagamento...
+                  </div>
                 </div>
-                <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary animate-pulse">
-                  <Zap className="w-3 h-3 fill-current" /> Sincronizando com a rede...
-                </div>
-              </div>
 
-              <div className="pt-4 text-center">
-                <button 
-                  onClick={() => window.open('https://wa.me/5547999530835?text=Olá, preciso de ajuda com o meu pagamento no EnsinaPay.', '_blank')}
-                  className="flex items-center gap-2 mx-auto text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
-                >
-                  <MessageCircle className="w-4 h-4" /> Suporte via WhatsApp
-                </button>
-              </div>
-            </CardContent>
+                <div className="text-center">
+                  <button 
+                    onClick={() => window.open('https://wa.me/5547999530835?text=Olá, preciso de ajuda com o meu pagamento Pix no EnsinaPay.', '_blank')}
+                    className="flex items-center gap-2 mx-auto text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <MessageCircle className="w-4 h-4" /> Suporte via WhatsApp
+                  </button>
+                </div>
+              </CardContent>
+            ) : (
+              <CardContent className="p-10 text-center space-y-8">
+                <div className="relative mx-auto w-24 h-24">
+                  <div className={`absolute inset-0 rounded-3xl animate-ping opacity-20 ${
+                    form.payment_method === 'mpesa' ? 'bg-[#E51B24]' : 'bg-[#F57C00]'
+                  }`} />
+                  <div className={`relative w-24 h-24 rounded-3xl flex items-center justify-center shadow-xl ${
+                    form.payment_method === 'mpesa' ? 'bg-[#E51B24]' : 'bg-[#F57C00]'
+                  }`}>
+                    <Smartphone className="w-10 h-10 text-white animate-bounce" />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h2 className="text-3xl font-black italic uppercase tracking-tighter text-foreground">
+                    Aguardando PIN
+                  </h2>
+                  <p className="text-muted-foreground font-medium leading-relaxed">
+                    Enviamos um pedido de pagamento para o número <span className="text-foreground font-bold">{form.payment_phone}</span>. 
+                    Por favor, introduza o seu PIN no telemóvel para confirmar.
+                  </p>
+                </div>
+
+                <div className="space-y-4 pt-4">
+                  <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-primary animate-progress-fast" style={{ width: '60%' }} />
+                  </div>
+                  <div className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-primary animate-pulse">
+                    <Zap className="w-3 h-3 fill-current" /> Sincronizando com a rede...
+                  </div>
+                </div>
+
+                <div className="pt-4 text-center">
+                  <button 
+                    onClick={() => window.open('https://wa.me/5547999530835?text=Olá, preciso de ajuda com o meu pagamento no EnsinaPay.', '_blank')}
+                    className="flex items-center gap-2 mx-auto text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <MessageCircle className="w-4 h-4" /> Suporte via WhatsApp
+                  </button>
+                </div>
+              </CardContent>
+            )}
           </Card>
         </div>
       )}
