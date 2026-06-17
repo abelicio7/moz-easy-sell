@@ -20,8 +20,17 @@ interface Withdrawal {
   rejection_reason: string;
   created_at: string;
   user_id: string;
+  currency?: string;
   profiles: { full_name: string; email: string };
 }
+
+const formatWithdrawalAmount = (amount: number, wCurrency?: string) => {
+  const curr = wCurrency || "MZN";
+  if (curr === "BRL") {
+    return amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+  return `${amount.toFixed(2)} MT`;
+};
 
 const AdminWithdrawals = () => {
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
@@ -95,6 +104,8 @@ const AdminWithdrawals = () => {
 
       // Send Email Notification to Seller
       if (selectedItem.profiles?.email) {
+        const formattedVal = formatWithdrawalAmount(selectedItem.amount, selectedItem.currency);
+
         const subject = action === "approve" 
           ? "Saque Concluído - EnsinaPay" 
           : "Atualização sobre seu Pedido de Saque - EnsinaPay";
@@ -104,7 +115,7 @@ const AdminWithdrawals = () => {
             <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; padding: 20px;">
               <h2 style="color: #10b981;">Seu saque foi processado! 💸</h2>
               <p>Olá, <strong>${selectedItem.profiles.full_name}</strong>.</p>
-              <p>O seu pedido de saque no valor de <strong>${selectedItem.amount.toFixed(2)} MT</strong> foi concluído com sucesso.</p>
+              <p>O seu pedido de saque no valor de <strong>${formattedVal}</strong> foi concluído com sucesso.</p>
               <p>O valor já foi transferido para o seu <strong>${selectedItem.payment_method}</strong> (${selectedItem.payment_details}).</p>
               <div style="margin: 30px 0; text-align: center;">
                 <a href="${window.location.origin}/dashboard/finance" style="background-color: #000; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Ver meu Saldo</a>
@@ -116,7 +127,7 @@ const AdminWithdrawals = () => {
             <div style="font-family: sans-serif; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #eee; border-radius: 10px; padding: 20px;">
               <h2 style="color: #ef4444;">Atualização sobre seu saque</h2>
               <p>Olá, <strong>${selectedItem.profiles.full_name}</strong>.</p>
-              <p>Infelizmente, o seu pedido de saque no valor de <strong>${selectedItem.amount.toFixed(2)} MT</strong> foi rejeitado.</p>
+              <p>Infelizmente, o seu pedido de saque no valor de <strong>${formattedVal}</strong> foi rejeitado.</p>
               <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 15px; margin: 20px 0;">
                 <p style="margin: 0; font-weight: bold; color: #991b1b;">Motivo da rejeição:</p>
                 <p style="margin: 10px 0 0 0; color: #b91c1c;">${reason}</p>
@@ -142,8 +153,8 @@ const AdminWithdrawals = () => {
               userId: selectedItem.user_id,
               title: action === "approve" ? "Transferência Realizada! 💰" : "Atenção ao seu Saque! ⚠️",
               body: action === "approve" 
-                ? `O seu saque de ${selectedItem.amount.toFixed(2)} MT já foi processado e enviado para a sua conta ${selectedItem.payment_method}.`
-                : `O seu pedido de retirada de ${selectedItem.amount.toFixed(2)} MT foi rejeitado. Verifique os dados no painel e tente novamente.`,
+                ? `O seu saque de ${formattedVal} já foi processado e enviado para a sua conta ${selectedItem.payment_method}.`
+                : `O seu pedido de retirada de ${formattedVal} foi rejeitado. Verifique os dados no painel e tente novamente.`,
               url: "/dashboard/finance"
             }
           });
@@ -215,7 +226,7 @@ const AdminWithdrawals = () => {
                         <span className="block text-xs text-muted-foreground font-normal">{item.profiles?.email}</span>
                       </td>
                       <td className="px-6 py-4 font-bold text-foreground">
-                        {item.amount.toFixed(2)} MT
+                        {formatWithdrawalAmount(item.amount, item.currency)}
                       </td>
                       <td className="px-6 py-4">
                         <Badge variant="outline">{item.payment_method}</Badge>
@@ -243,7 +254,7 @@ const AdminWithdrawals = () => {
                             <div className="py-4 space-y-4">
                               <div className="bg-muted p-4 rounded-lg space-y-3">
                                 <div><span className="text-muted-foreground text-xs block">Vendedor</span><span className="font-medium text-foreground">{item.profiles?.full_name}</span></div>
-                                <div><span className="text-muted-foreground text-xs block">Valor Solicitado</span><span className="font-bold text-xl text-primary">{item.amount.toFixed(2)} MT</span></div>
+                                <div><span className="text-muted-foreground text-xs block">Valor Solicitado</span><span className="font-bold text-xl text-primary">{formatWithdrawalAmount(item.amount, item.currency)}</span></div>
                                 <div className="border-t border-border/50 pt-3 mt-3">
                                   <span className="text-muted-foreground text-xs block">Canal de Transferência</span>
                                   <span className="font-medium text-foreground">{item.payment_method}</span>
@@ -279,7 +290,7 @@ const AdminWithdrawals = () => {
                                   {action === "approve" && (
                                     <div className="p-3 bg-green-500/10 text-green-700 rounded-lg text-sm border border-green-500/20 flex gap-2 items-start">
                                       <Banknote className="w-5 h-5 shrink-0" />
-                                      Confirme que você já efetuou a transferência de {item.amount.toFixed(2)} MT para o vendedor através do {item.payment_method}. O status mudará para concluído.
+                                      Confirme que você já efetuou a transferência de {formatWithdrawalAmount(item.amount, item.currency)} para o vendedor através do {item.payment_method}. O status mudará para concluído.
                                     </div>
                                   )}
                                   
