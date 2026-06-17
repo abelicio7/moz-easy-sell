@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import LandingNav from "@/components/LandingNav";
@@ -9,24 +10,24 @@ import {
 import Logo from "@/components/Logo";
 
 const problems = [
-  "Plataformas estrangeiras não aceitam pagamentos locais",
-  "O processo de recebimento via M-Pesa é manual e lento",
-  "Falta de confiança dos clientes em checkouts amadores",
-  "Dificuldade em entregar arquivos digitais automaticamente",
+  "Plataformas estrangeiras não aceitam M-Pesa/E-Mola e bloqueiam contas",
+  "Dificuldade de vender para o Brasil por falta de integração com o Pix",
+  "Falta de confiança dos clientes em checkouts lentos ou amadores",
+  "Processo manual de envio de infoprodutos via WhatsApp",
 ];
 
 const solutions = [
   "Checkouts otimizados que convertem até 3x mais",
-  "Integração nativa com M-Pesa e E-Mola",
-  "Entrega de arquivos e acessos 100% automática",
-  "Dashboard completo para gerir o seu império digital",
+  "Integração nativa com M-Pesa, E-Mola e Pix",
+  "Vendas internacionais simplificadas para o mercado brasileiro",
+  "Entrega de arquivos e acessos 100% automática por e-mail",
 ];
 
 const steps = [
   { 
     icon: Package, 
     title: "Crie seu produto", 
-    desc: "Em menos de 2 minutos, configure o seu produto digital, preço e conteúdo de entrega.",
+    desc: "Em menos de 2 minutos, configure o seu curso, ebook ou mentoria e escolha a moeda (MT ou R$).",
     color: "bg-blue-500/10 text-blue-600"
   },
   { 
@@ -37,19 +38,24 @@ const steps = [
   },
   { 
     icon: CreditCard, 
-    title: "Venda com M-Pesa", 
-    desc: "Seus clientes pagam via M-Pesa ou E-Mola e o sistema valida o pagamento instantaneamente.",
+    title: "Venda local ou internacional", 
+    desc: "Moçambicanos pagam via M-Pesa/E-Mola. Brasileiros pagam via Pix. O sistema valida na hora.",
     color: "bg-red-500/10 text-red-600"
   },
   { 
     icon: Send, 
     title: "Entrega automática", 
-    desc: "O cliente recebe o produto por e-mail no mesmo segundo. Sem que você precise mover um dedo.",
+    desc: "O cliente recebe o produto por e-mail no mesmo segundo e você saca seus lucros direto na sua conta.",
     color: "bg-green-500/10 text-green-600"
   },
 ];
 
 const features = [
+  {
+    icon: Globe,
+    title: "Moçambique 🇲🇿 para Brasil 🇧🇷",
+    desc: "Venda seus infoprodutos para o Brasil estando em Moçambique. Receba pagamentos via Pix direto na plataforma."
+  },
   {
     icon: Zap,
     title: "Alta Conversão",
@@ -57,22 +63,19 @@ const features = [
   },
   {
     icon: ShieldCheck,
-    title: "Segurança Total",
-    desc: "Seus dados e os dos seus clientes protegidos com criptografia de ponta a ponta."
-  },
-  {
-    icon: Smartphone,
-    title: "Foco no Local",
-    desc: "A primeira plataforma de infoprodutos feita por moçambicanos para moçambicanos."
+    title: "Saques Simplificados",
+    desc: "Saque suas vendas em Meticais direto para M-Pesa/E-Mola ou suas vendas em Reais para sua conta Pix."
   },
   {
     icon: BarChart3,
-    title: "Gestão Financeira",
-    desc: "Acompanhe seus lucros, taxas e peça saques diretamente para sua conta M-Pesa."
+    title: "Gestão Multimoeda",
+    desc: "Acompanhe seus lucros, taxas e vendas separadamente por Metical (MZN) e Real (BRL) no dashboard."
   }
 ];
 
 const Index = () => {
+  const [previewCurrency, setPreviewCurrency] = useState<'MZN' | 'BRL'>('MZN');
+
   return (
     <div className="min-h-screen bg-[#fafafa] dark:bg-background overflow-x-hidden">
       <LandingNav />
@@ -87,19 +90,18 @@ const Index = () => {
 
         <div className="container px-4">
           <div className="max-w-4xl mx-auto text-center space-y-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/10 border border-secondary/20 text-secondary text-xs font-bold uppercase tracking-wider animate-fade-in">
-              <Sparkles className="w-3 h-3" />
-              A Revolução dos Infoprodutos em Moçambique
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider animate-fade-in">
+              <Sparkles className="w-3 h-3 animate-pulse" />
+              NOVIDADE: Venda para o Brasil 🇧🇷 e receba em Moçambique 🇲🇿
             </div>
             
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight text-foreground leading-[0.95] animate-fade-in-up">
-              Transforme seu <br />
-              conhecimento em <span className="text-secondary">lucro real.</span>
+              Venda seus infoprodutos <br />
+              sem <span className="bg-clip-text text-transparent bg-gradient-to-r from-secondary to-purple-600">fronteiras.</span>
             </h1>
             
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-              A EnsinaPay é a plataforma definitiva para vender cursos, ebooks e mentorias usando 
-              <span className="text-foreground font-bold"> M-Pesa e E-Mola</span>. Simples, rápido e automático.
+            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+              Crie seu checkout profissional em minutos. Aceite pagamentos locais via <span className="text-foreground font-bold">M-Pesa e E-Mola</span> em Moçambique, e venda para o Brasil inteiro recebendo via <span className="text-emerald-500 font-bold">Pix</span>. Tudo de forma automática e integrada.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
@@ -110,37 +112,244 @@ const Index = () => {
                 </Button>
               </Link>
             </div>
+            <p className="text-xs text-muted-foreground animate-fade-in-up" style={{ animationDelay: "0.35s" }}>
+              Sem mensalidades ou taxas de manutenção. Você só paga quando vende.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* DASHBOARD PREVIEW / MOCKUP */}
+      {/* DASHBOARD & NOTIFICATION PREVIEW SHOWCASE */}
       <section className="container px-4 -mt-16 relative">
-        <div className="relative max-w-6xl mx-auto rounded-3xl border border-border/50 bg-white/40 dark:bg-white/5 backdrop-blur-xl p-2 md:p-4 shadow-2xl animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
-          <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/20 rounded-full blur-3xl -z-10" />
-          <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-secondary/20 rounded-full blur-3xl -z-10" />
+        <div className="relative max-w-6xl mx-auto rounded-3xl border border-border/50 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl p-4 md:p-8 shadow-2xl animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
+          <div className="absolute -top-20 -right-20 w-72 h-72 bg-purple-500/10 rounded-full blur-[100px] -z-10" />
+          <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-secondary/15 rounded-full blur-[100px] -z-10" />
           
-          <div className="rounded-2xl overflow-hidden border border-border/50 shadow-inner">
-             {/* Simulating the dashboard look from the screenshots */}
-             <div className="bg-muted/30 aspect-[16/9] md:aspect-[21/9] flex items-center justify-center relative group">
-                <div className="absolute inset-0 bg-gradient-to-tr from-secondary/10 to-transparent pointer-events-none" />
-                <img 
-                  src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=2426&auto=format&fit=crop" 
-                  alt="Dashboard Preview" 
-                  className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[2px]">
-                   <div className="bg-white/90 dark:bg-black/80 p-6 rounded-2xl shadow-2xl flex items-center gap-4 max-w-md border border-white/20">
-                      <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center animate-bounce">
-                         <CheckCircle2 className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-muted-foreground uppercase">Venda Confirmada!</p>
-                        <p className="text-xl font-black text-foreground">+ 1,500.00 MT</p>
-                      </div>
-                   </div>
+          <div className="grid lg:grid-cols-12 gap-8 items-stretch">
+            {/* Dashboard Mockup (Col span 7) */}
+            <div className="lg:col-span-7 rounded-2xl border border-border/80 bg-slate-50 dark:bg-slate-950/80 shadow-inner overflow-hidden p-6 flex flex-col justify-between min-h-[420px]">
+              <div>
+                <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-white font-black text-sm">E</div>
+                    <div>
+                      <h4 className="font-bold text-foreground text-sm">Dashboard EnsinaPay</h4>
+                      <p className="text-[10px] text-muted-foreground">Painel de Vendas</p>
+                    </div>
+                  </div>
+                  {/* Simulated currency tabs */}
+                  <div className="flex gap-1 bg-muted dark:bg-slate-800 p-1 rounded-xl text-xs">
+                    <button 
+                      onClick={() => setPreviewCurrency('MZN')}
+                      className={`px-3 py-1.5 rounded-lg font-bold shadow-sm flex items-center gap-1.5 transition-all ${
+                        previewCurrency === 'MZN' 
+                          ? 'bg-white dark:bg-slate-900 text-foreground' 
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <span>🇲🇿</span> MT
+                    </button>
+                    <button 
+                      onClick={() => setPreviewCurrency('BRL')}
+                      className={`px-3 py-1.5 rounded-lg font-bold shadow-sm flex items-center gap-1.5 transition-all ${
+                        previewCurrency === 'BRL' 
+                          ? 'bg-white dark:bg-slate-900 text-foreground' 
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <span>🇧🇷</span> R$
+                    </button>
+                  </div>
                 </div>
-             </div>
+
+                {/* Grid cards */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="bg-white dark:bg-slate-900 border border-border p-4 rounded-xl space-y-2 shadow-sm">
+                    <p className="text-xs text-muted-foreground font-medium">Saldo Disponível</p>
+                    <h3 className="text-2xl font-black text-foreground">
+                      {previewCurrency === 'MZN' ? '24.850,00 MT' : 'R$ 1.840,00'}
+                    </h3>
+                    <div className="text-[10px] text-emerald-500 font-bold flex items-center gap-1">
+                      <span>↑ 18.4%</span> esta semana
+                    </div>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 border border-border p-4 rounded-xl space-y-2 shadow-sm">
+                    <p className="text-xs text-muted-foreground font-medium">
+                      {previewCurrency === 'MZN' ? 'Saques Processados' : 'Vendas via Pix (BRL)'}
+                    </p>
+                    <h3 className="text-2xl font-black text-secondary">
+                      {previewCurrency === 'MZN' ? '9.450,00 MT' : 'R$ 540,00'}
+                    </h3>
+                    <div className="text-[10px] text-emerald-500 font-bold flex items-center gap-1">
+                      {previewCurrency === 'MZN' ? (
+                        <span>Enviado via E-Mola/M-Pesa</span>
+                      ) : (
+                        <span>Vendas internacionais ativas ⚡</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent actions / list */}
+              <div className="space-y-3">
+                <h5 className="text-xs font-bold text-foreground uppercase tracking-wider">Últimas Atividades ({previewCurrency})</h5>
+                <div className="space-y-2 text-xs">
+                  {previewCurrency === 'MZN' ? (
+                    <>
+                      <div className="flex justify-between items-center p-3 rounded-lg bg-white dark:bg-slate-900 border border-border/50 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                          <div>
+                            <p className="font-bold text-foreground">Venda via M-Pesa</p>
+                            <p className="text-[10px] text-muted-foreground">Curso de Design Gráfico</p>
+                          </div>
+                        </div>
+                        <span className="font-bold text-foreground">+ 447,00 MT</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 rounded-lg bg-white dark:bg-slate-900 border border-border/50 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                          <div>
+                            <p className="font-bold text-foreground">Venda via E-Mola</p>
+                            <p className="text-[10px] text-muted-foreground">Ebook: Escalando no Digital</p>
+                          </div>
+                        </div>
+                        <span className="font-bold text-foreground">+ 147,00 MT</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 rounded-lg bg-white dark:bg-slate-900 border border-border/50 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                          <div>
+                            <p className="font-bold text-foreground">Saque Processado (E-Mola)</p>
+                            <p className="text-[10px] text-muted-foreground">Transferência realizada com sucesso</p>
+                          </div>
+                        </div>
+                        <span className="font-bold text-red-500">- 1.970,00 MT</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex justify-between items-center p-3 rounded-lg bg-white dark:bg-slate-900 border border-border/50 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                          <div>
+                            <p className="font-bold text-foreground">Venda via Pix (Brasil)</p>
+                            <p className="text-[10px] text-muted-foreground">Mentoria Express</p>
+                          </div>
+                        </div>
+                        <span className="font-bold text-emerald-500">+ R$ 55,00</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 rounded-lg bg-white dark:bg-slate-900 border border-border/50 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                          <div>
+                            <p className="font-bold text-foreground">Venda via Pix (Brasil)</p>
+                            <p className="text-[10px] text-muted-foreground">Curso Avançado de Vendas</p>
+                          </div>
+                        </div>
+                        <span className="font-bold text-emerald-500">+ R$ 120,00</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 rounded-lg bg-white dark:bg-slate-900 border border-border/50 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                          <div>
+                            <p className="font-bold text-foreground">Saque Pix Processado</p>
+                            <p className="text-[10px] text-muted-foreground">Transferência Pix internacional</p>
+                          </div>
+                        </div>
+                        <span className="font-bold text-red-500">- R$ 50,00</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Notifications Showcase (Col span 5) */}
+            <div className="lg:col-span-5 flex flex-col justify-between space-y-6">
+              <div className="space-y-2">
+                <span className="text-xs font-black uppercase text-secondary tracking-widest">Prova Social Real</span>
+                <h3 className="text-3xl font-black text-foreground">Notificações Reais</h3>
+                <p className="text-sm text-muted-foreground">
+                  Veja capturas reais de notificações recebidas pelos vendedores da EnsinaPay tanto em Meticais quanto em Reais. Clique nas abas ao lado para ver como cada transação se destaca!
+                </p>
+              </div>
+
+              {/* iOS notification container */}
+              <div className="space-y-4 p-4 rounded-2xl bg-slate-950/5 dark:bg-slate-950/40 border border-border/40 backdrop-blur-sm max-h-[350px] overflow-y-auto custom-scrollbar flex-1">
+                {/* 1. BRL Sale */}
+                <div 
+                  className={`rounded-2xl overflow-hidden shadow-lg border border-white/10 transition-all duration-300 ${
+                    previewCurrency === 'BRL' 
+                      ? 'ring-2 ring-emerald-500 scale-[1.02] opacity-100' 
+                      : 'opacity-50 hover:opacity-100 scale-100'
+                  }`}
+                >
+                  <img 
+                    src="/notifications/notification_brl_55.png" 
+                    alt="Notificação Venda R$ 55,00" 
+                    className="w-full h-auto object-contain block"
+                  />
+                </div>
+                {/* 2. MZN 447 Sale */}
+                <div 
+                  className={`rounded-2xl overflow-hidden shadow-lg border border-white/10 transition-all duration-300 ${
+                    previewCurrency === 'MZN' 
+                      ? 'ring-2 ring-secondary scale-[1.02] opacity-100' 
+                      : 'opacity-50 hover:opacity-100 scale-100'
+                  }`}
+                >
+                  <img 
+                    src="/notifications/notification_mzn_447.png" 
+                    alt="Notificação Venda 447 MT" 
+                    className="w-full h-auto object-contain block"
+                  />
+                </div>
+                {/* 3. BRL Withdrawal */}
+                <div 
+                  className={`rounded-2xl overflow-hidden shadow-lg border border-white/10 transition-all duration-300 ${
+                    previewCurrency === 'BRL' 
+                      ? 'ring-2 ring-emerald-500 scale-[1.02] opacity-100' 
+                      : 'opacity-50 hover:opacity-100 scale-100'
+                  }`}
+                >
+                  <img 
+                    src="/notifications/withdrawal_brl_50.png" 
+                    alt="Notificação Saque R$ 50,00" 
+                    className="w-full h-auto object-contain block"
+                  />
+                </div>
+                {/* 4. MZN 147 Sale */}
+                <div 
+                  className={`rounded-2xl overflow-hidden shadow-lg border border-white/10 transition-all duration-300 ${
+                    previewCurrency === 'MZN' 
+                      ? 'ring-2 ring-secondary scale-[1.02] opacity-100' 
+                      : 'opacity-50 hover:opacity-100 scale-100'
+                  }`}
+                >
+                  <img 
+                    src="/notifications/notification_mzn_147.png" 
+                    alt="Notificação Venda 147 MT" 
+                    className="w-full h-auto object-contain block"
+                  />
+                </div>
+                {/* 5. MZN Withdrawal */}
+                <div 
+                  className={`rounded-2xl overflow-hidden shadow-lg border border-white/10 transition-all duration-300 ${
+                    previewCurrency === 'MZN' 
+                      ? 'ring-2 ring-secondary scale-[1.02] opacity-100' 
+                      : 'opacity-50 hover:opacity-100 scale-100'
+                  }`}
+                >
+                  <img 
+                    src="/notifications/withdrawal_mzn_1970.png" 
+                    alt="Notificação Saque 1970 MT" 
+                    className="w-full h-auto object-contain block"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -154,8 +363,8 @@ const Index = () => {
                 Vender online em Moçambique não precisa ser uma <span className="text-destructive underline decoration-wavy underline-offset-8">dor de cabeça.</span>
               </h2>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Esqueça as gambiarras, as transferências manuais e o envio de arquivos por WhatsApp. 
-                A EnsinaPay automatiza o que é chato para você focar no que importa: <span className="text-foreground font-bold">o seu conteúdo.</span>
+                Esqueça as gambiarras de transferência manual ou o envio de arquivos por WhatsApp. 
+                A EnsinaPay automatiza o que é burocrático e abre as portas do maior mercado da América Latina para o seu conteúdo: <span className="text-foreground font-bold">o Brasil.</span>
               </p>
               
               <div className="space-y-4">
@@ -194,7 +403,7 @@ const Index = () => {
         <div className="container px-4">
           <div className="text-center max-w-3xl mx-auto mb-20 space-y-4">
             <h2 className="text-4xl md:text-5xl font-black text-foreground">Como funciona?</h2>
-            <p className="text-lg text-muted-foreground">O fluxo mais simples e eficiente do mercado para o seu cliente.</p>
+            <p className="text-lg text-muted-foreground">O fluxo mais simples e eficiente do mercado para você e seu cliente.</p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -230,7 +439,7 @@ const Index = () => {
                 <div>
                   <h3 className="text-3xl font-black mb-6">Focado em Escalar.</h3>
                   <p className="text-white/80 leading-relaxed text-lg">
-                    Não somos apenas um processador de pagamentos. Somos o seu braço direito tecnológico para escalar o seu negócio digital em Moçambique.
+                    Não somos apenas um processador de pagamentos local. Somos o seu braço direito tecnológico para abrir novos mercados e escalar o seu negócio digital em Moçambique.
                   </p>
                 </div>
                 <div className="mt-12 space-y-4">
@@ -281,17 +490,17 @@ const Index = () => {
            
            <div className="relative z-10 space-y-10">
               <h2 className="text-4xl md:text-6xl font-black tracking-tight leading-[1.1]">
-                A sua jornada digital <br /> <span className="text-secondary">começa aqui.</span>
+                A sua jornada sem fronteiras <br /> <span className="bg-clip-text text-transparent bg-gradient-to-r from-secondary to-emerald-400">começa aqui.</span>
               </h2>
               <p className="text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
-                Junte-se a centenas de moçambicanos que já estão a faturar alto vendendo produtos digitais com pagamento local.
+                Junte-se a centenas de criadores moçambicanos que já estão a faturar localmente e vendendo para o Brasil. Receba via M-Pesa, E-Mola ou Pix com facilidade.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
                 <Button size="lg" className="w-full sm:w-auto h-16 px-12 text-xl font-bold bg-secondary hover:bg-secondary/90 text-white rounded-2xl transition-all hover:scale-105" asChild>
                   <Link to="/register">Criar minha conta grátis</Link>
                 </Button>
               </div>
-              <p className="text-sm text-white/40">Sem taxas de manutenção. Você só paga quando vende.</p>
+              <p className="text-sm text-white/40">Sem taxas de adesão. Você só paga quando vende.</p>
            </div>
         </div>
       </section>
@@ -303,7 +512,7 @@ const Index = () => {
             <div className="space-y-4 text-center md:text-left">
               <Logo size="md" />
               <p className="text-sm text-muted-foreground max-w-xs">
-                A plataforma líder em vendas de infoprodutos com pagamentos locais em Moçambique.
+                A plataforma líder em vendas de infoprodutos com pagamentos locais em Moçambique e Pix no Brasil.
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-10 text-sm font-bold text-foreground/70">
