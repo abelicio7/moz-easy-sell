@@ -257,6 +257,14 @@ serve(async (req) => {
 
     // 4. Notify Seller and Admins
     try {
+      const formatCurrency = (val: number, cur?: string) => {
+        const c = cur || "MZN";
+        if (c === "BRL") {
+          return `R$ ${val.toFixed(2).replace('.', ',')}`;
+        }
+        return `${val.toFixed(2)} MT`;
+      };
+
       const productName = order.products?.name || 'Produto';
       const sellerId = order.products?.user_id;
 
@@ -285,7 +293,7 @@ serve(async (req) => {
             <h3>Detalhes da Venda:</h3>
             <p><strong>Pedido ID:</strong> ${order.id}</p>
             <p><strong>Cliente:</strong> ${order.customer_name} (${order.customer_email})</p>
-            <p><strong>Valor do Produto:</strong> ${order.price} MT</p>
+            <p><strong>Valor do Produto:</strong> ${formatCurrency(order.price, order.currency)}</p>
             <p><strong>Data:</strong> ${new Date(order.created_at).toLocaleString()}</p>
             <br />
             <p>Boas vendas!<br/>Equipe EnsinaPay</p>
@@ -329,7 +337,7 @@ serve(async (req) => {
               <li><strong>Produto:</strong> ${productName}</li>
               <li><strong>Cliente:</strong> ${order.customer_name} (${order.customer_email})</li>
               <li><strong>Vendedor:</strong> ${seller?.full_name || 'Desconhecido'} (${seller?.email || 'N/A'})</li>
-              <li><strong>Valor:</strong> ${order.price} MT</li>
+              <li><strong>Valor:</strong> ${formatCurrency(order.price, order.currency)}</li>
               <li><strong>Status:</strong> delivered</li>
               <li><strong>Data:</strong> ${new Date(order.created_at).toLocaleString()}</li>
             </ul>
@@ -385,7 +393,7 @@ serve(async (req) => {
 
               const payload = JSON.stringify({
                 title: "Venda realizada! 🎉",
-                body: `Comissão: ${order.price} MT - ID: ${order.id.slice(0, 8).toUpperCase()}`,
+                body: `Comissão: ${formatCurrency(order.price, order.currency)} - ID: ${order.id.slice(0, 8).toUpperCase()}`,
                 url: "/dashboard/sales"
               });
               await webpush.sendNotification(pushSubscription, payload).catch(async (e: any) => {

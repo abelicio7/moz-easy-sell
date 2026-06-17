@@ -18,6 +18,7 @@ interface Order {
   payment_method: string;
   price: number;
   created_at: string;
+  currency?: string;
   products: { name: string; delivery_type: string; delivery_content: string };
 }
 
@@ -25,6 +26,7 @@ const Orders = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currency, setCurrency] = useState<"MZN" | "BRL">("MZN");
 
   const fetchOrders = async () => {
     if (!user) return;
@@ -39,12 +41,39 @@ const Orders = () => {
 
   useEffect(() => { fetchOrders(); }, [user]);
 
-  const paidOrders = orders.filter(o => ["paid", "delivered"].includes(o.status));
-  const pendingOrders = orders.filter(o => ["pending", "failed"].includes(o.status));
+  const filteredOrders = orders.filter(o => (o.currency || 'MZN') === currency);
+  const paidOrders = filteredOrders.filter(o => ["paid", "delivered"].includes(o.status));
+  const pendingOrders = filteredOrders.filter(o => ["pending", "failed"].includes(o.status));
 
   return (
     <DashboardLayout>
-      <h2 className="text-2xl font-bold text-foreground mb-6">Pedidos e Vendas</h2>
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
+        <h2 className="text-2xl font-bold text-foreground">Pedidos e Vendas</h2>
+        
+        {/* Currency Switcher */}
+        <div className="flex bg-muted/65 p-1.5 rounded-2xl border border-border/50 shrink-0">
+          <button
+            onClick={() => setCurrency("MZN")}
+            className={`py-2 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
+              currency === "MZN"
+                ? "bg-primary text-white shadow-lg"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Moçambique (MZN)
+          </button>
+          <button
+            onClick={() => setCurrency("BRL")}
+            className={`py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
+              currency === "BRL"
+                ? "bg-primary text-white shadow-lg"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Brasil (BRL)
+          </button>
+        </div>
+      </div>
 
       {loading ? (
         <div className="text-center py-12 text-muted-foreground">Carregando pedidos...</div>
@@ -96,6 +125,14 @@ const Orders = () => {
   );
 };
 
+const formatOrderPrice = (price: number, ordCurrency?: string) => {
+  const curr = ordCurrency || "MZN";
+  if (curr === "BRL") {
+    return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+  return `${price.toFixed(2)} MT`;
+};
+
 const OrderCard = ({ order, onRefresh }: { order: Order; onRefresh: () => void }) => (
   <Card className="overflow-hidden hover:border-primary/40 transition-colors">
     <CardContent className="p-0">
@@ -123,7 +160,7 @@ const OrderCard = ({ order, onRefresh }: { order: Order; onRefresh: () => void }
           
           <div className="flex flex-wrap items-center gap-3 text-sm bg-muted/40 p-2.5 rounded-lg w-fit border border-border/50">
             <span className="text-foreground font-medium">{order.products.name}</span>
-            <span className="text-primary font-bold">{order.price.toFixed(2)} MT</span>
+            <span className="text-primary font-bold">{formatOrderPrice(order.price, order.currency)}</span>
             <Badge variant="outline" className="capitalize text-xs bg-background">
               {order.payment_method}
             </Badge>
@@ -166,7 +203,7 @@ const OrderCard = ({ order, onRefresh }: { order: Order; onRefresh: () => void }
                           <div style="background-color: #141416; padding: 25px; border-radius: 16px; border: 1px solid #232326; text-align: left; margin-bottom: 40px;">
                             <h3 style="color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 15px 0;">Item no Carrinho:</h3>
                             <p style="color: #ffffff; font-size: 18px; font-weight: 700; margin: 0 0 5px 0;">${order.products.name}</p>
-                            <p style="color: #10b981; font-size: 16px; font-weight: 600; margin: 0;">${order.price.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT</p>
+                            <p style="color: #10b981; font-size: 16px; font-weight: 600; margin: 0;">${formatOrderPrice(order.price, order.currency)}</p>
                           </div>
                           
                           <a href="${checkoutUrl}" style="display: inline-block; background-color: #10b981; color: #000000; padding: 20px 45px; text-decoration: none; border-radius: 12px; font-weight: 800; font-size: 16px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 10px 20px rgba(16,185,129,0.2);">Concluir Compra</a>
