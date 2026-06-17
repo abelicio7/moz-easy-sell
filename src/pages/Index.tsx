@@ -81,7 +81,7 @@ const Index = () => {
       <LandingNav />
 
       {/* HERO SECTION */}
-      <section className="relative pt-20 pb-32 md:pt-32 md:pb-48 overflow-hidden">
+      <section className="relative pt-16 pb-24 md:pt-32 md:pb-48 overflow-hidden">
         {/* Background Decorations */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 overflow-hidden">
           <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-secondary/5 rounded-full blur-[120px]" />
@@ -89,24 +89,24 @@ const Index = () => {
         </div>
 
         <div className="container px-4">
-          <div className="max-w-4xl mx-auto text-center space-y-8">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider animate-fade-in">
-              <Sparkles className="w-3 h-3 animate-pulse" />
+          <div className="max-w-4xl mx-auto text-center space-y-6 md:space-y-8">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] sm:text-xs font-bold uppercase tracking-wider animate-fade-in text-center">
+              <Sparkles className="w-3.5 h-3.5 animate-pulse shrink-0" />
               NOVIDADE: Venda para o Brasil 🇧🇷 e receba em Moçambique 🇲🇿
             </div>
             
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight text-foreground leading-[0.95] animate-fade-in-up">
+            <h1 className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-black tracking-tight text-foreground leading-[0.95] animate-fade-in-up">
               Venda seus infoprodutos <br />
               sem <span className="bg-clip-text text-transparent bg-gradient-to-r from-secondary to-purple-600">fronteiras.</span>
             </h1>
             
-            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
+            <p className="text-sm sm:text-base md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
               Crie seu checkout profissional em minutos. Aceite pagamentos locais via <span className="text-foreground font-bold">M-Pesa e E-Mola</span> em Moçambique, e venda para o Brasil inteiro recebendo via <span className="text-emerald-500 font-bold">Pix</span>. Tudo de forma automática e integrada.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
-              <Link to="/register">
-                <Button size="lg" className="h-14 px-8 text-lg font-bold rounded-2xl bg-secondary hover:bg-secondary/90 shadow-xl shadow-secondary/20 group">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
+              <Link to="/register" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto h-14 px-8 text-lg font-bold rounded-2xl bg-secondary hover:bg-secondary/90 shadow-xl shadow-secondary/20 group">
                   Vender agora
                   <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
@@ -120,16 +120,16 @@ const Index = () => {
       </section>
 
       {/* DASHBOARD & NOTIFICATION PREVIEW SHOWCASE */}
-      <section className="container px-4 -mt-16 relative">
-        <div className="relative max-w-6xl mx-auto rounded-3xl border border-border/50 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl p-4 md:p-8 shadow-2xl animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
+      <section className="container px-4 -mt-8 sm:-mt-16 relative">
+        <div className="relative max-w-6xl mx-auto rounded-[24px] sm:rounded-3xl border border-border/50 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl p-4 sm:p-6 md:p-8 shadow-2xl animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
           <div className="absolute -top-20 -right-20 w-72 h-72 bg-purple-500/10 rounded-full blur-[100px] -z-10" />
           <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-secondary/15 rounded-full blur-[100px] -z-10" />
           
-          <div className="grid lg:grid-cols-12 gap-8 items-stretch">
+          <div className="grid lg:grid-cols-12 gap-6 sm:gap-8 items-stretch">
             {/* Dashboard Mockup (Col span 7) */}
-            <div className="lg:col-span-7 rounded-2xl border border-border/80 bg-slate-50 dark:bg-slate-950/80 shadow-inner overflow-hidden p-6 flex flex-col justify-between min-h-[420px]">
+            <div className="lg:col-span-7 rounded-2xl border border-border/80 bg-slate-50 dark:bg-slate-950/80 shadow-inner overflow-hidden p-4 sm:p-6 flex flex-col justify-between min-h-[350px] sm:min-h-[420px]">
               <div>
-                <div className="flex items-center justify-between border-b border-border pb-4 mb-6">
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between border-b border-border pb-4 mb-6">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center text-white font-black text-sm">E</div>
                     <div>
@@ -138,10 +138,10 @@ const Index = () => {
                     </div>
                   </div>
                   {/* Simulated currency tabs */}
-                  <div className="flex gap-1 bg-muted dark:bg-slate-800 p-1 rounded-xl text-xs">
+                  <div className="flex gap-1 bg-muted dark:bg-slate-800 p-1 rounded-xl text-xs w-full sm:w-auto justify-center sm:justify-start">
                     <button 
                       onClick={() => setPreviewCurrency('MZN')}
-                      className={`px-3 py-1.5 rounded-lg font-bold shadow-sm flex items-center gap-1.5 transition-all ${
+                      className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg font-bold shadow-sm flex items-center justify-center gap-1.5 transition-all ${
                         previewCurrency === 'MZN' 
                           ? 'bg-white dark:bg-slate-900 text-foreground' 
                           : 'text-muted-foreground hover:text-foreground'
@@ -151,7 +151,7 @@ const Index = () => {
                     </button>
                     <button 
                       onClick={() => setPreviewCurrency('BRL')}
-                      className={`px-3 py-1.5 rounded-lg font-bold shadow-sm flex items-center gap-1.5 transition-all ${
+                      className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg font-bold shadow-sm flex items-center justify-center gap-1.5 transition-all ${
                         previewCurrency === 'BRL' 
                           ? 'bg-white dark:bg-slate-900 text-foreground' 
                           : 'text-muted-foreground hover:text-foreground'
@@ -163,10 +163,10 @@ const Index = () => {
                 </div>
 
                 {/* Grid cards */}
-                <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                   <div className="bg-white dark:bg-slate-900 border border-border p-4 rounded-xl space-y-2 shadow-sm">
                     <p className="text-xs text-muted-foreground font-medium">Saldo Disponível</p>
-                    <h3 className="text-2xl font-black text-foreground">
+                    <h3 className="text-xl sm:text-2xl font-black text-foreground">
                       {previewCurrency === 'MZN' ? '24.850,00 MT' : 'R$ 1.840,00'}
                     </h3>
                     <div className="text-[10px] text-emerald-500 font-bold flex items-center gap-1">
@@ -177,7 +177,7 @@ const Index = () => {
                     <p className="text-xs text-muted-foreground font-medium">
                       {previewCurrency === 'MZN' ? 'Saques Processados' : 'Vendas via Pix (BRL)'}
                     </p>
-                    <h3 className="text-2xl font-black text-secondary">
+                    <h3 className="text-xl sm:text-2xl font-black text-secondary">
                       {previewCurrency === 'MZN' ? '9.450,00 MT' : 'R$ 540,00'}
                     </h3>
                     <div className="text-[10px] text-emerald-500 font-bold flex items-center gap-1">
@@ -205,7 +205,7 @@ const Index = () => {
                             <p className="text-[10px] text-muted-foreground">Curso de Design Gráfico</p>
                           </div>
                         </div>
-                        <span className="font-bold text-foreground">+ 447,00 MT</span>
+                        <span className="font-bold text-foreground text-right shrink-0">+ 447,00 MT</span>
                       </div>
                       <div className="flex justify-between items-center p-3 rounded-lg bg-white dark:bg-slate-900 border border-border/50 shadow-sm">
                         <div className="flex items-center gap-2">
@@ -215,7 +215,7 @@ const Index = () => {
                             <p className="text-[10px] text-muted-foreground">Ebook: Escalando no Digital</p>
                           </div>
                         </div>
-                        <span className="font-bold text-foreground">+ 147,00 MT</span>
+                        <span className="font-bold text-foreground text-right shrink-0">+ 147,00 MT</span>
                       </div>
                       <div className="flex justify-between items-center p-3 rounded-lg bg-white dark:bg-slate-900 border border-border/50 shadow-sm">
                         <div className="flex items-center gap-2">
@@ -225,7 +225,7 @@ const Index = () => {
                             <p className="text-[10px] text-muted-foreground">Transferência realizada com sucesso</p>
                           </div>
                         </div>
-                        <span className="font-bold text-red-500">- 1.970,00 MT</span>
+                        <span className="font-bold text-red-500 text-right shrink-0">- 1.970,00 MT</span>
                       </div>
                     </>
                   ) : (
@@ -238,7 +238,7 @@ const Index = () => {
                             <p className="text-[10px] text-muted-foreground">Mentoria Express</p>
                           </div>
                         </div>
-                        <span className="font-bold text-emerald-500">+ R$ 55,00</span>
+                        <span className="font-bold text-emerald-500 text-right shrink-0">+ R$ 55,00</span>
                       </div>
                       <div className="flex justify-between items-center p-3 rounded-lg bg-white dark:bg-slate-900 border border-border/50 shadow-sm">
                         <div className="flex items-center gap-2">
@@ -248,7 +248,7 @@ const Index = () => {
                             <p className="text-[10px] text-muted-foreground">Curso Avançado de Vendas</p>
                           </div>
                         </div>
-                        <span className="font-bold text-emerald-500">+ R$ 120,00</span>
+                        <span className="font-bold text-emerald-500 text-right shrink-0">+ R$ 120,00</span>
                       </div>
                       <div className="flex justify-between items-center p-3 rounded-lg bg-white dark:bg-slate-900 border border-border/50 shadow-sm">
                         <div className="flex items-center gap-2">
@@ -258,7 +258,7 @@ const Index = () => {
                             <p className="text-[10px] text-muted-foreground">Transferência Pix internacional</p>
                           </div>
                         </div>
-                        <span className="font-bold text-red-500">- R$ 50,00</span>
+                        <span className="font-bold text-red-500 text-right shrink-0">- R$ 50,00</span>
                       </div>
                     </>
                   )}
@@ -267,17 +267,17 @@ const Index = () => {
             </div>
 
             {/* Notifications Showcase (Col span 5) */}
-            <div className="lg:col-span-5 flex flex-col justify-between space-y-6">
+            <div className="lg:col-span-5 flex flex-col justify-between space-y-6 mt-4 lg:mt-0">
               <div className="space-y-2">
                 <span className="text-xs font-black uppercase text-secondary tracking-widest">Prova Social Real</span>
-                <h3 className="text-3xl font-black text-foreground">Notificações Reais</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="text-2xl sm:text-3xl font-black text-foreground">Notificações Reais</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   Veja capturas reais de notificações recebidas pelos vendedores da EnsinaPay tanto em Meticais quanto em Reais. Clique nas abas ao lado para ver como cada transação se destaca!
                 </p>
               </div>
 
               {/* iOS notification container */}
-              <div className="space-y-4 p-4 rounded-2xl bg-slate-950/5 dark:bg-slate-950/40 border border-border/40 backdrop-blur-sm max-h-[350px] overflow-y-auto custom-scrollbar flex-1">
+              <div className="space-y-4 p-3 sm:p-4 rounded-2xl bg-slate-950/5 dark:bg-slate-950/40 border border-border/40 backdrop-blur-sm max-h-[300px] sm:max-h-[350px] overflow-y-auto custom-scrollbar flex-1">
                 {/* 1. BRL Sale */}
                 <div 
                   className={`rounded-2xl overflow-hidden shadow-lg border border-white/10 transition-all duration-300 ${
@@ -355,38 +355,38 @@ const Index = () => {
       </section>
 
       {/* PAINEL DE PROBLEMAS / POR QUE NÓS? */}
-      <section className="py-32 bg-white dark:bg-card/20">
+      <section className="py-16 md:py-32 bg-white dark:bg-card/20">
         <div className="container px-4">
-          <div className="grid lg:grid-cols-2 gap-20 items-center">
-            <div className="space-y-8">
-              <h2 className="text-4xl md:text-5xl font-black text-foreground leading-[1.1]">
+          <div className="grid lg:grid-cols-2 gap-10 md:gap-20 items-center">
+            <div className="space-y-6 md:space-y-8">
+              <h2 className="text-3xl md:text-5xl font-black text-foreground leading-[1.1]">
                 Vender online em Moçambique não precisa ser uma <span className="text-destructive underline decoration-wavy underline-offset-8">dor de cabeça.</span>
               </h2>
-              <p className="text-lg text-muted-foreground leading-relaxed">
+              <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
                 Esqueça as gambiarras de transferência manual ou o envio de arquivos por WhatsApp. 
                 A EnsinaPay automatiza o que é burocrático e abre as portas do maior mercado da América Latina para o seu conteúdo: <span className="text-foreground font-bold">o Brasil.</span>
               </p>
               
               <div className="space-y-4">
                 {problems.map((p, i) => (
-                  <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-muted/50 border border-transparent hover:border-border transition-all">
-                    <XCircle className="w-6 h-6 text-destructive shrink-0" />
-                    <span className="font-medium text-foreground">{p}</span>
+                  <div key={i} className="flex items-center gap-4 p-3 md:p-4 rounded-2xl bg-muted/50 border border-transparent hover:border-border transition-all">
+                    <XCircle className="w-5 h-5 text-destructive shrink-0" />
+                    <span className="text-sm md:text-base font-medium text-foreground">{p}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="bg-secondary p-12 md:p-16 rounded-[40px] text-white space-y-10 relative overflow-hidden shadow-2xl shadow-secondary/30">
+            <div className="bg-secondary p-6 sm:p-12 md:p-16 rounded-[24px] sm:rounded-[40px] text-white space-y-8 md:space-y-10 relative overflow-hidden shadow-2xl shadow-secondary/30">
                <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl" />
-               <h3 className="text-3xl font-bold">Com a EnsinaPay é assim:</h3>
-               <div className="space-y-6">
+               <h3 className="text-2xl sm:text-3xl font-bold">Com a EnsinaPay é assim:</h3>
+               <div className="space-y-5 md:space-y-6">
                 {solutions.map((s, i) => (
                   <div key={i} className="flex items-start gap-4">
                     <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center shrink-0 mt-1">
                       <CheckCircle2 className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-lg font-medium text-white/90">{s}</span>
+                    <span className="text-base sm:text-lg font-medium text-white/90">{s}</span>
                   </div>
                 ))}
               </div>
@@ -399,21 +399,21 @@ const Index = () => {
       </section>
 
       {/* PASSOS - GRID MODERNO */}
-      <section id="como-funciona" className="py-32">
+      <section id="como-funciona" className="py-16 md:py-32">
         <div className="container px-4">
-          <div className="text-center max-w-3xl mx-auto mb-20 space-y-4">
-            <h2 className="text-4xl md:text-5xl font-black text-foreground">Como funciona?</h2>
-            <p className="text-lg text-muted-foreground">O fluxo mais simples e eficiente do mercado para você e seu cliente.</p>
+          <div className="text-center max-w-3xl mx-auto mb-12 md:mb-20 space-y-4">
+            <h2 className="text-3xl md:text-5xl font-black text-foreground">Como funciona?</h2>
+            <p className="text-base md:text-lg text-muted-foreground">O fluxo mais simples e eficiente do mercado para você e seu cliente.</p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
             {steps.map((step, i) => (
-              <div key={i} className="group p-8 rounded-3xl bg-white dark:bg-card border border-border/50 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
+              <div key={i} className="group p-6 sm:p-8 rounded-3xl bg-white dark:bg-card border border-border/50 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
                 <div className={`w-14 h-14 rounded-2xl ${step.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform`}>
                   <step.icon className="w-7 h-7" />
                 </div>
-                <h3 className="text-xl font-bold text-foreground mb-3">{step.title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{step.desc}</p>
+                <h3 className="text-lg sm:text-xl font-bold text-foreground mb-3">{step.title}</h3>
+                <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">{step.desc}</p>
                 <div className="mt-6 text-[10px] font-black text-muted-foreground/30 tracking-[4px] uppercase">Passo {i+1}</div>
               </div>
             ))}
@@ -422,34 +422,34 @@ const Index = () => {
       </section>
 
       {/* FEATURES - BENTO GRID INSPIRED */}
-      <section className="py-32 bg-secondary/5">
+      <section className="py-16 md:py-32 bg-secondary/5">
         <div className="container px-4">
-          <div className="grid lg:grid-cols-3 gap-8">
-             <div className="lg:col-span-2 grid md:grid-cols-2 gap-8">
+          <div className="grid lg:grid-cols-3 gap-6 md:gap-8">
+             <div className="lg:col-span-2 grid md:grid-cols-2 gap-6 md:gap-8">
                 {features.map((f, i) => (
-                  <div key={i} className="p-8 rounded-3xl bg-white dark:bg-card border border-border/50 shadow-sm">
+                  <div key={i} className="p-6 sm:p-8 rounded-3xl bg-white dark:bg-card border border-border/50 shadow-sm">
                     <f.icon className="w-10 h-10 text-secondary mb-6" />
-                    <h3 className="text-2xl font-bold text-foreground mb-3">{f.title}</h3>
-                    <p className="text-muted-foreground leading-relaxed">{f.desc}</p>
+                    <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-3">{f.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
                   </div>
                 ))}
              </div>
-             <div className="bg-gradient-to-br from-secondary to-secondary-foreground p-10 rounded-[40px] text-white flex flex-col justify-between relative overflow-hidden shadow-2xl">
+             <div className="bg-gradient-to-br from-secondary to-secondary-foreground p-6 sm:p-10 rounded-[24px] sm:rounded-[40px] text-white flex flex-col justify-between relative overflow-hidden shadow-2xl min-h-[300px]">
                 <TrendingUp className="w-20 h-20 text-white/10 absolute -top-4 -right-4" />
                 <div>
-                  <h3 className="text-3xl font-black mb-6">Focado em Escalar.</h3>
-                  <p className="text-white/80 leading-relaxed text-lg">
+                  <h3 className="text-2xl sm:text-3xl font-black mb-4 md:mb-6">Focado em Escalar.</h3>
+                  <p className="text-white/80 leading-relaxed text-sm sm:text-base md:text-lg">
                     Não somos apenas um processador de pagamentos local. Somos o seu braço direito tecnológico para abrir novos mercados e escalar o seu negócio digital em Moçambique.
                   </p>
                 </div>
-                <div className="mt-12 space-y-4">
+                <div className="mt-8 md:mt-12 space-y-4">
                   <div className="flex items-center gap-3 bg-white/10 p-3 rounded-2xl backdrop-blur-sm">
                     <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                    <span className="text-sm font-bold">100% Taxa de Disponibilidade</span>
+                    <span className="text-xs sm:text-sm font-bold">100% Taxa de Disponibilidade</span>
                   </div>
                   <div className="flex items-center gap-3 bg-white/10 p-3 rounded-2xl backdrop-blur-sm">
                     <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-                    <span className="text-sm font-bold">Suporte Prioritário via WhatsApp</span>
+                    <span className="text-xs sm:text-sm font-bold">Suporte Prioritário via WhatsApp</span>
                   </div>
                 </div>
              </div>
@@ -458,55 +458,55 @@ const Index = () => {
       </section>
 
       {/* TESTIMONIALS MINI / TRUST */}
-      <section className="py-32">
+      <section className="py-16 md:py-32">
         <div className="container px-4 text-center">
-          <h2 className="text-3xl font-bold text-muted-foreground/50 mb-16 uppercase tracking-[5px]">Plataforma Feita Para</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-12 items-center opacity-70 grayscale hover:grayscale-0 transition-all">
+          <h2 className="text-2xl sm:text-3xl font-bold text-muted-foreground/50 mb-12 md:mb-16 uppercase tracking-[5px]">Plataforma Feita Para</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 items-center opacity-70 grayscale hover:grayscale-0 transition-all">
              <div className="flex flex-col items-center gap-2">
-                <Users className="w-10 h-10 text-secondary" />
-                <span className="font-bold text-foreground">Criadores</span>
+                <Users className="w-8 h-8 md:w-10 md:h-10 text-secondary" />
+                <span className="font-bold text-sm sm:text-base text-foreground">Criadores</span>
              </div>
              <div className="flex flex-col items-center gap-2">
-                <GraduationCap className="w-10 h-10 text-secondary" />
-                <span className="font-bold text-foreground">Educadores</span>
+                <GraduationCap className="w-8 h-8 md:w-10 md:h-10 text-secondary" />
+                <span className="font-bold text-sm sm:text-base text-foreground">Educadores</span>
              </div>
              <div className="flex flex-col items-center gap-2">
-                <Briefcase className="w-10 h-10 text-secondary" />
-                <span className="font-bold text-foreground">Consultores</span>
+                <Briefcase className="w-8 h-8 md:w-10 md:h-10 text-secondary" />
+                <span className="font-bold text-sm sm:text-base text-foreground">Consultores</span>
              </div>
              <div className="flex flex-col items-center gap-2">
-                <BookOpen className="w-10 h-10 text-secondary" />
-                <span className="font-bold text-foreground">Autores</span>
+                <BookOpen className="w-8 h-8 md:w-10 md:h-10 text-secondary" />
+                <span className="font-bold text-sm sm:text-base text-foreground">Autores</span>
              </div>
           </div>
         </div>
       </section>
 
       {/* FINAL CTA - PREMIUM BOX */}
-      <section className="py-20 px-4">
-        <div className="container max-w-6xl p-12 md:p-24 rounded-[60px] bg-[#0f172a] text-white text-center relative overflow-hidden shadow-2xl shadow-black/40">
+      <section className="py-12 sm:py-20 px-4">
+        <div className="container max-w-6xl p-6 sm:p-12 md:p-24 rounded-[32px] sm:rounded-[60px] bg-[#0f172a] text-white text-center relative overflow-hidden shadow-2xl shadow-black/40">
            <div className="absolute inset-0 bg-gradient-to-r from-secondary/20 to-transparent pointer-events-none" />
            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-secondary to-transparent" />
            
-           <div className="relative z-10 space-y-10">
-              <h2 className="text-4xl md:text-6xl font-black tracking-tight leading-[1.1]">
+           <div className="relative z-10 space-y-8 md:space-y-10">
+              <h2 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tight leading-[1.1]">
                 A sua jornada sem fronteiras <br /> <span className="bg-clip-text text-transparent bg-gradient-to-r from-secondary to-emerald-400">começa aqui.</span>
               </h2>
-              <p className="text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-sm sm:text-base md:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
                 Junte-se a centenas de criadores moçambicanos que já estão a faturar localmente e vendendo para o Brasil. Receba via M-Pesa, E-Mola ou Pix com facilidade.
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                 <Button size="lg" className="w-full sm:w-auto h-16 px-12 text-xl font-bold bg-secondary hover:bg-secondary/90 text-white rounded-2xl transition-all hover:scale-105" asChild>
                   <Link to="/register">Criar minha conta grátis</Link>
                 </Button>
               </div>
-              <p className="text-sm text-white/40">Sem taxas de adesão. Você só paga quando vende.</p>
+              <p className="text-xs text-white/40">Sem taxas de adesão. Você só paga quando vende.</p>
            </div>
         </div>
       </section>
 
       {/* FOOTER - CLEAN */}
-      <footer className="py-20 border-t border-border/50">
+      <footer className="py-12 sm:py-20 border-t border-border/50">
         <div className="container px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-10">
             <div className="space-y-4 text-center md:text-left">
@@ -515,7 +515,7 @@ const Index = () => {
                 A plataforma líder em vendas de infoprodutos com pagamentos locais em Moçambique e Pix no Brasil.
               </p>
             </div>
-            <div className="flex flex-wrap items-center justify-center gap-10 text-sm font-bold text-foreground/70">
+            <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10 text-sm font-bold text-foreground/70">
               <Link to="/terms" className="hover:text-secondary transition-colors">Termos</Link>
               <Link to="/privacy" className="hover:text-secondary transition-colors">Privacidade</Link>
               <Link to="/contact" className="hover:text-secondary transition-colors">Contacto</Link>
@@ -524,7 +524,7 @@ const Index = () => {
               </a>
             </div>
           </div>
-          <div className="mt-16 pt-8 border-t border-border/20 text-center text-xs text-muted-foreground">
+          <div className="mt-12 md:mt-16 pt-8 border-t border-border/20 text-center text-xs text-muted-foreground">
             © 2026 EnsinaPay. Elevando o empreendedorismo digital moçambicano.
           </div>
         </div>
