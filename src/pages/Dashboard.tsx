@@ -67,7 +67,11 @@ const Dashboard = () => {
 
     const methodStats = filteredOrders.reduce((acc: any, order: any) => {
       const method = order.payment_method || 'Outro';
-      const cleanMethod = method.toLowerCase() === 'pix' ? 'Pix' : method.toLowerCase() === 'mpesa' ? 'M-Pesa' : method.toLowerCase() === 'emola' ? 'E-Mola' : method;
+      const cleanMethod = 
+        method.toLowerCase() === 'pix' ? 'Pix' : 
+        (method.toLowerCase() === 'mpesa' || method.toLowerCase() === 'm-pesa') ? 'M-Pesa' : 
+        (method.toLowerCase() === 'emola' || method.toLowerCase() === 'e-mola') ? 'E-Mola' : 
+        method;
       if (!acc[cleanMethod]) acc[cleanMethod] = { totalOrders: 0, paidOrders: 0, revenue: 0, conversion: 0 };
       acc[cleanMethod].totalOrders++;
       if (["paid", "delivered"].includes(order.status)) {
@@ -214,9 +218,9 @@ const Dashboard = () => {
               <Card 
                 key={method} 
                 className={`relative overflow-hidden border-0 shadow-lg transition-all hover:scale-[1.02] ${
-                  method.toLowerCase() === 'mpesa' 
+                  (method.toLowerCase() === 'mpesa' || method.toLowerCase() === 'm-pesa')
                     ? 'bg-gradient-to-br from-[#E51B24] to-[#8A0A12]' 
-                    : method.toLowerCase() === 'emola' 
+                    : (method.toLowerCase() === 'emola' || method.toLowerCase() === 'e-mola')
                       ? 'bg-gradient-to-br from-[#F57C00] to-[#b34700]' 
                       : method.toLowerCase() === 'pix'
                         ? 'bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8]'
@@ -231,9 +235,9 @@ const Dashboard = () => {
                   {/* Left: Logo/Icon */}
                   <div className="flex flex-col items-center justify-center shrink-0">
                     <div className="w-20 h-20 rounded-full bg-white flex flex-col items-center justify-center shadow-lg p-3">
-                      {method.toLowerCase() === 'mpesa' ? (
+                      {(method.toLowerCase() === 'mpesa' || method.toLowerCase() === 'm-pesa') ? (
                         <img src="/mpesa_logo.png" alt="M-Pesa" className="max-w-full max-h-full object-contain" />
-                      ) : method.toLowerCase() === 'emola' ? (
+                      ) : (method.toLowerCase() === 'emola' || method.toLowerCase() === 'e-mola') ? (
                         <img src="/emola_logo.png" alt="E-Mola" className="max-w-full max-h-full object-contain" />
                       ) : method.toLowerCase() === 'pix' ? (
                         <img src="/pix_checkout_logo.png" alt="Pix" className="max-w-full max-h-full object-contain" />
