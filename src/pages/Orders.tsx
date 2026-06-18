@@ -26,7 +26,6 @@ const Orders = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currency, setCurrency] = useState<"MZN" | "BRL">("MZN");
 
   const fetchOrders = async () => {
     if (!user) return;
@@ -41,38 +40,13 @@ const Orders = () => {
 
   useEffect(() => { fetchOrders(); }, [user]);
 
-  const filteredOrders = orders.filter(o => (o.currency || 'MZN') === currency);
-  const paidOrders = filteredOrders.filter(o => ["paid", "delivered"].includes(o.status));
-  const pendingOrders = filteredOrders.filter(o => ["pending", "failed"].includes(o.status));
+  const paidOrders = orders.filter(o => ["paid", "delivered"].includes(o.status));
+  const pendingOrders = orders.filter(o => ["pending", "failed"].includes(o.status));
 
   return (
     <DashboardLayout>
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
         <h2 className="text-2xl font-bold text-foreground">Pedidos e Vendas</h2>
-        
-        {/* Currency Switcher */}
-        <div className="flex bg-muted/65 p-1.5 rounded-2xl border border-border/50 shrink-0">
-          <button
-            onClick={() => setCurrency("MZN")}
-            className={`py-2 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
-              currency === "MZN"
-                ? "bg-primary text-white shadow-lg"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Moçambique (MZN)
-          </button>
-          <button
-            onClick={() => setCurrency("BRL")}
-            className={`py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
-              currency === "BRL"
-                ? "bg-primary text-white shadow-lg"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Brasil (BRL)
-          </button>
-        </div>
       </div>
 
       {loading ? (
@@ -149,6 +123,9 @@ const OrderCard = ({ order, onRefresh }: { order: Order; onRefresh: () => void }
             >
               {["paid", "delivered"].includes(order.status) ? "Pago e Entregue" : 
                order.status === "failed" ? "Pagamento Falhou" : "Não Concluído"}
+            </Badge>
+            <Badge variant="outline" className="gap-1 bg-background font-bold text-[10px]">
+              {order.currency === "BRL" ? "🇧🇷 Brasil" : "🇲🇿 Moçambique"}
             </Badge>
           </div>
           <div className="space-y-1 mb-3">
