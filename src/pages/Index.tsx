@@ -172,34 +172,34 @@ const Index = () => {
 
             {/* Supported payment methods trust bar */}
             <div className="pt-6 md:pt-8 space-y-3 animate-fade-in-up" style={{ animationDelay: "0.38s" }}>
-              <p className="text-[9px] sm:text-xs font-black uppercase text-muted-foreground/60 tracking-widest">
+              <p className="text-[10px] sm:text-xs font-black uppercase text-foreground/80 dark:text-white/80 tracking-widest">
                 Métodos de Pagamento Suportados
               </p>
-              <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 opacity-85 hover:opacity-100 transition-opacity">
+              <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 opacity-100 transition-opacity">
                 {/* M-Pesa logo card */}
-                <div className="bg-white dark:bg-slate-900 border border-border p-2 sm:p-2.5 rounded-2xl shadow-sm hover:shadow-md transition-shadow flex items-center justify-center w-24 sm:w-28 h-10 sm:h-12">
+                <div className="bg-white dark:bg-white border-2 border-slate-100 dark:border-slate-100 p-2 sm:p-3 rounded-2xl shadow-md hover:shadow-xl hover:scale-105 hover:border-red-500/50 hover:shadow-red-500/5 transition-all duration-300 flex items-center justify-center w-28 sm:w-36 h-12 sm:h-16 group">
                   <img 
                     src="/mpesa_logo.png" 
                     alt="M-Pesa" 
-                    className="max-w-full max-h-full object-contain block" 
+                    className="max-w-full max-h-full object-contain block filter contrast-[1.15] brightness-[1.05]" 
                   />
                 </div>
 
                 {/* E-Mola logo card */}
-                <div className="bg-white dark:bg-slate-900 border border-border p-2 sm:p-2.5 rounded-2xl shadow-sm hover:shadow-md transition-shadow flex items-center justify-center w-24 sm:w-28 h-10 sm:h-12">
+                <div className="bg-white dark:bg-white border-2 border-slate-100 dark:border-slate-100 p-2 sm:p-3 rounded-2xl shadow-md hover:shadow-xl hover:scale-105 hover:border-amber-500/50 hover:shadow-amber-500/5 transition-all duration-300 flex items-center justify-center w-28 sm:w-36 h-12 sm:h-16 group">
                   <img 
                     src="/emola_logo.png" 
                     alt="E-Mola" 
-                    className="max-w-full max-h-full object-contain block" 
+                    className="max-w-full max-h-full object-contain block filter contrast-[1.15] brightness-[1.05]" 
                   />
                 </div>
 
                 {/* Pix logo card */}
-                <div className="bg-white dark:bg-slate-900 border border-border p-2 sm:p-2.5 rounded-2xl shadow-sm hover:shadow-md transition-shadow flex items-center justify-center w-24 sm:w-28 h-10 sm:h-12">
+                <div className="bg-white dark:bg-white border-2 border-slate-100 dark:border-slate-100 p-2 sm:p-3 rounded-2xl shadow-md hover:shadow-xl hover:scale-105 hover:border-teal-500/50 hover:shadow-teal-500/5 transition-all duration-300 flex items-center justify-center w-28 sm:w-36 h-12 sm:h-16 group">
                   <img 
                     src="/pix_logo.png" 
                     alt="Pix" 
-                    className="max-w-full max-h-full object-contain block" 
+                    className="max-w-full max-h-full object-contain block filter contrast-[1.15] brightness-[1.05]" 
                   />
                 </div>
               </div>
@@ -673,15 +673,15 @@ const Index = () => {
                 A plataforma líder em vendas de infoprodutos com pagamentos locais em Moçambique e Pix no Brasil.
               </p>
               {/* Mini payment icons for footer */}
-              <div className="flex items-center justify-center md:justify-start gap-3 opacity-60">
-                <div className="bg-white dark:bg-slate-900 p-1.5 rounded-lg border border-border flex items-center justify-center w-14 h-6">
-                  <img src="/mpesa_logo.png" alt="M-Pesa" className="max-w-full max-h-full object-contain" />
+              <div className="flex items-center justify-center md:justify-start gap-3 opacity-100">
+                <div className="bg-white dark:bg-white p-1 rounded-lg border border-slate-100 flex items-center justify-center w-16 h-8 hover:scale-105 transition-transform shadow-sm">
+                  <img src="/mpesa_logo.png" alt="M-Pesa" className="max-w-full max-h-full object-contain filter contrast-[1.15] brightness-[1.05]" />
                 </div>
-                <div className="bg-white dark:bg-slate-900 p-1.5 rounded-lg border border-border flex items-center justify-center w-14 h-6">
-                  <img src="/emola_logo.png" alt="E-Mola" className="max-w-full max-h-full object-contain" />
+                <div className="bg-white dark:bg-white p-1 rounded-lg border border-slate-100 flex items-center justify-center w-16 h-8 hover:scale-105 transition-transform shadow-sm">
+                  <img src="/emola_logo.png" alt="E-Mola" className="max-w-full max-h-full object-contain filter contrast-[1.15] brightness-[1.05]" />
                 </div>
-                <div className="bg-white dark:bg-slate-900 p-1.5 rounded-lg border border-border flex items-center justify-center w-14 h-6">
-                  <img src="/pix_logo.png" alt="Pix" className="max-w-full max-h-full object-contain" />
+                <div className="bg-white dark:bg-white p-1 rounded-lg border border-slate-100 flex items-center justify-center w-16 h-8 hover:scale-105 transition-transform shadow-sm">
+                  <img src="/pix_logo.png" alt="Pix" className="max-w-full max-h-full object-contain filter contrast-[1.15] brightness-[1.05]" />
                 </div>
               </div>
             </div>
