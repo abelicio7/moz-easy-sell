@@ -405,13 +405,17 @@ const Checkout = () => {
                       className={`relative overflow-hidden col-span-2 flex items-center gap-2 rounded-xl p-3 cursor-pointer transition-all bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white hover:scale-[1.01] shadow-lg ring-2 ring-primary/20 opacity-100`}
                     >
                       <RadioGroupItem value="pix" id="pix" className="w-3 h-3 border-white text-white fill-white" />
-                      <div className="flex items-center gap-2 flex-1">
-                        <div className="w-7 h-7 rounded-full flex flex-col items-center justify-center bg-white text-[#1d4ed8]">
-                          <span className="font-black text-[9px] uppercase">P</span>
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="w-12 h-8 rounded-lg flex items-center justify-center bg-white p-1.5 shadow-sm border border-slate-100 shrink-0">
+                          <img 
+                            src="/pix_checkout_logo.png" 
+                            alt="Pix" 
+                            className="max-w-full max-h-full object-contain block filter contrast-[1.1] brightness-[1.02]" 
+                          />
                         </div>
                         <div>
-                          <p className="font-bold text-white text-[11px] leading-tight">Pix</p>
-                          <p className="text-[8px] text-white/70 leading-none">Pagamento Instantâneo</p>
+                          <p className="font-bold text-white text-[12px] leading-tight">Pix</p>
+                          <p className="text-[9px] text-white/80 leading-none">Pagamento Instantâneo</p>
                         </div>
                       </div>
                     </label>
@@ -426,13 +430,17 @@ const Checkout = () => {
                         }`}
                       >
                         <RadioGroupItem value="mpesa" id="mpesa" className="w-3 h-3 border-white text-white fill-white" />
-                        <div className="flex items-center gap-2 flex-1">
-                          <div className="w-7 h-7 rounded-full flex flex-col items-center justify-center bg-white text-[#DD0512]">
-                            <span className="font-black text-[9px] uppercase">M</span>
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="w-12 h-8 rounded-lg flex items-center justify-center bg-white p-1.5 shadow-sm border border-slate-100 shrink-0">
+                            <img 
+                              src="/mpesa_logo.png" 
+                              alt="M-Pesa" 
+                              className="max-w-full max-h-full object-contain block" 
+                            />
                           </div>
                           <div>
-                            <p className="font-bold text-white text-[11px] leading-tight">M-Pesa</p>
-                            <p className="text-[8px] text-white/70 leading-none">Vodacom</p>
+                            <p className="font-bold text-white text-[12px] leading-tight">M-Pesa</p>
+                            <p className="text-[9px] text-white/80 leading-none">Vodacom</p>
                           </div>
                         </div>
                       </label>
@@ -446,13 +454,17 @@ const Checkout = () => {
                         }`}
                       >
                         <RadioGroupItem value="emola" id="emola" className="w-3 h-3 border-white text-white fill-white" />
-                        <div className="flex items-center gap-2 flex-1">
-                          <div className="w-7 h-7 rounded-full flex flex-col items-center justify-center bg-white text-[#F57C00]">
-                            <span className="font-black text-[9px] uppercase">E</span>
+                        <div className="flex items-center gap-3 flex-1">
+                          <div className="w-12 h-8 rounded-lg flex items-center justify-center bg-white p-1.5 shadow-sm border border-slate-100 shrink-0">
+                            <img 
+                              src="/emola_logo.png" 
+                              alt="E-Mola" 
+                              className="max-w-full max-h-full object-contain block" 
+                            />
                           </div>
                           <div>
-                            <p className="font-bold text-white text-[11px] leading-tight">E-Mola</p>
-                            <p className="text-[8px] text-white/70 leading-none">Movitel</p>
+                            <p className="font-bold text-white text-[12px] leading-tight">E-Mola</p>
+                            <p className="text-[9px] text-white/80 leading-none">Movitel</p>
                           </div>
                         </div>
                       </label>
@@ -552,6 +564,11 @@ const Checkout = () => {
           <Card className="w-full max-w-md bg-card border-primary/20 shadow-2xl shadow-primary/10 rounded-[2.5rem] overflow-hidden border-2">
             {form.payment_method === 'pix' ? (
               <CardContent className="p-8 text-center space-y-6">
+                <div className="flex justify-center mb-2">
+                  <div className="bg-white p-2 rounded-xl border border-slate-100 w-24 h-12 flex items-center justify-center shadow-sm">
+                    <img src="/pix_checkout_logo.png" alt="Pix" className="max-w-full max-h-full object-contain" />
+                  </div>
+                </div>
                 <div className="space-y-2">
                   <h2 className="text-2xl font-black italic uppercase tracking-tight text-foreground">
                     Pagamento via Pix
