@@ -120,17 +120,25 @@ const Index = () => {
 
         <div className="container px-4 relative">
           {/* Mozambique Flag floating badge */}
-          <div className="absolute left-1 md:-left-8 top-2 md:top-8 animate-wave-wind-mz z-20 pointer-events-none">
-            <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-white/20 dark:border-slate-800/40 p-2 sm:p-3 rounded-2xl shadow-xl flex items-center gap-2">
-              <span className="text-2xl sm:text-3xl md:text-4xl">🇲🇿</span>
+          <div className="absolute left-1 md:-left-12 top-2 md:top-8 animate-wave-wind-mz z-20 pointer-events-none">
+            <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-white/20 dark:border-slate-800/40 p-2 sm:p-2.5 rounded-2xl shadow-xl flex items-center gap-2">
+              <img 
+                src="/mozambique_waving.png" 
+                alt="Bandeira de Moçambique" 
+                className="w-12 sm:w-16 md:w-20 h-auto object-contain block rounded-lg"
+              />
               <span className="text-[9px] sm:text-xs font-black text-foreground uppercase tracking-widest hidden xs:inline">MZ</span>
             </div>
           </div>
 
           {/* Brazil Flag floating badge */}
-          <div className="absolute right-1 md:-right-8 top-10 md:top-24 animate-wave-wind-br z-20 pointer-events-none">
-            <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-white/20 dark:border-slate-800/40 p-2 sm:p-3 rounded-2xl shadow-xl flex items-center gap-2">
-              <span className="text-2xl sm:text-3xl md:text-4xl">🇧🇷</span>
+          <div className="absolute right-1 md:-right-12 top-10 md:top-24 animate-wave-wind-br z-20 pointer-events-none">
+            <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-white/20 dark:border-slate-800/40 p-2 sm:p-2.5 rounded-2xl shadow-xl flex items-center gap-2">
+              <img 
+                src="/brazil_waving.png" 
+                alt="Bandeira do Brasil" 
+                className="w-12 sm:w-16 md:w-20 h-auto object-contain block rounded-lg"
+              />
               <span className="text-[9px] sm:text-xs font-black text-foreground uppercase tracking-widest hidden xs:inline">BR</span>
             </div>
           </div>
