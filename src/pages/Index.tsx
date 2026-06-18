@@ -78,6 +78,36 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-[#fafafa] dark:bg-background overflow-x-hidden">
+      <style>{`
+        @keyframes waveWind {
+          0% {
+            transform: translateY(0) rotate(0deg) skewX(0deg);
+          }
+          20% {
+            transform: translateY(-8px) rotate(3deg) skewX(1deg);
+          }
+          40% {
+            transform: translateY(2px) rotate(-2deg) skewX(-1deg);
+          }
+          60% {
+            transform: translateY(-5px) rotate(2deg) skewX(0.5deg);
+          }
+          80% {
+            transform: translateY(1px) rotate(-1deg) skewX(-0.5deg);
+          }
+          100% {
+            transform: translateY(0) rotate(0deg) skewX(0deg);
+          }
+        }
+        .animate-wave-wind-mz {
+          animation: waveWind 6s ease-in-out infinite;
+        }
+        .animate-wave-wind-br {
+          animation: waveWind 7s ease-in-out infinite;
+          animation-delay: 1.2s;
+        }
+      `}</style>
+      
       <LandingNav />
 
       {/* HERO SECTION */}
@@ -88,7 +118,23 @@ const Index = () => {
           <div className="absolute bottom-[10%] right-[-10%] w-[30%] h-[30%] bg-primary/10 rounded-full blur-[100px]" />
         </div>
 
-        <div className="container px-4">
+        <div className="container px-4 relative">
+          {/* Mozambique Flag floating badge */}
+          <div className="absolute left-1 md:-left-8 top-2 md:top-8 animate-wave-wind-mz z-20 pointer-events-none">
+            <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-white/20 dark:border-slate-800/40 p-2 sm:p-3 rounded-2xl shadow-xl flex items-center gap-2">
+              <span className="text-2xl sm:text-3xl md:text-4xl">🇲🇿</span>
+              <span className="text-[9px] sm:text-xs font-black text-foreground uppercase tracking-widest hidden xs:inline">MZ</span>
+            </div>
+          </div>
+
+          {/* Brazil Flag floating badge */}
+          <div className="absolute right-1 md:-right-8 top-10 md:top-24 animate-wave-wind-br z-20 pointer-events-none">
+            <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-white/20 dark:border-slate-800/40 p-2 sm:p-3 rounded-2xl shadow-xl flex items-center gap-2">
+              <span className="text-2xl sm:text-3xl md:text-4xl">🇧🇷</span>
+              <span className="text-[9px] sm:text-xs font-black text-foreground uppercase tracking-widest hidden xs:inline">BR</span>
+            </div>
+          </div>
+
           <div className="max-w-4xl mx-auto text-center space-y-6 md:space-y-8">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] sm:text-xs font-bold uppercase tracking-wider animate-fade-in text-center">
               <Sparkles className="w-3.5 h-3.5 animate-pulse shrink-0" />
