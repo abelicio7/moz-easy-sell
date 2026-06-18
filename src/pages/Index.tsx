@@ -169,6 +169,41 @@ const Index = () => {
             <p className="text-xs text-muted-foreground animate-fade-in-up" style={{ animationDelay: "0.35s" }}>
               Sem mensalidades ou taxas de manutenção. Você só paga quando vende.
             </p>
+
+            {/* Supported payment methods trust bar */}
+            <div className="pt-6 md:pt-8 space-y-3 animate-fade-in-up" style={{ animationDelay: "0.38s" }}>
+              <p className="text-[9px] sm:text-xs font-black uppercase text-muted-foreground/60 tracking-widest">
+                Métodos de Pagamento Suportados
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 opacity-85 hover:opacity-100 transition-opacity">
+                {/* M-Pesa logo card */}
+                <div className="bg-white dark:bg-slate-900 border border-border p-2 sm:p-2.5 rounded-2xl shadow-sm hover:shadow-md transition-shadow flex items-center justify-center w-24 sm:w-28 h-10 sm:h-12">
+                  <img 
+                    src="/mpesa_logo.png" 
+                    alt="M-Pesa" 
+                    className="max-w-full max-h-full object-contain block" 
+                  />
+                </div>
+
+                {/* E-Mola logo card */}
+                <div className="bg-white dark:bg-slate-900 border border-border p-2 sm:p-2.5 rounded-2xl shadow-sm hover:shadow-md transition-shadow flex items-center justify-center w-24 sm:w-28 h-10 sm:h-12">
+                  <img 
+                    src="/emola_logo.png" 
+                    alt="E-Mola" 
+                    className="max-w-full max-h-full object-contain block" 
+                  />
+                </div>
+
+                {/* Pix logo card */}
+                <div className="bg-white dark:bg-slate-900 border border-border p-2 sm:p-2.5 rounded-2xl shadow-sm hover:shadow-md transition-shadow flex items-center justify-center w-24 sm:w-28 h-10 sm:h-12">
+                  <img 
+                    src="/pix_logo.png" 
+                    alt="Pix" 
+                    className="max-w-full max-h-full object-contain block" 
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -568,6 +603,18 @@ const Index = () => {
               <p className="text-sm text-muted-foreground max-w-xs">
                 A plataforma líder em vendas de infoprodutos com pagamentos locais em Moçambique e Pix no Brasil.
               </p>
+              {/* Mini payment icons for footer */}
+              <div className="flex items-center justify-center md:justify-start gap-3 opacity-60">
+                <div className="bg-white dark:bg-slate-900 p-1.5 rounded-lg border border-border flex items-center justify-center w-14 h-6">
+                  <img src="/mpesa_logo.png" alt="M-Pesa" className="max-w-full max-h-full object-contain" />
+                </div>
+                <div className="bg-white dark:bg-slate-900 p-1.5 rounded-lg border border-border flex items-center justify-center w-14 h-6">
+                  <img src="/emola_logo.png" alt="E-Mola" className="max-w-full max-h-full object-contain" />
+                </div>
+                <div className="bg-white dark:bg-slate-900 p-1.5 rounded-lg border border-border flex items-center justify-center w-14 h-6">
+                  <img src="/pix_logo.png" alt="Pix" className="max-w-full max-h-full object-contain" />
+                </div>
+              </div>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10 text-sm font-bold text-foreground/70">
               <Link to="/terms" className="hover:text-secondary transition-colors">Termos</Link>
