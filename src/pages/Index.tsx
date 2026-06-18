@@ -546,6 +546,75 @@ const Index = () => {
         </div>
       </section>
 
+      {/* INTEGRATIONS SECTION */}
+      <section className="py-20 md:py-32 bg-gradient-to-b from-transparent to-slate-50 dark:to-slate-950/20 relative overflow-hidden border-t border-b border-border/30">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-secondary/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="container px-4 relative">
+          <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+              Sincronização & Rastreamento
+            </div>
+            <h2 className="text-3xl sm:text-5xl font-black text-foreground">
+              Integrações Prontas para Escalar
+            </h2>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              Conecte suas ferramentas preferidas de anúncios, analytics e automações em um clique. Rastreie campanhas e crie fluxos automáticos de vendas.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {/* Meta Pixel Card */}
+            <div className="group p-6 sm:p-8 rounded-3xl border border-border/60 bg-white/50 dark:bg-slate-900/40 backdrop-blur-md hover:bg-white dark:hover:bg-slate-900/80 hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between">
+              <div>
+                <div className="h-16 flex items-center justify-center mb-6">
+                  <img src="/meta_pixel_logo.png" alt="Meta Pixel" className="max-h-12 object-contain" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-3 text-center">Meta Pixel</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-center">
+                  Monitore suas conversões diretamente no Facebook Ads. Rastreie eventos de InitiateCheckout e Purchase de forma automática para maximizar o ROI de seus anúncios.
+                </p>
+              </div>
+              <div className="mt-6 pt-4 border-t border-border/50 text-center text-[10px] sm:text-xs font-bold uppercase tracking-widest text-secondary">
+                Otimizado para anúncios ⚡
+              </div>
+            </div>
+
+            {/* Utmify Card */}
+            <div className="group p-6 sm:p-8 rounded-3xl border border-border/60 bg-white/50 dark:bg-slate-900/40 backdrop-blur-md hover:bg-white dark:hover:bg-slate-900/80 hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between">
+              <div>
+                <div className="h-16 flex items-center justify-center mb-6">
+                  <img src="/utmify_logo.png" alt="Utmify" className="max-h-10 object-contain dark:brightness-125" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-3 text-center">Utmify</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-center">
+                  Tenha rastreabilidade completa das UTMs. Sincronize com a Utmify para identificar a origem exata de cada venda e otimizar seu orçamento de marketing.
+                </p>
+              </div>
+              <div className="mt-6 pt-4 border-t border-border/50 text-center text-[10px] sm:text-xs font-bold uppercase tracking-widest text-secondary">
+                Rastreamento cirúrgico 🔍
+              </div>
+            </div>
+
+            {/* Webhooks Card */}
+            <div className="group p-6 sm:p-8 rounded-3xl border border-border/60 bg-white/50 dark:bg-slate-900/40 backdrop-blur-md hover:bg-white dark:hover:bg-slate-900/80 hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between">
+              <div>
+                <div className="h-16 flex items-center justify-center mb-6">
+                  <img src="/webhook_logo.png" alt="Webhooks" className="max-h-12 object-contain" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-3 text-center">Webhooks Customizados</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed text-center">
+                  Envie dados de vendas ou saques instantaneamente para Zapier, Make, n8n ou seu próprio servidor e dispare e-mails, acessos a áreas de membros ou alertas.
+                </p>
+              </div>
+              <div className="mt-6 pt-4 border-t border-border/50 text-center text-[10px] sm:text-xs font-bold uppercase tracking-widest text-secondary">
+                Automação sem limites ⚙️
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* TESTIMONIALS MINI / TRUST */}
       <section className="py-16 md:py-32">
         <div className="container px-4 text-center">
