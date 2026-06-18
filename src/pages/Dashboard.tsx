@@ -229,18 +229,20 @@ const Dashboard = () => {
                 
                 <CardContent className="p-6 relative z-10 flex items-center justify-between">
                   {/* Left: Logo/Icon */}
-                  <div className="flex flex-col items-center justify-center">
-                    <div className={`w-20 h-20 rounded-full bg-white flex flex-col items-center justify-center shadow-lg ${
-                      method.toLowerCase() === 'mpesa' 
-                        ? 'text-[#DD0512]' 
-                        : method.toLowerCase() === 'emola' 
-                          ? 'text-[#EC7028]' 
-                          : method.toLowerCase() === 'pix'
-                            ? 'text-[#1d4ed8]'
-                            : 'text-primary'
-                    }`}>
-                      <Smartphone className="w-7 h-7 mb-1" />
-                      <span className="text-[11px] font-black tracking-tight uppercase leading-none">{method}</span>
+                  <div className="flex flex-col items-center justify-center shrink-0">
+                    <div className="w-20 h-20 rounded-full bg-white flex flex-col items-center justify-center shadow-lg p-3">
+                      {method.toLowerCase() === 'mpesa' ? (
+                        <img src="/mpesa_logo.png" alt="M-Pesa" className="max-w-full max-h-full object-contain" />
+                      ) : method.toLowerCase() === 'emola' ? (
+                        <img src="/emola_logo.png" alt="E-Mola" className="max-w-full max-h-full object-contain" />
+                      ) : method.toLowerCase() === 'pix' ? (
+                        <img src="/pix_checkout_logo.png" alt="Pix" className="max-w-full max-h-full object-contain" />
+                      ) : (
+                        <div className="text-center text-primary">
+                          <Smartphone className="w-7 h-7 mx-auto mb-1" />
+                          <span className="text-[11px] font-black tracking-tight uppercase leading-none block">{method}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
