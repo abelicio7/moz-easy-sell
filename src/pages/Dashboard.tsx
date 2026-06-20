@@ -48,6 +48,7 @@ const Dashboard = () => {
   const [rawOrders, setRawOrders] = useState<any[]>([]);
   const [rawWithdrawals, setRawWithdrawals] = useState<any[]>([]);
   const [currency, setCurrency] = useState<"MZN" | "BRL">("MZN");
+  const [timeRange, setTimeRange] = useState<7 | 15 | 30>(15);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -101,7 +102,8 @@ const Dashboard = () => {
         : 0;
     });
 
-    const totalNetEarnings = filteredOrders
+    // Wallet balances (entire history)
+    const totalNetEarningsAllTime = filteredOrders
       .filter((o: any) => ["paid", "delivered"].includes(o.status))
       .reduce((sum: number, o: any) => sum + Number(o.price), 0);
     
@@ -109,21 +111,68 @@ const Dashboard = () => {
       .filter((w: any) => w.status === "completed" || w.status === "pending")
       .reduce((sum: number, w: any) => sum + Number(w.amount), 0);
 
-    // Timeline Chart Data for last 15 days
-    const map = new Map<string, { date: string; Receita: number }>();
-    const paidFilteredOrders = filteredOrders.filter((o: any) => ["paid", "delivered"].includes(o.status));
-    
-    // Sort orders chronological first to make timeline map work
-    const sortedPaidOrders = [...paidFilteredOrders].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-    
-    sortedPaidOrders.forEach(t => {
-      const date = new Date(t.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
-      const current = map.get(date) || { date, Receita: 0 };
-      current.Receita += Number(t.price);
-      map.set(date, current);
+    const availableBalance = totalNetEarningsAllTime - totalWithdrawnAndPending;
+
+    // Filtered by TimeRange
+    const now = new Date();
+    const currentStart = new Date();
+    currentStart.setDate(now.getDate() - timeRange);
+    const prevStart = new Date();
+    prevStart.setDate(now.getDate() - (timeRange * 2));
+
+    const currentPeriodOrders = filteredOrders.filter(o => {
+      const d = new Date(o.created_at);
+      return d >= currentStart && d <= now;
     });
 
-    const timelineData = Array.from(map.values());
+    const prevPeriodOrders = filteredOrders.filter(o => {
+      const d = new Date(o.created_at);
+      return d >= prevStart && d < currentStart;
+    });
+
+    // KPI Values & Growth (current vs previous period)
+    const currentRevenue = currentPeriodOrders
+      .filter((o: any) => ["paid", "delivered"].includes(o.status))
+      .reduce((sum: number, o: any) => sum + Number(o.price), 0);
+
+    const prevRevenue = prevPeriodOrders
+      .filter((o: any) => ["paid", "delivered"].includes(o.status))
+      .reduce((sum: number, o: any) => sum + Number(o.price), 0);
+
+    const revenueGrowth = prevRevenue > 0
+      ? ((currentRevenue - prevRevenue) / prevRevenue) * 100
+      : currentRevenue > 0 ? 100 : 0;
+
+    const currentPaidCount = currentPeriodOrders.filter((o: any) => ["paid", "delivered"].includes(o.status)).length;
+    const prevPaidCount = prevPeriodOrders.filter((o: any) => ["paid", "delivered"].includes(o.status)).length;
+    const paidCountGrowth = prevPaidCount > 0
+      ? ((currentPaidCount - prevPaidCount) / prevPaidCount) * 100
+      : currentPaidCount > 0 ? 100 : 0;
+
+    const currentPendingCount = currentPeriodOrders.filter((o: any) => o.status === "pending").length;
+
+    // Timeline Chart Data: fill in all intermediate days in the range to avoid gaps
+    const timelineMap = new Map<string, number>();
+    for (let i = timeRange - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(now.getDate() - i);
+      const dateStr = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+      timelineMap.set(dateStr, 0);
+    }
+
+    currentPeriodOrders
+      .filter((o: any) => ["paid", "delivered"].includes(o.status))
+      .forEach(o => {
+        const dateStr = new Date(o.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+        if (timelineMap.has(dateStr)) {
+          timelineMap.set(dateStr, (timelineMap.get(dateStr) || 0) + Number(o.price));
+        }
+      });
+
+    const timelineData = Array.from(timelineMap.entries()).map(([date, Receita]) => ({
+      date,
+      Receita
+    }));
 
     // Extract last 5 activities (orders)
     const recentActivities = [...filteredOrders]
@@ -143,17 +192,20 @@ const Dashboard = () => {
 
     return {
       productsCount: filteredProductsCount,
-      total: filteredOrders.length,
-      pending: filteredOrders.filter((o: any) => o.status === "pending").length,
-      paid: filteredOrders.filter((o: any) => ["paid", "delivered"].includes(o.status)).length,
-      revenue: totalNetEarnings, 
-      availableBalance: totalNetEarnings - totalWithdrawnAndPending,
+      total: currentPeriodOrders.length,
+      pending: currentPendingCount,
+      paid: currentPaidCount,
+      revenue: currentRevenue, 
+      revenueAllTime: totalNetEarningsAllTime,
+      availableBalance,
       methodStats,
       oppositeRevenue,
       timelineData,
-      recentActivities
+      recentActivities,
+      revenueGrowth,
+      paidCountGrowth
     };
-  }, [rawOrders, rawWithdrawals, products, currency]);
+  }, [rawOrders, rawWithdrawals, products, currency, timeRange]);
 
   const copyCheckoutLink = (productId: string) => {
     const link = `${window.location.origin}/checkout/${productId}`;
@@ -195,6 +247,7 @@ const Dashboard = () => {
           </button>
         </div>
       </div>
+
 
       {/* Multicurrency Cross-Border Summary Banner */}
       {stats.oppositeRevenue > 0 && (
@@ -271,25 +324,36 @@ const Dashboard = () => {
         </Button>
       </div>
 
-      <SellerProgress revenue={stats.revenue} currency={currency} />
+      <SellerProgress revenue={stats.revenueAllTime} currency={currency} />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8 mt-6">
-        {/* Products KPI */}
+        {/* Revenue (Faturamento) KPI */}
         <Card className="hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1 transition-all duration-300 bg-card">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                  <Package className="w-5 h-5" />
+                  <TrendingUp className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-2xl font-black text-foreground tracking-tight">{stats.productsCount}</p>
-                  <p className="text-xs text-muted-foreground font-medium">Produtos Ativos</p>
+                  <p className="text-2xl font-black text-foreground tracking-tight">
+                    {currency === "BRL" 
+                      ? stats.revenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                      : `${stats.revenue.toFixed(0)} MT`}
+                  </p>
+                  <p className="text-xs text-muted-foreground font-medium">Faturamento ({timeRange}D)</p>
                 </div>
               </div>
-              <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-0 text-[10px] font-bold">
-                +1.2%
+              <Badge 
+                variant="secondary" 
+                className={`border-0 text-[10px] font-bold ${
+                  stats.revenueGrowth >= 0 
+                    ? "bg-emerald-500/10 text-emerald-600 animate-pulse" 
+                    : "bg-red-500/10 text-red-600"
+                }`}
+              >
+                {stats.revenueGrowth >= 0 ? `+${stats.revenueGrowth.toFixed(1)}%` : `${stats.revenueGrowth.toFixed(1)}%`}
               </Badge>
             </div>
           </CardContent>
@@ -358,8 +422,15 @@ const Dashboard = () => {
                   <p className="text-xs text-muted-foreground font-medium">Itens Vendidos</p>
                 </div>
               </div>
-              <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-0 text-[10px] font-bold">
-                +8.3%
+              <Badge 
+                variant="secondary" 
+                className={`border-0 text-[10px] font-bold ${
+                  stats.paidCountGrowth >= 0 
+                    ? "bg-emerald-500/10 text-emerald-600" 
+                    : "bg-red-500/10 text-red-600"
+                }`}
+              >
+                {stats.paidCountGrowth >= 0 ? `+${stats.paidCountGrowth.toFixed(1)}%` : `${stats.paidCountGrowth.toFixed(1)}%`}
               </Badge>
             </div>
           </CardContent>
@@ -370,12 +441,31 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-8">
         {/* Timeline Chart Card (Col span 7) */}
         <Card className="lg:col-span-7 rounded-[24px] border-border/50 bg-card overflow-hidden shadow-md">
-          <CardHeader className="p-6 border-b border-border/50">
-            <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
-              <Activity className="w-4 h-4 text-primary" />
-              Evolução de Ganhos ({currency})
-            </CardTitle>
-            <CardDescription className="text-xs">Faturamento acumulado nos últimos dias de vendas</CardDescription>
+          <CardHeader className="p-6 border-b border-border/50 flex flex-row items-center justify-between gap-4">
+            <div>
+              <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                <Activity className="w-4 h-4 text-primary" />
+                Evolução de Ganhos ({currency})
+              </CardTitle>
+              <CardDescription className="text-xs">Faturamento acumulado nos últimos dias de vendas</CardDescription>
+            </div>
+            
+            {/* TimeRange Selector */}
+            <div className="flex bg-muted/60 p-1 rounded-xl border border-border/40 shrink-0">
+              {([7, 15, 30] as const).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setTimeRange(r)}
+                  className={`py-1 px-3 rounded-lg text-[10px] font-bold uppercase transition-all duration-200 ${
+                    timeRange === r
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {r}D
+                </button>
+              ))}
+            </div>
           </CardHeader>
           <CardContent className="p-6">
             {stats.timelineData.length === 0 ? (

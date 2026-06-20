@@ -17,6 +17,92 @@ interface DeliveryData {
   support_whatsapp: string | null;
 }
 
+const triggerConfetti = () => {
+  const canvas = document.createElement("canvas");
+  canvas.style.position = "fixed";
+  canvas.style.top = "0";
+  canvas.style.left = "0";
+  canvas.style.width = "100%";
+  canvas.style.height = "100%";
+  canvas.style.pointerEvents = "none";
+  canvas.style.zIndex = "9999";
+  document.body.appendChild(canvas);
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  let width = (canvas.width = window.innerWidth);
+  let height = (canvas.height = window.innerHeight);
+
+  const handleResize = () => {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+  };
+  window.addEventListener("resize", handleResize);
+
+  const colors = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
+  const count = 150;
+  const particles: Array<{
+    x: number;
+    y: number;
+    size: number;
+    color: string;
+    speedX: number;
+    speedY: number;
+    rotation: number;
+    rotationSpeed: number;
+  }> = [];
+
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x: Math.random() * width,
+      y: Math.random() * -height - 20,
+      size: Math.random() * 8 + 4,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      speedX: Math.random() * 4 - 2,
+      speedY: Math.random() * 5 + 3,
+      rotation: Math.random() * 360,
+      rotationSpeed: Math.random() * 10 - 5,
+    });
+  }
+
+  let animationFrameId: number;
+  const startTime = Date.now();
+
+  const animate = () => {
+    ctx.clearRect(0, 0, width, height);
+
+    let stillActive = false;
+    particles.forEach((p) => {
+      p.y += p.speedY;
+      p.x += p.speedX;
+      p.rotation += p.rotationSpeed;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rotation * Math.PI) / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+      ctx.restore();
+
+      if (p.y < height) {
+        stillActive = true;
+      }
+    });
+
+    if (stillActive && Date.now() - startTime < 6000) {
+      animationFrameId = requestAnimationFrame(animate);
+    } else {
+      window.removeEventListener("resize", handleResize);
+      if (document.body.contains(canvas)) {
+        document.body.removeChild(canvas);
+      }
+    }
+  };
+
+  animate();
+};
+
 const ThankYou = () => {
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get("order_id");
@@ -91,6 +177,10 @@ const ThankYou = () => {
           setError(true);
         } else {
           setDelivery(data);
+          // Trigger the confetti celebration animation
+          setTimeout(() => {
+            triggerConfetti();
+          }, 300);
         }
       } catch {
         setError(true);

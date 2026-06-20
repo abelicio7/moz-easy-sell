@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Wallet, ArrowUpRight, ArrowDownToLine, Clock, CheckCircle2, XCircle, Banknote } from "lucide-react";
+import { Wallet, ArrowUpRight, ArrowDownToLine, Clock, CheckCircle2, XCircle, Banknote, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -130,6 +130,23 @@ const Finance = () => {
       }
     } catch (err) {
       console.error("Error fetching saved methods:", err);
+    }
+  };
+
+  const deleteSavedMethod = async (id: string) => {
+    if (!confirm("Tem a certeza que deseja remover este método de saque?")) return;
+    try {
+      const { error } = await supabase
+        .from("withdrawal_methods")
+        .delete()
+        .eq("id", id);
+      
+      if (error) throw error;
+      toast.success("Método de saque removido com sucesso!");
+      fetchSavedMethods();
+    } catch (err: any) {
+      console.error("Error deleting saved method:", err);
+      toast.error("Erro ao remover método de saque: " + err.message);
     }
   };
 
@@ -608,15 +625,35 @@ const Finance = () => {
                    O seu documento anterior foi rejeitado. Por favor, envie uma imagem clara e legível do seu BI ou passaporte.
                  </div>
                )}
-               <div className="space-y-3">
-                 <Label>Anexar Imagem do Documento (Máx: 5MB)</Label>
-                 <Input 
-                   type="file" 
-                   accept="image/*,.pdf" 
-                   onChange={(e) => setDocFile(e.target.files?.[0] || null)}
-                 />
-                 <p className="text-xs text-muted-foreground">O processo de aprovação do seu documento levará em média 12 a 24 horas.</p>
-               </div>
+                <div className="space-y-3">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Anexar Imagem do Documento (BI ou Passaporte)</Label>
+                  <div className="relative border-2 border-dashed border-primary/20 hover:border-primary/50 rounded-2xl p-6 text-center hover:bg-muted/10 transition-all overflow-hidden group">
+                    {/* Neon scanner laser animation */}
+                    <div className="absolute left-0 right-0 h-0.5 bg-primary shadow-[0_0_8px_rgba(59,130,246,0.8)] animate-[scan_2s_ease-in-out_infinite] pointer-events-none" />
+                    
+                    <style>{`
+                      @keyframes scan {
+                        0%, 100% { top: 0%; opacity: 0.1; }
+                        50% { top: 100%; opacity: 0.9; }
+                      }
+                    `}</style>
+                    
+                    <input 
+                      type="file" 
+                      accept="image/*,.pdf" 
+                      onChange={(e) => setDocFile(e.target.files?.[0] || null)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <span className="text-3xl">🪪</span>
+                      <p className="text-xs font-bold text-foreground">
+                        {docFile ? docFile.name : "Clique para selecionar ou arraste o arquivo"}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">Máx: 5MB • Formatos aceitos: PNG, JPG, PDF</p>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground italic text-center">O processo de aprovação do seu documento levará em média 12 a 24 horas.</p>
+                </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setKycModalOpen(false)}>Cancelar</Button>
@@ -673,95 +710,194 @@ const Finance = () => {
             </Card>
           </div>
 
-          {/* Withdrawal Information */}
-          <Card className="bg-muted/30 border-muted">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
-                <Banknote className="w-4 h-4 text-primary" />
-                Informações sobre Saques
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground space-y-4">
-              <ul className="list-disc list-inside space-y-1">
-                <li><strong className="text-foreground/80">Processamento:</strong> 1-2 dias úteis, das 7:30h até 17:30h</li>
-                <li><strong className="text-foreground/80">Taxa Administrativa:</strong> 12% fixo por saque</li>
-                <li>
-                  <strong className="text-foreground/80">Canais suportados:</strong>{" "}
-                  {currency === "BRL" ? "Pix e Transferência Bancária" : "M-Pesa e E-Mola"}
-                </li>
-              </ul>
-              <div className="space-y-1 pt-2 border-t border-border/50">
-                <p className="flex items-start gap-2">
-                  <XCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
-                  <span>Não nos responsabilizamos por informações incorretas fornecidas pelo usuário.</span>
-                </p>
-                <p className="flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                  <span>É responsabilidade do usuário manter seus dados atualizados e verificar todas as informações antes de confirmar transações.</span>
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Main Layout Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left side: Info & Payout Cards (Col span 5) */}
+            <div className="lg:col-span-5 space-y-6">
+              {/* Meus Métodos Salvos */}
+              <Card className="border-border/50 shadow-md">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                    <Wallet className="w-4 h-4 text-primary" />
+                    Métodos de Recebimento Salvos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {savedMethods.filter(m => {
+                    if (currency === "BRL") {
+                      return m.method_type === "Pix" || m.method_type === "Transferência Bancária";
+                    } else {
+                      return m.method_type === "M-Pesa" || m.method_type === "E-Mola";
+                    }
+                  }).length === 0 ? (
+                    <div className="py-8 text-center border-2 border-dashed border-border rounded-2xl bg-muted/20">
+                      <p className="text-xs text-muted-foreground max-w-[220px] mx-auto leading-normal">
+                        Nenhum método de saque salvo para {currency === "BRL" ? "Brasil" : "Moçambique"}. Adicione um método ao solicitar seu próximo saque.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {savedMethods
+                        .filter(m => {
+                          if (currency === "BRL") {
+                            return m.method_type === "Pix" || m.method_type === "Transferência Bancária";
+                          } else {
+                            return m.method_type === "M-Pesa" || m.method_type === "E-Mola";
+                          }
+                        })
+                        .map(m => {
+                          const isMpesa = m.method_type.toLowerCase().includes("pesa");
+                          const isEmola = m.method_type.toLowerCase().includes("mola");
+                          const isPix = m.method_type.toLowerCase().includes("pix");
+                          
+                          return (
+                            <div 
+                              key={m.id}
+                              className={`relative overflow-hidden rounded-2xl p-5 text-white shadow-md border-0 transition-transform hover:scale-[1.01] ${
+                                isMpesa 
+                                  ? 'bg-gradient-to-br from-[#E51B24] to-[#8A0A12]' 
+                                  : isEmola
+                                    ? 'bg-gradient-to-br from-[#F57C00] to-[#b34700]'
+                                    : isPix
+                                      ? 'bg-gradient-to-br from-[#00bfa5] to-[#00796b]'
+                                      : 'bg-gradient-to-br from-slate-700 to-slate-800'
+                              }`}
+                            >
+                              {/* Virtual chip decoration */}
+                              <div className="absolute right-6 top-6 w-8 h-6 bg-yellow-400/20 border border-yellow-400/30 rounded-md flex items-center justify-center opacity-70">
+                                <div className="grid grid-cols-3 gap-0.5 w-6 h-4">
+                                  <div className="border-[0.5px] border-yellow-400/50 rounded-sm"></div>
+                                  <div className="border-[0.5px] border-yellow-400/50 rounded-sm"></div>
+                                  <div className="border-[0.5px] border-yellow-400/50 rounded-sm"></div>
+                                  <div className="border-[0.5px] border-yellow-400/50 rounded-sm"></div>
+                                  <div className="border-[0.5px] border-yellow-400/50 rounded-sm"></div>
+                                  <div className="border-[0.5px] border-yellow-400/50 rounded-sm"></div>
+                                </div>
+                              </div>
+                              
+                              <p className="text-[10px] font-black uppercase tracking-widest text-white/70">{m.method_type}</p>
+                              <h4 className="text-lg font-black tracking-wider mt-4 mb-2">
+                                {m.account_number.length > 8 
+                                  ? `${m.account_number.slice(0, 3)} •••• ${m.account_number.slice(-3)}` 
+                                  : m.account_number}
+                              </h4>
+                              <div className="flex items-center justify-between mt-4">
+                                <div>
+                                  <p className="text-[8px] font-semibold uppercase tracking-wider text-white/50">Titular</p>
+                                  <p className="text-xs font-bold truncate max-w-[180px]">{m.account_name.toUpperCase()}</p>
+                                </div>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => deleteSavedMethod(m.id)}
+                                  className="h-7 w-7 p-0 text-white/60 hover:text-white hover:bg-white/10 rounded-full"
+                                  title="Remover método"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-          {/* Withdrawals History */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Histórico de Saques</CardTitle>
-              <CardDescription>Acompanhe aqui o andamento de todos os seus pedidos de transferência.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {filteredWithdrawals.length === 0 ? (
-                <div className="py-12 text-center flex flex-col items-center justify-center">
-                  <Banknote className="w-10 h-10 text-muted-foreground/30 mb-3" />
-                  <p className="text-muted-foreground">Nenhum saque solicitado ainda para esta moeda.</p>
-                </div>
-              ) : (
-                <div className="relative overflow-x-auto">
-                  <table className="w-full text-sm text-left text-muted-foreground">
-                    <thead className="text-xs uppercase bg-muted/40 border-b border-border/50">
-                      <tr>
-                        <th className="px-4 py-4 font-bold text-foreground">Data</th>
-                        <th className="px-4 py-4 font-bold text-foreground">Destino</th>
-                        <th className="px-4 py-4 font-bold text-foreground">Valor Bruto</th>
-                        <th className="px-4 py-4 font-bold text-foreground">Taxa (12%)</th>
-                        <th className="px-4 py-4 font-bold text-foreground">Líquido</th>
-                        <th className="px-4 py-4 font-bold text-foreground text-right">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredWithdrawals.map((w) => (
-                        <tr key={w.id} className="border-b border-border/20 last:border-0 hover:bg-muted/30 transition-colors">
-                          <td className="px-4 py-4 whitespace-nowrap text-muted-foreground">
-                            {new Date(w.created_at).toLocaleDateString('pt-BR')}
-                          </td>
-                          <td className="px-4 py-4 font-medium text-foreground">
-                            {w.payment_method}
-                            <span className="block text-[10px] font-normal text-muted-foreground truncate max-w-[150px]">
-                              {w.payment_details}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 font-semibold text-foreground">
-                            {formatWithdrawalCurrency(Number(w.amount), w.currency)}
-                          </td>
-                          <td className="px-4 py-4 text-destructive/80">
-                            - {formatWithdrawalCurrency(Number(w.fee_amount) || 0, w.currency)}
-                          </td>
-                          <td className="px-4 py-4 font-black text-primary">
-                            {formatWithdrawalCurrency(Number(w.net_amount) || Number(w.amount), w.currency)}
-                          </td>
-                          <td className="px-4 py-4 text-right">
-                            {w.status === 'completed' && <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-0 shadow-none"><CheckCircle2 className="w-3 h-3 mr-1" /> Pago</Badge>}
-                            {w.status === 'pending' && <Badge className="bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 border-0 shadow-none"><Clock className="w-3 h-3 mr-1" /> Pendente</Badge>}
-                            {w.status === 'rejected' && <Badge variant="destructive" className="bg-red-500/10 text-red-600 hover:bg-red-500/20 border-0 shadow-none"><XCircle className="w-3 h-3 mr-1" /> Recusado</Badge>}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+              {/* Withdrawal Information */}
+              <Card className="bg-muted/30 border-muted">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-semibold text-foreground flex items-center gap-2">
+                    <Banknote className="w-4 h-4 text-primary" />
+                    Informações sobre Saques
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground space-y-4">
+                  <ul className="list-disc list-inside space-y-1">
+                    <li><strong className="text-foreground/80">Processamento:</strong> 1-2 dias úteis, das 7:30h até 17:30h</li>
+                    <li><strong className="text-foreground/80">Taxa Administrativa:</strong> 12% fixo por saque</li>
+                    <li>
+                      <strong className="text-foreground/80">Canais suportados:</strong>{" "}
+                      {currency === "BRL" ? "Pix e Transferência Bancária" : "M-Pesa e E-Mola"}
+                    </li>
+                  </ul>
+                  <div className="space-y-1 pt-2 border-t border-border/50">
+                    <p className="flex items-start gap-2">
+                      <XCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+                      <span>Não nos responsabilizamos por informações incorretas fornecidas pelo usuário.</span>
+                    </p>
+                    <p className="flex items-start gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                      <span>É responsabilidade do usuário manter seus dados atualizados e verificar todas as informações antes de confirmar transações.</span>
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right side: History (Col span 7) */}
+            <div className="lg:col-span-7">
+              {/* Withdrawals History */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Histórico de Saques</CardTitle>
+                  <CardDescription>Acompanhe aqui o andamento de todos os seus pedidos de transferência.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {filteredWithdrawals.length === 0 ? (
+                    <div className="py-12 text-center flex flex-col items-center justify-center">
+                      <Banknote className="w-10 h-10 text-muted-foreground/30 mb-3" />
+                      <p className="text-muted-foreground">Nenhum saque solicitado ainda para esta moeda.</p>
+                    </div>
+                  ) : (
+                    <div className="relative overflow-x-auto">
+                      <table className="w-full text-sm text-left text-muted-foreground">
+                        <thead className="text-xs uppercase bg-muted/40 border-b border-border/50">
+                          <tr>
+                            <th className="px-4 py-4 font-bold text-foreground">Data</th>
+                            <th className="px-4 py-4 font-bold text-foreground">Destino</th>
+                            <th className="px-4 py-4 font-bold text-foreground">Valor Bruto</th>
+                            <th className="px-4 py-4 font-bold text-foreground">Taxa (12%)</th>
+                            <th className="px-4 py-4 font-bold text-foreground">Líquido</th>
+                            <th className="px-4 py-4 font-bold text-foreground text-right">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredWithdrawals.map((w) => (
+                            <tr key={w.id} className="border-b border-border/20 last:border-0 hover:bg-muted/30 transition-colors">
+                              <td className="px-4 py-4 whitespace-nowrap text-muted-foreground">
+                                {new Date(w.created_at).toLocaleDateString('pt-BR')}
+                              </td>
+                              <td className="px-4 py-4 font-medium text-foreground">
+                                {w.payment_method}
+                                <span className="block text-[10px] font-normal text-muted-foreground truncate max-w-[150px]">
+                                  {w.payment_details}
+                                </span>
+                              </td>
+                              <td className="px-4 py-4 font-semibold text-foreground">
+                                {formatWithdrawalCurrency(Number(w.amount), w.currency)}
+                              </td>
+                              <td className="px-4 py-4 text-destructive/80">
+                                - {formatWithdrawalCurrency(Number(w.fee_amount) || 0, w.currency)}
+                              </td>
+                              <td className="px-4 py-4 font-black text-primary">
+                                {formatWithdrawalCurrency(Number(w.net_amount) || Number(w.amount), w.currency)}
+                              </td>
+                              <td className="px-4 py-4 text-right">
+                                {w.status === 'completed' && <Badge className="bg-green-500/10 text-green-600 hover:bg-green-500/20 border-0 shadow-none"><CheckCircle2 className="w-3 h-3 mr-1" /> Pago</Badge>}
+                                {w.status === 'pending' && <Badge className="bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 border-0 shadow-none"><Clock className="w-3 h-3 mr-1" /> Pendente</Badge>}
+                                {w.status === 'rejected' && <Badge variant="destructive" className="bg-red-500/10 text-red-600 hover:bg-red-500/20 border-0 shadow-none"><XCircle className="w-3 h-3 mr-1" /> Recusado</Badge>}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       )}
     </DashboardLayout>

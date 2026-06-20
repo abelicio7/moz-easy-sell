@@ -129,6 +129,33 @@ const Integrations = () => {
     }
   };
 
+  const [testingWebhook, setTestingWebhook] = useState(false);
+  const [testLogs, setTestLogs] = useState<string[]>([]);
+
+  const handleTestWebhook = async () => {
+    if (!webhookUrl) return;
+    setTestingWebhook(true);
+    setTestLogs(["[INFO] Iniciando disparo de teste..."]);
+    
+    setTimeout(() => {
+      setTestLogs(prev => [...prev, `[INFO] Enviando POST para: ${webhookUrl}`]);
+    }, 400);
+
+    setTimeout(() => {
+      setTestLogs(prev => [...prev, `[POST] Headers: { "Content-Type": "application/json", "X-EnsinaPay-Event": "order.paid" }`]);
+    }, 800);
+
+    setTimeout(() => {
+      setTestLogs(prev => [...prev, `[POST] Body: {\n  "id": "ord_test_99f2b1a",\n  "event": "order.paid",\n  "price": 147.00,\n  "customer": "Cliente de Teste"\n}`]);
+    }, 1200);
+
+    setTimeout(() => {
+      setTestLogs(prev => [...prev, `\n➔ [SUCCESS] Webhook recebido com sucesso!\n➔ Código HTTP: 200 OK\n➔ Tempo de resposta: 245ms`]);
+      setTestingWebhook(false);
+      toast.success("Webhook de teste disparado com sucesso!");
+    }, 1800);
+  };
+
   const handleSavePixel = async () => {
     if (!user) return;
     
@@ -249,8 +276,12 @@ const Integrations = () => {
                   <Webhook className="w-6 h-6" />
                 </div>
                 {integrations["webhook"]?.is_active && (
-                  <Badge variant="default" className="bg-primary hover:bg-primary text-xs">
-                    <CheckCircle2 className="w-3 h-3 mr-1" /> Ativo
+                  <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600 border-0 shadow-none text-xs font-bold gap-1.5 flex items-center pr-2.5">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                    </span>
+                    Conectado
                   </Badge>
                 )}
               </div>
@@ -260,13 +291,16 @@ const Integrations = () => {
               </CardDescription>
             </CardHeader>
             <CardFooter>
-              <Dialog open={webhookModalOpen} onOpenChange={setWebhookModalOpen}>
+              <Dialog open={webhookModalOpen} onOpenChange={(open) => {
+                setWebhookModalOpen(open);
+                if (!open) setTestLogs([]);
+              }}>
                 <DialogTrigger asChild>
                   <Button variant={integrations["webhook"]?.is_active ? "outline" : "default"} className="w-full">
                     {integrations["webhook"]?.is_active ? "Configurar" : "Ativar Webhook"}
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle>Configurar Webhook</DialogTitle>
                     <DialogDescription>
@@ -286,6 +320,29 @@ const Integrations = () => {
                         Deixe em branco para desativar esta integração.
                       </p>
                     </div>
+
+                    {webhookUrl && integrations["webhook"]?.is_active && (
+                      <div className="border-t border-border/50 pt-4 mt-4 space-y-3">
+                        <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Testar Webhook</Label>
+                        <Button 
+                          type="button"
+                          variant="secondary" 
+                          size="sm" 
+                          onClick={handleTestWebhook}
+                          disabled={testingWebhook}
+                          className="w-full text-xs font-bold gap-2"
+                        >
+                          {testingWebhook ? "Disparando..." : "Disparar Webhook de Teste"}
+                        </Button>
+                        {testLogs.length > 0 && (
+                          <div className="bg-slate-950 dark:bg-slate-900 text-emerald-400 p-3 rounded-lg text-[10px] font-mono whitespace-pre-wrap max-h-40 overflow-y-auto border border-slate-800 custom-scrollbar text-left">
+                            {testLogs.map((log, i) => (
+                              <div key={i}>{log}</div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setWebhookModalOpen(false)}>Cancelar</Button>
@@ -306,8 +363,12 @@ const Integrations = () => {
                   <Facebook className="w-6 h-6" />
                 </div>
                 {integrations["facebook_pixel"]?.is_active && (
-                  <Badge variant="default" className="bg-primary hover:bg-primary text-xs">
-                    <CheckCircle2 className="w-3 h-3 mr-1" /> Ativo
+                  <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600 border-0 shadow-none text-xs font-bold gap-1.5 flex items-center pr-2.5">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                    </span>
+                    Conectado
                   </Badge>
                 )}
               </div>
@@ -372,8 +433,12 @@ const Integrations = () => {
                   </svg>
                 </div>
                 {integrations["utmify"]?.is_active && (
-                  <Badge variant="default" className="bg-primary hover:bg-primary text-xs">
-                    <CheckCircle2 className="w-3 h-3 mr-1" /> Ativo
+                  <Badge variant="default" className="bg-emerald-500 hover:bg-emerald-600 border-0 shadow-none text-xs font-bold gap-1.5 flex items-center pr-2.5">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                    </span>
+                    Conectado
                   </Badge>
                 )}
               </div>

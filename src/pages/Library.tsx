@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Package, Search, LogOut, ArrowRight, BookOpen, ExternalLink, MessageCircle, X, Link as LinkIcon, ChevronDown, Download } from "lucide-react";
+import { Package, Search, LogOut, ArrowRight, BookOpen, ExternalLink, MessageCircle, X, Link as LinkIcon, ChevronDown, Download, Users, Copy } from "lucide-react";
 import Logo from "@/components/Logo";
 
 const Library = () => {
@@ -17,6 +17,13 @@ const Library = () => {
   const [purchases, setPurchases] = useState<any[]>([]);
   const [authenticatedEmail, setAuthenticatedEmail] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSupportMenu, setShowSupportMenu] = useState(false);
+
+  const filteredPurchases = purchases.filter(item => 
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   // Check if already authenticated or has email in URL
   useEffect(() => {
@@ -234,6 +241,8 @@ const Library = () => {
             <Input 
               placeholder="Procurar conteúdo..." 
               className="pl-10 bg-[#141416] border-[#232326] text-white h-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
         </div>
@@ -250,10 +259,16 @@ const Library = () => {
             <h3 className="text-xl font-bold">Nenhum produto encontrado</h3>
             <p className="text-gray-500 mt-2">As suas compras aparecerão aqui automaticamente.</p>
           </div>
+        ) : filteredPurchases.length === 0 ? (
+          <div className="text-center py-24 bg-[#141416] rounded-3xl border border-[#232326] border-dashed">
+            <Search className="w-16 h-16 text-gray-700 mx-auto mb-4" />
+            <h3 className="text-xl font-bold">Nenhum resultado encontrado</h3>
+            <p className="text-gray-500 mt-2">Experimente procurar com outros termos.</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-            {purchases.map((item) => (
-              <Card key={item.orderId} className="group bg-[#141416] border-[#232326] hover:border-[#10b981]/50 transition-all duration-300 overflow-hidden shadow-lg hover:shadow-[#10b981]/5 flex flex-col h-full">
+            {filteredPurchases.map((item) => (
+              <Card key={item.orderId} className="group bg-[#141416] border-[#232326] hover:border-[#10b981]/50 transition-all duration-300 hover:-translate-y-1.5 overflow-hidden shadow-lg hover:shadow-[#10b981]/10 flex flex-col h-full">
                 <div className="relative aspect-video bg-[#0a0a0b] overflow-hidden">
                   {item.image_url ? (
                     <img 
@@ -417,8 +432,21 @@ const Library = () => {
                 })()
               ) : selectedProduct?.delivery_type === "message" ? (
                 <div className="space-y-3">
-                  <p className="text-sm font-bold text-[#10b981] uppercase tracking-[0.2em] mb-2">Mensagem do Vendedor</p>
-                  <div className="bg-[#1c1c1e] border border-[#2d2d30] rounded-2xl p-6 text-gray-300 whitespace-pre-wrap leading-relaxed">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <p className="text-sm font-bold text-[#10b981] uppercase tracking-[0.2em]">Instruções de Acesso</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-transparent border-[#2d2d30] hover:bg-white/5 text-gray-300 text-xs h-8 px-3 rounded-lg animate-none"
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedProduct.delivery_content);
+                        toast.success("Instruções copiadas!");
+                      }}
+                    >
+                      <Copy className="w-3.5 h-3.5 mr-1.5" /> Copiar Texto
+                    </Button>
+                  </div>
+                  <div className="bg-[#1c1c1e] border border-[#2d2d30] rounded-2xl p-6 text-gray-200 whitespace-pre-wrap leading-relaxed text-sm">
                     {selectedProduct.delivery_content}
                   </div>
                 </div>
@@ -438,8 +466,21 @@ const Library = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-sm font-bold text-[#10b981] uppercase tracking-[0.2em] mb-2">Conteúdo de Acesso</p>
-                  <div className="bg-[#1c1c1e] border border-[#2d2d30] rounded-2xl p-6 text-gray-300 whitespace-pre-wrap leading-relaxed break-words break-all">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <p className="text-sm font-bold text-[#10b981] uppercase tracking-[0.2em]">Conteúdo de Acesso</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-transparent border-[#2d2d30] hover:bg-white/5 text-gray-300 text-xs h-8 px-3 rounded-lg animate-none"
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedProduct?.delivery_content || "");
+                        toast.success("Conteúdo copiado!");
+                      }}
+                    >
+                      <Copy className="w-3.5 h-3.5 mr-1.5" /> Copiar Conteúdo
+                    </Button>
+                  </div>
+                  <div className="bg-[#1c1c1e] border border-[#2d2d30] rounded-2xl p-6 text-gray-200 whitespace-pre-wrap leading-relaxed break-words break-all text-sm">
                     {selectedProduct?.delivery_content}
                   </div>
                 </div>
@@ -450,15 +491,69 @@ const Library = () => {
       </Dialog>
 
       {/* Floating Support Button */}
-      <a 
-        href="https://wa.me/258841234567" 
-        target="_blank" 
-        rel="noreferrer"
-        className="fixed bottom-8 right-8 bg-[#25d366] hover:bg-[#128c7e] text-white p-4 rounded-full shadow-2xl transition-all hover:scale-110 active:scale-90 z-50 flex items-center gap-2 group"
-      >
-        <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-500 font-bold">Suporte</span>
-        <MessageCircle className="w-6 h-6" />
-      </a>
+      <style>{`
+        @keyframes supportPulse {
+          0% {
+            box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.5);
+          }
+          70% {
+            box-shadow: 0 0 0 12px rgba(37, 211, 102, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
+          }
+        }
+        .support-btn-pulse {
+          animation: supportPulse 2s infinite;
+        }
+      `}</style>
+      <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end gap-3 font-sans">
+        {showSupportMenu && (
+          <div className="bg-[#141416] border border-[#232326] p-3 rounded-2xl shadow-2xl flex flex-col gap-2 min-w-[240px] animate-in slide-in-from-bottom-4 fade-in duration-200 text-white">
+            <h4 className="text-[10px] font-black uppercase text-gray-400 tracking-widest px-2 pb-1.5 border-b border-white/10">Suporte EnsinaPay</h4>
+            
+            <a 
+              href="https://chat.whatsapp.com/GFm5qqQiKBSAcw26G4BUAq?mode=gi_t" 
+              target="_blank" 
+              rel="noreferrer"
+              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#1c1c1e] text-gray-200 hover:text-white transition-colors group text-left"
+            >
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+                <Users className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold leading-tight">Grupo de Suporte</p>
+                <p className="text-[9px] text-gray-400 leading-none mt-1">Comunidade de Vendedores</p>
+              </div>
+            </a>
+
+            <a 
+              href="https://wa.link/u0m4zq" 
+              target="_blank" 
+              rel="noreferrer"
+              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#1c1c1e] text-gray-200 hover:text-white transition-colors group text-left"
+            >
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-[#10b981] flex items-center justify-center shrink-0">
+                <MessageCircle className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold leading-tight">Suporte Técnico</p>
+                <p className="text-[9px] text-gray-400 leading-none mt-1">Preciso de ajuda técnica</p>
+              </div>
+            </a>
+          </div>
+        )}
+
+        <button
+          onClick={() => setShowSupportMenu(!showSupportMenu)}
+          className="bg-[#25D366] hover:bg-[#20ba5a] text-black font-bold p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 support-btn-pulse flex items-center gap-2 group outline-none"
+        >
+          <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-500 text-xs uppercase tracking-wider font-black text-black">
+            Suporte
+          </span>
+          <MessageCircle className="w-6 h-6 text-black" />
+        </button>
+      </div>
     </div>
   );
 };
