@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
-import { Package, ShoppingCart, LogOut, Menu, X, BarChart3, LayoutTemplate, Puzzle, Wallet, ShieldAlert, TrendingUp, UserCircle, Trash2, Users, ShoppingBag, Download } from "lucide-react";
+import { Package, ShoppingCart, LogOut, Menu, X, BarChart3, LayoutTemplate, Puzzle, Wallet, ShieldAlert, TrendingUp, UserCircle, Trash2, Users, ShoppingBag, Download, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -33,6 +33,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showSupportMenu, setShowSupportMenu] = useState(false);
 
   useEffect(() => {
     const registerPush = async () => {
@@ -371,6 +372,81 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
       )}
 
       <main className="container py-6">{children}</main>
+
+      {/* Floating WhatsApp Support Menu & Button */}
+      <style>{`
+        @keyframes supportPulse {
+          0% {
+            box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.5);
+          }
+          70% {
+            box-shadow: 0 0 0 12px rgba(37, 211, 102, 0);
+          }
+          100% {
+            box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
+          }
+        }
+        .support-btn-pulse {
+          animation: supportPulse 2s infinite;
+        }
+      `}</style>
+      <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end gap-3">
+        {showSupportMenu && (
+          <div className="bg-background/95 dark:bg-slate-900/95 backdrop-blur-md border border-border p-3 rounded-2xl shadow-2xl flex flex-col gap-2 min-w-[240px] animate-in slide-in-from-bottom-4 fade-in duration-200">
+            <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-widest px-2 pb-1.5 border-b border-border/50">Suporte EnsinaPay</h4>
+            
+            <a 
+              href="https://chat.whatsapp.com/GFm5qqQiKBSAcw26G4BUAq?mode=gi_t" 
+              target="_blank" 
+              rel="noreferrer"
+              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted text-foreground transition-colors group text-left"
+            >
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                <Users className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold leading-tight">Grupo de Suporte</p>
+                <p className="text-[9px] text-muted-foreground leading-none mt-1">Comunidade de Vendedores</p>
+              </div>
+            </a>
+
+            <a 
+              href="https://wa.link/u0m4zq" 
+              target="_blank" 
+              rel="noreferrer"
+              className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-muted text-foreground transition-colors group text-left"
+            >
+              <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <MessageCircle className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold leading-tight">Suporte Técnico</p>
+                <p className="text-[9px] text-muted-foreground leading-none mt-1">Preciso de ajuda técnica</p>
+              </div>
+            </a>
+          </div>
+        )}
+
+        <button
+          onClick={() => setShowSupportMenu(!showSupportMenu)}
+          className={`w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 border-2 hover:scale-110 active:scale-95 group overflow-hidden ${
+            showSupportMenu 
+              ? 'bg-background text-foreground border-border' 
+              : 'bg-[#25D366] text-white border-transparent support-btn-pulse'
+          }`}
+          title="Suporte WhatsApp"
+        >
+          {showSupportMenu ? (
+            <X className="w-6 h-6 animate-in spin-in-90 duration-200" />
+          ) : (
+            <img 
+              src="/whatsapp_logo.png" 
+              alt="Suporte WhatsApp" 
+              className="w-7 h-7 object-contain block group-hover:scale-110 transition-transform" 
+            />
+          )}
+        </button>
+      </div>
     </div>
   );
 };
