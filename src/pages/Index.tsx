@@ -181,7 +181,7 @@ const Index = () => {
                   <img 
                     src="/mpesa_logo.png" 
                     alt="M-Pesa" 
-                    className="max-w-full max-h-full object-contain block filter contrast-[1.15] brightness-[1.05]" 
+                    className="max-w-full max-h-full object-contain block transition-transform duration-300 group-hover:scale-110" 
                   />
                 </div>
 
@@ -190,7 +190,7 @@ const Index = () => {
                   <img 
                     src="/emola_logo.png" 
                     alt="E-Mola" 
-                    className="max-w-full max-h-full object-contain block filter contrast-[1.15] brightness-[1.05]" 
+                    className="max-w-full max-h-full object-contain block transition-transform duration-300 group-hover:scale-110" 
                   />
                 </div>
 
@@ -199,7 +199,7 @@ const Index = () => {
                   <img 
                     src="/pix_logo.png" 
                     alt="Pix" 
-                    className="max-w-full max-h-full object-contain block filter contrast-[1.15] brightness-[1.05]" 
+                    className="max-w-full max-h-full object-contain block transition-transform duration-300 group-hover:scale-110" 
                   />
                 </div>
               </div>
@@ -674,14 +674,14 @@ const Index = () => {
               </p>
               {/* Mini payment icons for footer */}
               <div className="flex items-center justify-center md:justify-start gap-3 opacity-100">
-                <div className="bg-white dark:bg-white p-1 rounded-lg border border-slate-100 flex items-center justify-center w-16 h-8 hover:scale-105 transition-transform shadow-sm">
-                  <img src="/mpesa_logo.png" alt="M-Pesa" className="max-w-full max-h-full object-contain filter contrast-[1.15] brightness-[1.05]" />
+                <div className="bg-white dark:bg-white p-1 rounded-lg border border-slate-100 flex items-center justify-center w-16 h-8 hover:scale-105 transition-transform shadow-sm group">
+                  <img src="/mpesa_logo.png" alt="M-Pesa" className="max-w-full max-h-full object-contain transition-transform group-hover:scale-110 duration-255" />
                 </div>
-                <div className="bg-white dark:bg-white p-1 rounded-lg border border-slate-100 flex items-center justify-center w-16 h-8 hover:scale-105 transition-transform shadow-sm">
-                  <img src="/emola_logo.png" alt="E-Mola" className="max-w-full max-h-full object-contain filter contrast-[1.15] brightness-[1.05]" />
+                <div className="bg-white dark:bg-white p-1 rounded-lg border border-slate-100 flex items-center justify-center w-16 h-8 hover:scale-105 transition-transform shadow-sm group">
+                  <img src="/emola_logo.png" alt="E-Mola" className="max-w-full max-h-full object-contain transition-transform group-hover:scale-110 duration-255" />
                 </div>
-                <div className="bg-white dark:bg-white p-1 rounded-lg border border-slate-100 flex items-center justify-center w-16 h-8 hover:scale-105 transition-transform shadow-sm">
-                  <img src="/pix_logo.png" alt="Pix" className="max-w-full max-h-full object-contain filter contrast-[1.15] brightness-[1.05]" />
+                <div className="bg-white dark:bg-white p-1 rounded-lg border border-slate-100 flex items-center justify-center w-16 h-8 hover:scale-105 transition-transform shadow-sm group">
+                  <img src="/pix_logo.png" alt="Pix" className="max-w-full max-h-full object-contain transition-transform group-hover:scale-110 duration-255" />
                 </div>
               </div>
             </div>
