@@ -56,7 +56,7 @@ const Finance = () => {
   const [saveMethod, setSaveMethod] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  const WITHDRAWAL_FEE_PERCENT = 0.12; // 12%
+  const WITHDRAWAL_FEE_PERCENT = currency === "BRL" ? 0.08 : 0.12; // 8% for BRL, 12% for MZN
 
   useEffect(() => {
     if (!user) return;
@@ -488,7 +488,7 @@ const Finance = () => {
                         <span>{formatCurrency(numAmount)}</span>
                       </div>
                       <div className="flex justify-between text-xs text-destructive">
-                        <span>Taxa EnsinaPay (12%):</span>
+                        <span>Taxa EnsinaPay ({currency === "BRL" ? "8%" : "12%"}):</span>
                         <span>- {formatCurrency(feeAmount)}</span>
                       </div>
                       <div className="flex justify-between text-sm font-bold border-t border-border/50 pt-1 mt-1 text-foreground">
@@ -815,7 +815,7 @@ const Finance = () => {
                 <CardContent className="text-sm text-muted-foreground space-y-4">
                   <ul className="list-disc list-inside space-y-1">
                     <li><strong className="text-foreground/80">Processamento:</strong> 1-2 dias úteis, das 7:30h até 17:30h</li>
-                    <li><strong className="text-foreground/80">Taxa Administrativa:</strong> 12% fixo por saque</li>
+                    <li><strong className="text-foreground/80">Taxa Administrativa:</strong> {currency === "BRL" ? "8%" : "12%"} fixo por saque</li>
                     <li>
                       <strong className="text-foreground/80">Canais suportados:</strong>{" "}
                       {currency === "BRL" ? "Pix e Transferência Bancária" : "M-Pesa e E-Mola"}
@@ -857,7 +857,7 @@ const Finance = () => {
                             <th className="px-4 py-4 font-bold text-foreground">Data</th>
                             <th className="px-4 py-4 font-bold text-foreground">Destino</th>
                             <th className="px-4 py-4 font-bold text-foreground">Valor Bruto</th>
-                            <th className="px-4 py-4 font-bold text-foreground">Taxa (12%)</th>
+                            <th className="px-4 py-4 font-bold text-foreground">Taxa ({currency === "BRL" ? "8%" : "12%"})</th>
                             <th className="px-4 py-4 font-bold text-foreground">Líquido</th>
                             <th className="px-4 py-4 font-bold text-foreground text-right">Status</th>
                           </tr>
