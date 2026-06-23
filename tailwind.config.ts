@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Satoshi", "system-ui", "sans-serif"],
-        display: ["Satoshi", "system-ui", "sans-serif"],
+        sans: ["Inter", "Satoshi", "system-ui", "sans-serif"],
+        display: ["Inter", "Satoshi", "system-ui", "sans-serif"],
       },
       colors: {
         brand: {
