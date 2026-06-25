@@ -45,6 +45,57 @@ const Checkout = () => {
 
   const [trackingParams, setTrackingParams] = useState<any>({});
 
+  const isZar = product?.currency === "ZAR";
+
+  const t = (key: string) => {
+    const translations: Record<string, { pt: string; en: string }> = {
+      secureCheckout: { pt: "Checkout seguro", en: "Secure checkout" },
+      defaultDescription: { 
+        pt: "Aprenda, execute e comece a vender ainda hoje com cursos, ferramentas e materiais prontos.", 
+        en: "Learn, execute, and start selling today with ready-to-use courses, tools, and materials." 
+      },
+      identification: { pt: "Identificação", en: "Identification" },
+      payment: { pt: "Pagamento", en: "Payment" },
+      yourData: { pt: "Seus dados", en: "Your details" },
+      fullName: { pt: "Nome completo *", en: "Full name *" },
+      fullNamePlaceholder: { pt: "Digite seu nome completo", en: "Enter your full name" },
+      email: { pt: "Email *", en: "Email *" },
+      whatsapp: { pt: "WhatsApp *", en: "WhatsApp *" },
+      whatsappPlaceholder: { pt: "Ex: 840000000", en: "Ex: 0820000000" },
+      proceedButton: { pt: "AVANÇAR PARA PAGAMENTO", en: "PROCEED TO PAYMENT" },
+      paymentMethod: { pt: "Método de pagamento", en: "Payment method" },
+      payfastSubtitle: { pt: "Cartão de Crédito / Instant EFT", en: "Credit Card / Instant EFT" },
+      secureRedirect: { pt: "Redirecionamento Seguro", en: "Secure Redirect" },
+      redirectMessage: { 
+        pt: "Você será redirecionado para a página segura do PayFast para concluir o pagamento de", 
+        en: "You will be redirected to the secure PayFast page to complete the payment of" 
+      },
+      finalizeButton: { pt: "FINALIZAR PEDIDO", en: "FINALIZE ORDER" },
+      processing: { pt: "Processando...", en: "Processing..." },
+      backButton: { pt: "← Voltar para Dados Pessoais", en: "← Back to Personal Details" },
+      secureFooter: { pt: "Pague com segurança via EnsinaPay", en: "Pay securely via EnsinaPay" },
+      terms: { pt: "Termos", en: "Terms" },
+      privacy: { pt: "Privacidade", en: "Privacy" },
+      suspendedTitle: { pt: "Vendedor Suspenso", en: "Suspended Seller" },
+      suspendedText: { 
+        pt: "Este vendedor foi suspenso temporariamente e não pode receber pagamentos no momento. Por favor, tente mais tarde.", 
+        en: "This seller has been temporarily suspended and cannot receive payments at the moment. Please try again later." 
+      },
+      unavailableTitle: { pt: "Produto Indisponível", en: "Product Unavailable" },
+      backHome: { pt: "Voltar para Início", en: "Back to Home" },
+      fillFieldsError: { pt: "Preencha todos os campos obrigatórios.", en: "Please fill in all required fields." },
+      emailError: { pt: "Por favor, insira um e-mail válido.", en: "Please enter a valid email address." },
+      successPayment: { pt: "Pagamento confirmado com sucesso!", en: "Payment confirmed successfully!" },
+      errorPayment: { pt: "Erro ao processar pagamento.", en: "Error processing payment." },
+      redirectUrlError: { pt: "URL de redirecionamento do PayFast não recebida.", en: "PayFast redirect URL not received." },
+      productNotFoundError: { pt: "Produto não encontrado.", en: "Product not found." }
+    };
+
+    const translation = translations[key];
+    if (!translation) return key;
+    return isZar ? translation.en : translation.pt;
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tracking: any = {};
@@ -184,7 +235,7 @@ const Checkout = () => {
     const isBrl = product.currency === "BRL";
     const isZar = product.currency === "ZAR";
     if (!form.name || !form.email || !form.customer_whatsapp || (!isBrl && !isZar && !form.payment_phone) || (isBrl && !form.cpf)) {
-      toast.error("Preencha todos os campos obrigatórios.");
+      toast.error(t("fillFieldsError"));
       return;
     }
 
@@ -251,7 +302,7 @@ const Checkout = () => {
           window.location.href = redirectUrl;
           return;
         } else {
-          throw new Error("URL de redirecionamento do PayFast não recebida.");
+          throw new Error(t("redirectUrlError"));
         }
       }
 
@@ -301,13 +352,13 @@ const Checkout = () => {
             .eq("product_id", product.id);
         }
 
-        toast.success("Pagamento confirmado com sucesso!");
+        toast.success(t("successPayment"));
         navigate(`/thank-you?order_id=${id}&product_id=${product.id}&amount=${product.price}`);
       };
 
     } catch (err: any) {
       console.error("Checkout Error:", err);
-      const errorMessage = err?.context?.message || err?.message || "Erro ao processar pagamento.";
+      const errorMessage = err?.context?.message || err?.message || t("errorPayment");
       toast.error(errorMessage);
       setSubmitting(false);
     }
@@ -327,9 +378,9 @@ const Checkout = () => {
         <div className="w-20 h-20 bg-destructive/10 text-destructive rounded-full flex items-center justify-center mb-6">
           <Ban className="w-10 h-10" />
         </div>
-        <h1 className="text-2xl font-bold mb-2">Vendedor Suspenso</h1>
+        <h1 className="text-2xl font-bold mb-2">{t("suspendedTitle")}</h1>
         <p className="text-muted-foreground text-sm max-w-sm">
-          Este vendedor foi suspenso temporariamente e não pode receber pagamentos no momento. Por favor, tente mais tarde.
+          {t("suspendedText")}
         </p>
       </div>
     );
@@ -341,9 +392,9 @@ const Checkout = () => {
         <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-6">
           <Package className="w-10 h-10 text-muted-foreground/40" />
         </div>
-        <h1 className="text-2xl font-bold mb-2">Produto Indisponível</h1>
+        <h1 className="text-2xl font-bold mb-2">{t("unavailableTitle")}</h1>
         <Button variant="outline" className="mt-8 rounded-xl" onClick={() => navigate('/')}>
-          Voltar para Início
+          {t("backHome")}
         </Button>
       </div>
     );
@@ -359,7 +410,7 @@ const Checkout = () => {
             </div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Shield className="w-3.5 h-3.5 text-primary" />
-              Checkout seguro
+              {t("secureCheckout")}
             </div>
           </div>
         </div>
@@ -384,7 +435,7 @@ const Checkout = () => {
                       {product.name}
                     </h2>
                     <p className="text-[11px] sm:text-sm text-muted-foreground font-medium leading-tight max-w-md">
-                      {product.description || "Aprenda, execute e comece a vender ainda hoje com cursos, ferramentas e materiais prontos."}
+                      {product.description || t("defaultDescription")}
                     </p>
                     <p className="text-2xl sm:text-3xl font-black text-primary tracking-tighter pt-1 sm:pt-2">
                       {product.currency === "BRL" 
@@ -409,7 +460,7 @@ const Checkout = () => {
                   </div>
                   <span className={`text-xs font-bold transition-all ${
                     checkoutStep === 1 ? "text-foreground" : "text-muted-foreground"
-                  }`}>Identificação</span>
+                  }`}>{t("identification")}</span>
                 </div>
                 <div className="h-0.5 bg-border flex-1 mx-2" />
                 <div className="flex items-center gap-2">
@@ -420,7 +471,7 @@ const Checkout = () => {
                   </div>
                   <span className={`text-xs font-bold transition-all ${
                     checkoutStep === 2 ? "text-foreground" : "text-muted-foreground"
-                  }`}>Pagamento</span>
+                  }`}>{t("payment")}</span>
                 </div>
               </div>
 
@@ -430,13 +481,13 @@ const Checkout = () => {
                   <div>
                     <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
                       <User className="w-4 h-4 text-primary" />
-                      Seus dados
+                      {t("yourData")}
                     </h2>
                     <div className="space-y-4">
                       <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wider font-bold">Nome completo *</Label>
+                        <Label className="text-xs text-muted-foreground uppercase tracking-wider font-bold">{t("fullName")}</Label>
                         <Input
-                          placeholder="Digite seu nome completo"
+                          placeholder={t("fullNamePlaceholder")}
                           value={form.name}
                           onChange={(e) => setForm({ ...form, name: e.target.value })}
                           required
@@ -446,11 +497,11 @@ const Checkout = () => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <Label className="text-xs text-muted-foreground uppercase tracking-wider font-bold flex items-center gap-1">
-                            <Mail className="w-3 h-3" /> Email *
+                            <Mail className="w-3 h-3" /> {t("email")}
                           </Label>
                           <Input
                             type="email"
-                            placeholder="seu@email.com"
+                            placeholder="your@email.com"
                             value={form.email}
                             onChange={(e) => setForm({ ...form, email: e.target.value })}
                             required
@@ -459,10 +510,10 @@ const Checkout = () => {
                         </div>
                         <div className="space-y-1.5">
                           <Label className="text-xs text-muted-foreground uppercase tracking-wider font-bold flex items-center gap-1">
-                            <MessageCircle className="w-3 h-3 text-emerald-500" /> WhatsApp *
+                            <MessageCircle className="w-3 h-3 text-emerald-500" /> {t("whatsapp")}
                           </Label>
                           <Input
-                            placeholder="Ex: 840000000"
+                            placeholder={t("whatsappPlaceholder")}
                             value={form.customer_whatsapp}
                             onChange={(e) => setForm({ ...form, customer_whatsapp: e.target.value })}
                             required
@@ -477,18 +528,18 @@ const Checkout = () => {
                     type="button" 
                     onClick={() => {
                       if (!form.name.trim() || !form.email.trim() || !form.customer_whatsapp.trim()) {
-                        toast.error("Por favor, preencha todos os campos obrigatórios.");
+                        toast.error(t("fillFieldsError"));
                         return;
                       }
                       if (!form.email.includes("@")) {
-                        toast.error("Por favor, insira um e-mail válido.");
+                        toast.error(t("emailError"));
                         return;
                       }
                       setCheckoutStep(2);
                     }}
                     className="w-full h-14 bg-primary hover:bg-primary/95 text-white font-black text-base rounded-xl transition-all duration-300 active:scale-[0.98] mt-6 flex items-center justify-center gap-2 shadow-lg"
                   >
-                    <span>AVANÇAR PARA PAGAMENTO</span>
+                    <span>{t("proceedButton")}</span>
                     <ArrowRight className="w-5 h-5" />
                   </Button>
                 </div>
@@ -498,7 +549,7 @@ const Checkout = () => {
                   <div>
                     <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
                       <Smartphone className="w-4 h-4 text-primary" />
-                      Método de pagamento
+                      {t("paymentMethod")}
                     </h2>
                     <RadioGroup
                       value={form.payment_method}
@@ -537,7 +588,7 @@ const Checkout = () => {
                             </div>
                             <div>
                               <p className="font-bold text-white text-[12px] leading-tight">PayFast</p>
-                              <p className="text-[9px] text-white/80 leading-none">Cartão de Crédito / Instant EFT</p>
+                              <p className="text-[9px] text-white/80 leading-none">{t("payfastSubtitle")}</p>
                             </div>
                           </div>
                         </label>
@@ -615,9 +666,9 @@ const Checkout = () => {
                         </div>
                       ) : product?.currency === "ZAR" ? (
                         <div className="space-y-1.5 p-4 bg-muted/30 rounded-xl border border-border text-center">
-                          <p className="text-sm font-semibold text-foreground">Redirecionamento Seguro</p>
+                          <p className="text-sm font-semibold text-foreground">{t("secureRedirect")}</p>
                           <p className="text-xs text-muted-foreground mt-1">
-                            Você será redirecionado para a página segura do PayFast para concluir o pagamento de <strong>R {product.price.toFixed(2)}</strong>.
+                            {t("redirectMessage")} <strong>R {product.price.toFixed(2)}</strong>.
                           </p>
                         </div>
                       ) : (
@@ -661,11 +712,11 @@ const Checkout = () => {
                       {submitting ? (
                         <div className="flex items-center gap-2">
                           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          <span>Processando...</span>
+                          <span>{t("processing")}</span>
                         </div>
                       ) : (
                         <div className="flex items-center justify-center gap-2">
-                          <span>FINALIZAR PEDIDO</span>
+                          <span>{t("finalizeButton")}</span>
                           <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                         </div>
                       )}
@@ -676,12 +727,12 @@ const Checkout = () => {
                       onClick={() => setCheckoutStep(1)}
                       className="text-xs font-bold text-muted-foreground hover:text-foreground transition-colors mx-auto block mt-2"
                     >
-                      ← Voltar para Dados Pessoais
+                      {t("backButton")}
                     </button>
 
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <div className="flex items-center gap-1 text-xs font-bold uppercase tracking-widest opacity-60">
-                        <ShieldCheck className="w-3 h-3" /> Pague com segurança via EnsinaPay
+                        <ShieldCheck className="w-3 h-3" /> {t("secureFooter")}
                       </div>
                     </div>
                   </div>
@@ -691,9 +742,9 @@ const Checkout = () => {
           </Card>
 
           <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground font-medium uppercase tracking-widest py-8">
-            <Link to="/terms" className="hover:text-primary transition-colors">Termos</Link>
+            <Link to="/terms" className="hover:text-primary transition-colors">{t("terms")}</Link>
             <span>•</span>
-            <Link to="/privacy" className="hover:text-primary transition-colors">Privacidade</Link>
+            <Link to="/privacy" className="hover:text-primary transition-colors">{t("privacy")}</Link>
             <span>•</span>
             <span>&copy; {new Date().getFullYear()} EnsinaPay</span>
           </div>
