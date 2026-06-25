@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Clock } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Ban, User, ArrowUpRight, ArrowDownToLine, ShoppingCart, ShieldAlert } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 
 interface Profile {
   id: string;
@@ -23,6 +25,7 @@ interface Profile {
   email: string;
   rejection_reason: string;
   created_at: string;
+  custom_fee?: number | null;
 }
 
 const AdminUsers = () => {
@@ -37,6 +40,18 @@ const AdminUsers = () => {
   const [action, setAction] = useState<"approve" | "reject" | null>(null);
   const [reason, setReason] = useState("");
   const [processing, setProcessing] = useState(false);
+
+  // Seller Details States
+  const [detailsUser, setDetailsUser] = useState<Profile | null>(null);
+  const [sellerProducts, setSellerProducts] = useState<any[]>([]);
+  const [sellerOrders, setSellerOrders] = useState<any[]>([]);
+  const [sellerWithdrawals, setSellerWithdrawals] = useState<any[]>([]);
+  const [sellerStats, setSellerStats] = useState({ revenueMzn: 0, revenueBrl: 0, salesCount: 0 });
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  const [editStatus, setEditStatus] = useState<string>("approved");
+  const [editCustomFee, setEditCustomFee] = useState<string>("");
+  const [savingConfig, setSavingConfig] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -68,6 +83,125 @@ const AdminUsers = () => {
       setFilter(currentFilter);
     }
   }, [searchParams]);
+
+  const fetchSellerDetails = async (sellerId: string) => {
+    setLoadingDetails(true);
+    try {
+      // 1. Fetch products
+      const { data: prods } = await supabase
+        .from("products")
+        .select("*")
+        .eq("user_id", sellerId);
+      setSellerProducts(prods || []);
+
+      // 2. Fetch withdrawals
+      const { data: wds } = await supabase
+        .from("withdrawals")
+        .select("*")
+        .eq("user_id", sellerId)
+        .order("created_at", { ascending: false });
+      setSellerWithdrawals(wds || []);
+
+      // 3. Fetch orders (join with products)
+      const { data: ords } = await supabase
+        .from("orders")
+        .select("*, products!inner(*)")
+        .eq("products.user_id", sellerId)
+        .order("created_at", { ascending: false });
+      
+      const ordersList = ords || [];
+      setSellerOrders(ordersList);
+
+      // 4. Stats from paid/delivered orders
+      const paidOrds = ordersList.filter(o => ["paid", "delivered"].includes(o.status));
+      const revenueMzn = paidOrds.filter(o => o.currency === "MZN" || !o.currency).reduce((s, o) => s + Number(o.price), 0);
+      const revenueBrl = paidOrds.filter(o => o.currency === "BRL").reduce((s, o) => s + Number(o.price), 0);
+      setSellerStats({
+        revenueMzn,
+        revenueBrl,
+        salesCount: paidOrds.length
+      });
+    } catch (e) {
+      console.error("Error fetching seller details:", e);
+      toast.error("Erro ao carregar detalhes do vendedor.");
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  useEffect(() => {
+    if (detailsUser) {
+      fetchSellerDetails(detailsUser.id);
+      setEditStatus(detailsUser.status || "approved");
+      setEditCustomFee(detailsUser.custom_fee !== undefined && detailsUser.custom_fee !== null ? detailsUser.custom_fee.toString() : "");
+    }
+  }, [detailsUser]);
+
+  const handleSaveConfig = async () => {
+    if (!detailsUser) return;
+    setSavingConfig(true);
+    try {
+      const fee = editCustomFee.trim() === "" ? null : Number(editCustomFee);
+      if (fee !== null && (isNaN(fee) || fee < 0 || fee > 100)) {
+        toast.error("Taxa de saque deve ser um número válido entre 0 e 100.");
+        setSavingConfig(false);
+        return;
+      }
+
+      const statusChanged = editStatus !== detailsUser.status;
+      const feeChanged = fee !== detailsUser.custom_fee;
+
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          status: editStatus,
+          custom_fee: fee
+        })
+        .eq("id", detailsUser.id);
+
+      if (error) throw error;
+
+      const actions = [];
+      const { data: { user: adminUser } } = await supabase.auth.getUser();
+
+      if (statusChanged) {
+        actions.push(
+          supabase.from("audit_logs").insert({
+            admin_id: adminUser?.id,
+            action: `CHANGE_USER_STATUS`,
+            target_type: "profile",
+            target_id: detailsUser.id,
+            details: { previous_status: detailsUser.status, new_status: editStatus }
+          })
+        );
+      }
+
+      if (feeChanged) {
+        actions.push(
+          supabase.from("audit_logs").insert({
+            admin_id: adminUser?.id,
+            action: `CHANGE_USER_CUSTOM_FEE`,
+            target_type: "profile",
+            target_id: detailsUser.id,
+            details: { previous_fee: detailsUser.custom_fee, new_fee: fee }
+          })
+        );
+      }
+
+      if (actions.length > 0) {
+        await Promise.all(actions);
+      }
+
+      toast.success("Configurações do vendedor salvas com sucesso!");
+      fetchUsers();
+      setDetailsUser(prev => prev ? { ...prev, status: editStatus, custom_fee: fee } : null);
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Erro ao salvar configurações: " + e.message);
+    } finally {
+      setSavingConfig(false);
+    }
+  };
 
   const handleAction = async () => {
     if (!selectedUser || !action) return;
@@ -250,10 +384,13 @@ const AdminUsers = () => {
                         {user.identity_status === 'unverified' && <Badge variant="outline" className="border-0 bg-muted">Não Verificado</Badge>}
                         {user.identity_status === 'rejected' && <Badge variant="destructive" className="bg-red-500/10 text-red-600 hover:bg-red-500/20 border-0"><XCircle className="w-3 h-3 mr-1" /> Rejeitado</Badge>}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                        <Button size="sm" variant="outline" onClick={() => setDetailsUser(user)}>
+                          Detalhes
+                        </Button>
                         <Dialog open={selectedUser?.id === user.id} onOpenChange={(open) => !open && setSelectedUser(null)}>
                           <DialogTrigger asChild>
-                            <Button size="sm" variant="outline" onClick={() => { setSelectedUser(user); setAction(null); setReason(""); }}>
+                            <Button size="sm" variant="secondary" onClick={() => { setSelectedUser(user); setAction(null); setReason(""); }}>
                               Analisar
                             </Button>
                           </DialogTrigger>
@@ -349,6 +486,206 @@ const AdminUsers = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Modal de Detalhes e Gerenciamento do Vendedor */}
+      <Dialog open={!!detailsUser} onOpenChange={(open) => !open && setDetailsUser(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[calc(100vw-2rem)]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+              <User className="w-5 h-5 text-primary" />
+              Detalhes do Vendedor: {detailsUser?.full_name || "Sem nome"}
+            </DialogTitle>
+            <DialogDescription>
+              Gerencie o status da conta, configure taxas personalizadas e consulte o desempenho do vendedor.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 py-4">
+            {/* Coluna da Esquerda: Configurações */}
+            <div className="space-y-4 border-r pr-0 lg:pr-6 border-border/50">
+              <h3 className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Configurações da Conta</h3>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">E-mail do Vendedor</Label>
+                <div className="p-2.5 bg-muted/40 rounded-lg text-xs font-semibold select-all break-all border border-border/50">
+                  {detailsUser?.email}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs">Status do Vendedor</Label>
+                <Select value={editStatus} onValueChange={setEditStatus}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Status da conta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="approved">Aprovado (Ativo)</SelectItem>
+                    <SelectItem value="suspended">Suspenso</SelectItem>
+                    <SelectItem value="blocked">Bloqueado (Banido)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Vendedores bloqueados ou suspensos não conseguem acessar o painel e seus checkouts ficam inativos.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs">Taxa de Saque Personalizada (%)</Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    placeholder="Ex: 8.5"
+                    value={editCustomFee}
+                    onChange={(e) => setEditCustomFee(e.target.value)}
+                    className="pr-10"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">%</div>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Deixe vazio para usar a taxa padrão da plataforma (12% MZN / 8% BRL).
+                </p>
+              </div>
+
+              <Button onClick={handleSaveConfig} disabled={savingConfig} className="w-full font-bold">
+                {savingConfig ? "Salvando..." : "Salvar Configurações"}
+              </Button>
+            </div>
+
+            {/* Coluna da Direita: Dashboards e Listas */}
+            <div className="lg:col-span-2 space-y-4">
+              {loadingDetails ? (
+                <div className="py-12 text-center text-muted-foreground">Carregando métricas do vendedor...</div>
+              ) : (
+                <Tabs defaultValue="overview" className="w-full">
+                  <TabsList className="grid w-full grid-cols-4 max-w-md h-auto p-1 bg-muted/60">
+                    <TabsTrigger value="overview" className="py-1.5 text-[11px] font-bold">Resumo</TabsTrigger>
+                    <TabsTrigger value="products" className="py-1.5 text-[11px] font-bold">Produtos ({sellerProducts.length})</TabsTrigger>
+                    <TabsTrigger value="orders" className="py-1.5 text-[11px] font-bold">Vendas ({sellerOrders.length})</TabsTrigger>
+                    <TabsTrigger value="withdrawals" className="py-1.5 text-[11px] font-bold">Saques ({sellerWithdrawals.length})</TabsTrigger>
+                  </TabsList>
+
+                  {/* Aba Resumo */}
+                  <TabsContent value="overview" className="space-y-4 mt-4">
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="p-4 bg-muted/30 border border-border/50 rounded-xl">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Vendas Legítimas</span>
+                        <div className="text-xl font-black text-foreground flex items-center gap-1">
+                          <ShoppingCart className="w-4 h-4 text-emerald-500" />
+                          {sellerStats.salesCount}
+                        </div>
+                      </div>
+                      <div className="p-4 bg-muted/30 border border-border/50 rounded-xl">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Receita MZN</span>
+                        <div className="text-xl font-black text-primary truncate" title={`${sellerStats.revenueMzn.toFixed(2)} MT`}>
+                          {sellerStats.revenueMzn.toLocaleString('pt-MZ', { minimumFractionDigits: 0 })} MT
+                        </div>
+                      </div>
+                      <div className="p-4 bg-muted/30 border border-border/50 rounded-xl">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Receita BRL</span>
+                        <div className="text-xl font-black text-primary truncate" title={`R$ ${sellerStats.revenueBrl.toFixed(2)}`}>
+                          R$ {sellerStats.revenueBrl.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 border border-dashed rounded-xl space-y-2 text-xs">
+                      <p className="font-bold uppercase tracking-wider text-muted-foreground text-[10px] mb-2">Informações Adicionais do Vendedor</p>
+                      <p><strong>Cadastrado em:</strong> {detailsUser ? new Date(detailsUser.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }) : ""}</p>
+                      <p>
+                        <strong>Status de KYC:</strong>{" "}
+                        <span className="font-semibold uppercase text-primary">
+                          {detailsUser?.identity_status}
+                        </span>
+                      </p>
+                      <p>
+                        <strong>Taxa Personalizada:</strong>{" "}
+                        {detailsUser?.custom_fee !== undefined && detailsUser?.custom_fee !== null 
+                          ? `${detailsUser.custom_fee}%` 
+                          : "Nenhuma (taxa padrão da plataforma)"}
+                      </p>
+                    </div>
+                  </TabsContent>
+
+                  {/* Aba Produtos */}
+                  <TabsContent value="products" className="space-y-2 mt-4 max-h-[300px] overflow-y-auto">
+                    {sellerProducts.length === 0 ? (
+                      <p className="text-center py-6 text-xs text-muted-foreground">Nenhum produto cadastrado.</p>
+                    ) : (
+                      sellerProducts.map(p => (
+                        <div key={p.id} className="p-3 bg-muted/20 border border-border/30 rounded-xl flex items-center justify-between text-xs">
+                          <div>
+                            <p className="font-bold text-foreground">{p.name}</p>
+                            <p className="text-[10px] text-muted-foreground capitalize">{p.delivery_type}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-primary">
+                              {p.currency === "BRL" ? `R$ ${Number(p.price).toFixed(2)}` : `${Number(p.price).toFixed(2)} MT`}
+                            </p>
+                            <Badge className={p.status === "approved" ? "bg-green-500/10 text-green-600 hover:bg-green-500/10 border-0" : "bg-orange-500/10 text-orange-600 hover:bg-orange-500/10 border-0"}>
+                              {p.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </TabsContent>
+
+                  {/* Aba Vendas */}
+                  <TabsContent value="orders" className="space-y-2 mt-4 max-h-[300px] overflow-y-auto">
+                    {sellerOrders.length === 0 ? (
+                      <p className="text-center py-6 text-xs text-muted-foreground">Nenhuma venda registrada.</p>
+                    ) : (
+                      sellerOrders.map(o => (
+                        <div key={o.id} className="p-3 bg-muted/20 border border-border/30 rounded-xl flex items-center justify-between text-xs">
+                          <div>
+                            <p className="font-bold text-foreground">{o.customer_name}</p>
+                            <p className="text-[10px] text-muted-foreground">{o.products?.name}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-primary">
+                              {o.currency === "BRL" ? `R$ ${Number(o.price).toFixed(2)}` : `${Number(o.price).toFixed(2)} MT`}
+                            </p>
+                            <Badge className={["paid", "delivered"].includes(o.status) ? "bg-green-500/10 text-green-600 hover:bg-green-500/10 border-0" : "bg-red-500/10 text-red-600 hover:bg-red-500/10 border-0"}>
+                              {o.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </TabsContent>
+
+                  {/* Aba Saques */}
+                  <TabsContent value="withdrawals" className="space-y-2 mt-4 max-h-[300px] overflow-y-auto">
+                    {sellerWithdrawals.length === 0 ? (
+                      <p className="text-center py-6 text-xs text-muted-foreground">Nenhum saque solicitado.</p>
+                    ) : (
+                      sellerWithdrawals.map(w => (
+                        <div key={w.id} className="p-3 bg-muted/20 border border-border/30 rounded-xl flex items-center justify-between text-xs">
+                          <div>
+                            <p className="font-bold text-foreground">Saque #{w.id.slice(0, 8)}</p>
+                            <p className="text-[10px] text-muted-foreground">{w.payment_method} - {new Date(w.created_at).toLocaleDateString('pt-BR')}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-primary">
+                              {w.currency === "BRL" ? `R$ ${Number(w.amount).toFixed(2)}` : `${Number(w.amount).toFixed(2)} MT`}
+                            </p>
+                            <Badge className={w.status === "completed" ? "bg-green-500/10 text-green-600 hover:bg-green-500/10 border-0" : w.status === "pending" ? "bg-orange-500/10 text-orange-600 hover:bg-orange-500/10 border-0" : "bg-red-500/10 text-red-600 hover:bg-red-500/10 border-0"}>
+                              {w.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </TabsContent>
+                </Tabs>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="border-t border-border/50 pt-4 mt-2">
+            <Button variant="outline" onClick={() => setDetailsUser(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

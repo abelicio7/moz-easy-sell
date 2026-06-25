@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
-import { Package, ShoppingCart, LogOut, Menu, X, BarChart3, LayoutTemplate, Puzzle, Wallet, ShieldAlert, TrendingUp, UserCircle, Trash2, Users, ShoppingBag, Download, MessageCircle } from "lucide-react";
+import { Package, ShoppingCart, LogOut, Menu, X, BarChart3, LayoutTemplate, Puzzle, Wallet, ShieldAlert, TrendingUp, UserCircle, Trash2, Users, ShoppingBag, Download, MessageCircle, Terminal } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -237,16 +237,28 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const links = [
-    { to: "/dashboard", label: "Dashboard", icon: BarChart3 },
-    { to: "/dashboard/products", label: "Produtos", icon: Package },
-    { to: "/dashboard/orders", label: "Pedidos", icon: ShoppingCart },
-    { to: "/dashboard/sales", label: "Minhas Vendas", icon: TrendingUp },
-    { to: "/dashboard/finance", label: "Financeiro", icon: Wallet },
-    { to: "/dashboard/integrations", label: "Integrações", icon: Puzzle },
-  ];
+  const isCurrentlyAdminRoute = location.pathname.startsWith('/admin');
+
+  const links = isCurrentlyAdminRoute
+    ? [
+        { to: "/admin", label: "Dashboard Admin", icon: BarChart3 },
+        { to: "/admin/users", label: "Vendedores", icon: Users },
+        { to: "/admin/products", label: "Produtos", icon: Package },
+        { to: "/admin/withdrawals", label: "Saques", icon: Wallet },
+        { to: "/admin/requests", label: "Solicitações", icon: ShieldAlert },
+        { to: "/admin/audit-logs", label: "Logs de Auditoria", icon: Terminal },
+        { to: "/dashboard", label: "Voltar ao Painel", icon: LayoutTemplate },
+      ]
+    : [
+        { to: "/dashboard", label: "Dashboard", icon: BarChart3 },
+        { to: "/dashboard/products", label: "Produtos", icon: Package },
+        { to: "/dashboard/orders", label: "Pedidos", icon: ShoppingCart },
+        { to: "/dashboard/sales", label: "Minhas Vendas", icon: TrendingUp },
+        { to: "/dashboard/finance", label: "Financeiro", icon: Wallet },
+        { to: "/dashboard/integrations", label: "Integrações", icon: Puzzle },
+      ];
   
-  if (isAdmin) {
+  if (!isCurrentlyAdminRoute && isAdmin) {
     links.push({ to: "/admin", label: "Admin", icon: ShieldAlert });
   }
 
@@ -267,7 +279,12 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             {links.map((link) => (
               <Button
                 key={link.to}
-                variant={location.pathname.startsWith(link.to) && link.to !== '/dashboard' || (location.pathname === '/dashboard' && link.to === '/dashboard') ? "secondary" : "ghost"}
+                variant={
+                  location.pathname === link.to || 
+                  (link.to !== '/admin' && link.to !== '/dashboard' && location.pathname.startsWith(link.to)) 
+                    ? "secondary" 
+                    : "ghost"
+                }
                 size="sm"
                 asChild
               >

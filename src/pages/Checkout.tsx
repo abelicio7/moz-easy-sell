@@ -8,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Shield, Smartphone, ShoppingBag, User, Mail, Phone, MessageCircle, ShieldCheck, Zap, ArrowRight, Package, Copy } from "lucide-react";
+import { Shield, Smartphone, ShoppingBag, User, Mail, Phone, MessageCircle, ShieldCheck, Zap, ArrowRight, Package, Copy, Ban } from "lucide-react";
 import Logo from "@/components/Logo";
 
 interface Product {
@@ -41,6 +41,7 @@ const Checkout = () => {
 
   const [pixQrCode, setPixQrCode] = useState<string | null>(null);
   const [pixCopiaCola, setPixCopiaCola] = useState<string | null>(null);
+  const [isSuspended, setIsSuspended] = useState(false);
 
   const [trackingParams, setTrackingParams] = useState<any>({});
 
@@ -72,13 +73,22 @@ const Checkout = () => {
     const initPage = async () => {
       const { data: productData, error: productError } = await supabase
         .from("products")
-        .select(`id, name, description, price, image_url, user_id, status, currency`)
+        .select(`id, name, description, price, image_url, user_id, status, currency, profiles!inner(status)`)
         .eq("id", productId)
         .maybeSingle();
       
       if (productError || !productData) {
         toast.error("Produto não encontrado.");
         navigate("/");
+        return;
+      }
+
+      const ownerProfile: any = Array.isArray(productData.profiles) ? productData.profiles[0] : productData.profiles;
+      const ownerStatus = ownerProfile?.status;
+
+      if (ownerStatus === "blocked" || ownerStatus === "suspended") {
+        setIsSuspended(true);
+        setLoading(false);
         return;
       }
 
@@ -276,6 +286,20 @@ const Checkout = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
+
+  if (isSuspended) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 text-center">
+        <div className="w-20 h-20 bg-destructive/10 text-destructive rounded-full flex items-center justify-center mb-6">
+          <Ban className="w-10 h-10" />
+        </div>
+        <h1 className="text-2xl font-bold mb-2">Vendedor Suspenso</h1>
+        <p className="text-muted-foreground text-sm max-w-sm">
+          Este vendedor foi suspenso temporariamente e não pode receber pagamentos no momento. Por favor, tente mais tarde.
+        </p>
       </div>
     );
   }

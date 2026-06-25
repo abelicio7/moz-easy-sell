@@ -35,6 +35,7 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminWithdrawals from "./pages/admin/AdminWithdrawals";
 import AdminProfileRequests from "./pages/admin/AdminProfileRequests";
+import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
 import Account from "./pages/Account";
 import Library from "./pages/Library";
 import Account from "./pages/Account";
@@ -87,6 +88,7 @@ const App = () => {
           <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
           <Route path="/admin/withdrawals" element={<AdminRoute><AdminWithdrawals /></AdminRoute>} />
           <Route path="/admin/requests" element={<AdminRoute><AdminProfileRequests /></AdminRoute>} />
+          <Route path="/admin/audit-logs" element={<AdminRoute><AdminAuditLogs /></AdminRoute>} />
 
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/dashboard/account" element={<ProtectedRoute><Account /></ProtectedRoute>} />

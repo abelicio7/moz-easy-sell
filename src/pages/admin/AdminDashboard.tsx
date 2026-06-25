@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Package, Banknote, ShieldCheck } from "lucide-react";
+import { Users, Package, Banknote, ShieldCheck, Terminal } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -119,6 +119,21 @@ const AdminDashboard = () => {
             <CardContent>
               <div className="text-3xl font-black text-foreground">{stats.totalApprovedUsers}</div>
               <p className="text-xs text-muted-foreground mt-2">Vendedores ativos</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/50 bg-card hover:border-primary/50 transition-all">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
+                Logs de Auditoria
+                <Terminal className="w-4 h-4 text-purple-500" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-black text-foreground mb-2">Histórico</div>
+              <Button size="sm" variant="outline" className="w-full" asChild>
+                <Link to="/admin/audit-logs">Visualizar Logs</Link>
+              </Button>
             </CardContent>
           </Card>
 

@@ -55,8 +55,9 @@ const Finance = () => {
   const [selectedMethodId, setSelectedMethodId] = useState<string>("new");
   const [saveMethod, setSaveMethod] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [customFee, setCustomFee] = useState<number | null>(null);
 
-  const WITHDRAWAL_FEE_PERCENT = currency === "BRL" ? 0.08 : 0.12; // 8% for BRL, 12% for MZN
+  const WITHDRAWAL_FEE_PERCENT = customFee !== null ? customFee / 100 : (currency === "BRL" ? 0.08 : 0.12);
 
   useEffect(() => {
     if (!user) return;
@@ -83,15 +84,16 @@ const Finance = () => {
       setOrders(orderData.map(o => ({ price: Number(o.price), currency: o.currency })));
     }
 
-    // Fetch profile identity status
+    // Fetch profile identity status & custom fee
     const { data: profile } = await supabase
       .from("profiles")
-      .select("identity_status")
+      .select("identity_status, custom_fee")
       .eq("id", user.id)
       .single();
       
     if (profile) {
       setIdentityStatus(profile.identity_status || 'unverified');
+      setCustomFee(profile.custom_fee !== undefined ? profile.custom_fee : null);
     }
 
     // Fetch withdrawals safely handling missing table structure if migration not run yet
@@ -568,7 +570,7 @@ const Finance = () => {
                         <span>{formatCurrency(numAmount)}</span>
                       </div>
                       <div className="flex justify-between text-xs text-destructive">
-                        <span>Taxa EnsinaPay ({currency === "BRL" ? "8%" : "12%"}):</span>
+                        <span>Taxa EnsinaPay ({(WITHDRAWAL_FEE_PERCENT * 100).toFixed(0)}%):</span>
                         <span>- {formatCurrency(feeAmount)}</span>
                       </div>
                       <div className="flex justify-between text-sm font-bold border-t border-border/50 pt-1 mt-1 text-foreground">
@@ -895,7 +897,7 @@ const Finance = () => {
                 <CardContent className="text-sm text-muted-foreground space-y-4">
                   <ul className="list-disc list-inside space-y-1">
                     <li><strong className="text-foreground/80">Processamento:</strong> 1-2 dias úteis, das 7:30h até 17:30h</li>
-                    <li><strong className="text-foreground/80">Taxa Administrativa:</strong> {currency === "BRL" ? "8%" : "12%"} fixo por saque</li>
+                    <li><strong className="text-foreground/80">Taxa Administrativa:</strong> {(WITHDRAWAL_FEE_PERCENT * 100).toFixed(0)}% fixo por saque</li>
                     <li>
                       <strong className="text-foreground/80">Canais suportados:</strong>{" "}
                       {currency === "BRL" ? "Pix e Transferência Bancária" : "M-Pesa e E-Mola"}
@@ -937,7 +939,7 @@ const Finance = () => {
                             <th className="px-4 py-4 font-bold text-foreground">Data</th>
                             <th className="px-4 py-4 font-bold text-foreground">Destino</th>
                             <th className="px-4 py-4 font-bold text-foreground">Valor Bruto</th>
-                            <th className="px-4 py-4 font-bold text-foreground">Taxa ({currency === "BRL" ? "8%" : "12%"})</th>
+                            <th className="px-4 py-4 font-bold text-foreground">Taxa ({(WITHDRAWAL_FEE_PERCENT * 100).toFixed(0)}%)</th>
                             <th className="px-4 py-4 font-bold text-foreground">Líquido</th>
                             <th className="px-4 py-4 font-bold text-foreground text-right">Status</th>
                           </tr>
