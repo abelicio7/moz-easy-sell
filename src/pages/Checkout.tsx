@@ -235,12 +235,15 @@ const Checkout = () => {
 
       if (form.payment_method === 'payfast') {
         const redirectUrl = 
+          paymentData.checkout_url ||
           paymentData.payment_url || 
           paymentData.url || 
           paymentData.redirect_url ||
+          paymentData.data?.checkout_url ||
           paymentData.data?.payment_url || 
           paymentData.data?.url || 
           paymentData.data?.redirect_url ||
+          paymentData.payment?.checkout_url ||
           paymentData.payment?.payment_url ||
           paymentData.payment?.url ||
           paymentData.payment?.redirect_url;
@@ -248,7 +251,7 @@ const Checkout = () => {
           window.location.href = redirectUrl;
           return;
         } else {
-          throw new Error("URL de redirecionamento do PayFast não recebida: " + JSON.stringify(paymentData));
+          throw new Error("URL de redirecionamento do PayFast não recebida.");
         }
       }
 
