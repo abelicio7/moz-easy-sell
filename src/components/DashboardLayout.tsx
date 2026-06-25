@@ -88,14 +88,12 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             
             if (upsertError) {
               console.error("Falha silenciosa ao guardar assinatura na base de dados:", upsertError);
-              alert("Erro técnico PWA: " + upsertError.message);
             } else {
               console.log("Push subscription safely registered in DB.");
             }
           }
         } catch (err: any) {
           console.error('Error registering push notification:', err);
-          alert("Erro técnico PWA: " + err.message);
         }
       }
     };

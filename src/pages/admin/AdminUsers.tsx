@@ -40,7 +40,7 @@ const AdminUsers = () => {
     let query = supabase.from("profiles").select("*").order("created_at", { ascending: false });
     
     if (filter !== "all") {
-      query = query.eq("status", filter);
+      query = query.eq("identity_status", filter);
     }
     
     const { data, error } = await query;
@@ -201,9 +201,17 @@ const AdminUsers = () => {
                   </tr>
                 ) : (
                   users.map((user) => (
-                    <tr key={user.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20">
+                    <tr key={user.id} className={`border-b border-border/50 last:border-0 hover:bg-muted/20 ${user.identity_status === 'pending' ? 'bg-orange-500/5 dark:bg-orange-500/10' : ''}`}>
                       <td className="px-6 py-4 font-medium text-foreground">
-                        {user.full_name || "Sem nome"}
+                        <div className="flex items-center gap-2">
+                          <span>{user.full_name || "Sem nome"}</span>
+                          {user.identity_status === 'pending' && (
+                            <span className="relative flex h-2 w-2" title="Novo documento de identidade enviado">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         {user.email || "Não informado"}

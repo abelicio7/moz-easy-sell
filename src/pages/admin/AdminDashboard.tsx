@@ -21,7 +21,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       const [usersRes, productsRes, withdrawalsRes, approvedUsersRes] = await Promise.all([
-        supabase.from("profiles").select("id", { count: "exact" }).eq("status", "pending"),
+        supabase.from("profiles").select("id", { count: "exact" }).eq("identity_status", "pending"),
         supabase.from("products").select("id", { count: "exact" }).eq("status", "pending"),
         supabase.from("withdrawals").select("id", { count: "exact" }).eq("status", "pending"),
         supabase.from("profiles").select("id", { count: "exact" }).eq("status", "approved"),
@@ -67,7 +67,7 @@ const AdminDashboard = () => {
           <Card className="border-border/50 bg-card hover:border-primary/50 transition-all">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-                Vendedores Pendentes
+                Vendedores Pendentes (KYC)
                 <Users className="w-4 h-4 text-orange-500" />
               </CardTitle>
             </CardHeader>
