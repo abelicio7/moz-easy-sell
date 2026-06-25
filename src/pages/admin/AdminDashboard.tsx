@@ -13,7 +13,9 @@ const AdminDashboard = () => {
     pendingProducts: 0,
     pendingWithdrawals: 0,
     totalApprovedUsers: 0,
-    totalRevenue: 0,
+    totalRevenueMZN: 0,
+    totalRevenueBRL: 0,
+    totalRevenueZAR: 0,
     totalSales: 0,
   });
   const [loading, setLoading] = useState(true);
@@ -29,17 +31,29 @@ const AdminDashboard = () => {
 
       const { data: allPaidOrders } = await supabase
         .from("orders")
-        .select("price")
+        .select("price, currency")
         .in("status", ["paid", "delivered"]);
 
-      const totalRevenue = (allPaidOrders || []).reduce((sum, order) => sum + Number(order.price), 0);
+      let totalRevenueMZN = 0;
+      let totalRevenueBRL = 0;
+      let totalRevenueZAR = 0;
+
+      (allPaidOrders || []).forEach(order => {
+        const curr = order.currency || "MZN";
+        const val = Number(order.price) || 0;
+        if (curr === "BRL") totalRevenueBRL += val;
+        else if (curr === "ZAR") totalRevenueZAR += val;
+        else totalRevenueMZN += val;
+      });
 
       setStats({
         pendingUsers: usersRes.count || 0,
         pendingProducts: productsRes.count || 0,
         pendingWithdrawals: withdrawalsRes.count || 0,
         totalApprovedUsers: approvedUsersRes.count || 0,
-        totalRevenue,
+        totalRevenueMZN,
+        totalRevenueBRL,
+        totalRevenueZAR,
         totalSales: allPaidOrders?.length || 0,
       });
       setLoading(false);
@@ -145,7 +159,21 @@ const AdminDashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black text-foreground">{stats.totalRevenue.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</div>
+              <div className="space-y-1">
+                <div className="text-lg font-black text-foreground">
+                  🇲🇿 {stats.totalRevenueMZN.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}
+                </div>
+                {stats.totalRevenueBRL > 0 && (
+                  <div className="text-sm font-bold text-muted-foreground">
+                    🇧🇷 {stats.totalRevenueBRL.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </div>
+                )}
+                {stats.totalRevenueZAR > 0 && (
+                  <div className="text-sm font-bold text-muted-foreground">
+                    🇿🇦 {stats.totalRevenueZAR.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })}
+                  </div>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground mt-2">Total processado (Pago/Entregue)</p>
             </CardContent>
           </Card>
