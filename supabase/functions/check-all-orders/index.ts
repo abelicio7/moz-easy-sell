@@ -22,7 +22,7 @@ serve(async (req) => {
     // 1. Buscar pedidos pendentes (limite de 20 para evitar timeout)
     const { data: pendingOrders, error: fetchError } = await supabase
       .from('orders')
-      .select('id, debito_reference, status')
+      .select('id, debito_reference, status, currency')
       .eq('status', 'pending')
       .not('debito_reference', 'is', null)
       .order('created_at', { ascending: false })
@@ -56,7 +56,7 @@ serve(async (req) => {
           paymentId: order.debito_reference,
           id: order.debito_reference,
           reference: order.debito_reference,
-          currency: "MZN"
+          currency: order.currency || "MZN"
         };
 
         let response = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {

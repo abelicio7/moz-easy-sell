@@ -262,6 +262,9 @@ serve(async (req) => {
         if (c === "BRL") {
           return `R$ ${val.toFixed(2).replace('.', ',')}`;
         }
+        if (c === "ZAR") {
+          return `R ${val.toFixed(2)}`;
+        }
         return `${val.toFixed(2)} MT`;
       };
 

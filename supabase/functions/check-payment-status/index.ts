@@ -23,7 +23,7 @@ serve(async (req) => {
     // 1. Get current order from DB
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('status, debito_reference, payment_id')
+      .select('status, debito_reference, payment_id, currency')
       .eq('id', order_id)
       .single()
 
@@ -112,7 +112,7 @@ serve(async (req) => {
       paymentId: ref,
       id: ref,
       reference: ref,
-      currency: "MZN"
+      currency: order.currency || "MZN"
     };
 
     let response = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {
