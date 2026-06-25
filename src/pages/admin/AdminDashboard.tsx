@@ -151,30 +151,59 @@ const AdminDashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50 bg-primary/5 border-primary/20 hover:border-primary/50 transition-all">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-primary flex items-center justify-between">
-                Faturamento Total
-                <Banknote className="w-4 h-4 text-primary" />
+          <Card className="border-border/60 bg-gradient-to-br from-primary/[0.03] to-card hover:border-primary/40 transition-all duration-300 md:col-span-2 lg:col-span-2">
+            <CardHeader className="pb-2.5 border-b border-border/40">
+              <CardTitle className="text-sm font-bold text-foreground flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-primary">
+                  <Banknote className="w-4 h-4" />
+                  <span>Faturamento por Moeda (Pago/Entregue)</span>
+                </div>
+                <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-primary/10 text-primary border-0">
+                  Consolidado
+                </span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-1">
-                <div className="text-lg font-black text-foreground">
-                  🇲🇿 {stats.totalRevenueMZN.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}
+            <CardContent className="pt-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* MZN Wallet */}
+                <div className="p-3 rounded-xl bg-muted/40 border border-border/55 flex flex-col justify-between hover:border-primary/20 transition-all">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                      <span>🇲🇿</span> MZN
+                    </span>
+                    <span className="text-[9px] font-bold text-primary bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">Metical</span>
+                  </div>
+                  <p className="text-base font-black text-foreground tracking-tight">
+                    {stats.totalRevenueMZN.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}
+                  </p>
                 </div>
-                {stats.totalRevenueBRL > 0 && (
-                  <div className="text-sm font-bold text-muted-foreground">
-                    🇧🇷 {stats.totalRevenueBRL.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+
+                {/* BRL Wallet */}
+                <div className="p-3 rounded-xl bg-muted/40 border border-border/55 flex flex-col justify-between hover:border-primary/20 transition-all">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                      <span>🇧🇷</span> BRL
+                    </span>
+                    <span className="text-[9px] font-bold text-blue-600 bg-blue-500/5 px-1.5 py-0.5 rounded border border-blue-500/10">Real</span>
                   </div>
-                )}
-                {stats.totalRevenueZAR > 0 && (
-                  <div className="text-sm font-bold text-muted-foreground">
-                    🇿🇦 {stats.totalRevenueZAR.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })}
+                  <p className="text-base font-black text-foreground tracking-tight">
+                    {stats.totalRevenueBRL.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </p>
+                </div>
+
+                {/* ZAR Wallet */}
+                <div className="p-3 rounded-xl bg-muted/40 border border-border/55 flex flex-col justify-between hover:border-primary/20 transition-all">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                      <span>🇿🇦</span> ZAR
+                    </span>
+                    <span className="text-[9px] font-bold text-orange-600 bg-orange-500/5 px-1.5 py-0.5 rounded border border-orange-500/10">Rand</span>
                   </div>
-                )}
+                  <p className="text-base font-black text-foreground tracking-tight">
+                    {stats.totalRevenueZAR.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })}
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">Total processado (Pago/Entregue)</p>
             </CardContent>
           </Card>
 
