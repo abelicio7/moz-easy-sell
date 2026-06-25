@@ -118,7 +118,7 @@ const ThankYou = () => {
         try {
           const { data: productData } = await supabase
             .from("products")
-            .select("user_id, name")
+            .select("user_id, name, currency")
             .eq("id", productId)
             .single();
             
@@ -148,7 +148,7 @@ const ThankYou = () => {
               win.fbq('track', 'Purchase', {
                 content_name: productData.name,
                 value: Number(amount),
-                currency: 'MZN'
+                currency: productData.currency || 'MZN'
               });
             }
           }

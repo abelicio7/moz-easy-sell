@@ -125,7 +125,9 @@ const Products = () => {
                         <span className="text-sm font-black text-primary">
                           {product.currency === "BRL" 
                             ? product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-                            : `${product.price.toFixed(2)} MT`}
+                            : product.currency === "ZAR"
+                              ? product.price.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })
+                              : `${product.price.toFixed(2)} MT`}
                         </span>
                         <span className="text-muted-foreground/30">•</span>
                         <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider bg-muted text-muted-foreground border-0">

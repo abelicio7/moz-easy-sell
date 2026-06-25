@@ -115,6 +115,9 @@ const formatOrderPrice = (price: number, ordCurrency?: string) => {
   if (curr === "BRL") {
     return price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
+  if (curr === "ZAR") {
+    return price.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' });
+  }
   return `${price.toFixed(2)} MT`;
 };
 
@@ -136,7 +139,7 @@ const OrderCard = ({ order, onRefresh, isAdmin }: { order: Order; onRefresh: () 
                order.status === "failed" ? "Pagamento Falhou" : "Não Concluído"}
             </Badge>
             <Badge variant="outline" className="gap-1 bg-background font-bold text-[10px]">
-              {order.currency === "BRL" ? "🇧🇷 Brasil" : "🇲🇿 Moçambique"}
+              {order.currency === "BRL" ? "🇧🇷 Brasil" : order.currency === "ZAR" ? "🇿🇦 África do Sul" : "🇲🇿 Moçambique"}
             </Badge>
           </div>
           <div className="space-y-1 mb-3">

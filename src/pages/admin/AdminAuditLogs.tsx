@@ -108,7 +108,9 @@ const AdminAuditLogs = () => {
           if (wd) {
             const formatted = wd.currency === 'BRL'
               ? wd.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-              : `${wd.amount.toFixed(2)} MT`;
+              : wd.currency === 'ZAR'
+                ? wd.amount.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })
+                : `${wd.amount.toFixed(2)} MT`;
             targetName = `Saque: ${formatted}`;
           } else {
             targetName = "Saque";

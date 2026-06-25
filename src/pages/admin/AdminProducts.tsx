@@ -25,6 +25,7 @@ interface Product {
   created_at: string;
   user_id: string;
   profiles: { full_name: string; email: string };
+  currency?: string;
 }
 
 const AdminProducts = () => {
@@ -236,7 +237,11 @@ const AdminProducts = () => {
                         {product.profiles?.full_name || "Desconhecido"}
                       </td>
                       <td className="px-6 py-4 font-semibold">
-                        {product.price.toFixed(2)} MT
+                        {product.currency === "BRL" 
+                          ? product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                          : product.currency === "ZAR"
+                            ? product.price.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })
+                            : `${product.price.toFixed(2)} MT`}
                       </td>
                       <td className="px-6 py-4">
                         {product.status === 'approved' && <Badge className="bg-green-500/10 text-green-600 border-0"><CheckCircle2 className="w-3 h-3 mr-1" /> Aprovado</Badge>}
@@ -270,7 +275,16 @@ const AdminProducts = () => {
                                   <h3 className="font-bold text-lg text-foreground text-center sm:text-left">{product.name}</h3>
                                   <p className="text-sm text-muted-foreground mt-1 line-clamp-2 text-center sm:text-left">{product.description}</p>
                                   <div className="flex flex-wrap gap-4 mt-3 text-sm justify-center sm:justify-start">
-                                    <div><span className="text-muted-foreground text-xs block">Preço</span><span className="font-bold text-primary">{product.price.toFixed(2)} MT</span></div>
+                                    <div>
+                                      <span className="text-muted-foreground text-xs block">Preço</span>
+                                      <span className="font-bold text-primary">
+                                        {product.currency === "BRL" 
+                                          ? product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                                          : product.currency === "ZAR"
+                                            ? product.price.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })
+                                            : `${product.price.toFixed(2)} MT`}
+                                      </span>
+                                    </div>
                                     <div><span className="text-muted-foreground text-xs block">Entrega</span><span className="font-medium capitalize">{product.delivery_type}</span></div>
                                     <div><span className="text-muted-foreground text-xs block">Vendedor</span><span className="font-medium">{product.profiles?.full_name}</span></div>
                                   </div>

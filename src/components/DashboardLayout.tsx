@@ -196,7 +196,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             (payload) => {
               if (payload.new.status === 'pending') {
                 toast("💰 Novo Pedido de Saque", {
-                  description: `Um pedido de ${payload.new.currency === "BRL" ? `R$ ${payload.new.amount.toFixed(2).replace('.', ',')}` : `${payload.new.amount.toFixed(2)} MT`} foi solicitado.`,
+                  description: `Um pedido de ${payload.new.currency === "BRL" ? `R$ ${payload.new.amount.toFixed(2).replace('.', ',')}` : payload.new.currency === "ZAR" ? `R ${payload.new.amount.toFixed(2)}` : `${payload.new.amount.toFixed(2)} MT`} foi solicitado.`,
                   action: {
                     label: "Ver",
                     onClick: () => navigate("/admin/withdrawals"),
