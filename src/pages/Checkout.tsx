@@ -73,7 +73,7 @@ const Checkout = () => {
     const initPage = async () => {
       const { data: productData, error: productError } = await supabase
         .from("products")
-        .select(`id, name, description, price, image_url, user_id, status, currency, profiles!inner(status)`)
+        .select(`id, name, description, price, image_url, user_id, status, currency`)
         .eq("id", productId)
         .maybeSingle();
       
@@ -83,13 +83,17 @@ const Checkout = () => {
         return;
       }
 
-      const ownerProfile: any = Array.isArray(productData.profiles) ? productData.profiles[0] : productData.profiles;
-      const ownerStatus = ownerProfile?.status;
+      if (productData.user_id) {
+        const { data: ownerStatus, error: statusError } = await supabase
+          .rpc("get_seller_status", { p_seller_id: productData.user_id });
 
-      if (ownerStatus === "blocked" || ownerStatus === "suspended") {
-        setIsSuspended(true);
-        setLoading(false);
-        return;
+        if (statusError) {
+          console.error("Erro ao obter status do vendedor:", statusError);
+        } else if (ownerStatus === "blocked" || ownerStatus === "suspended") {
+          setIsSuspended(true);
+          setLoading(false);
+          return;
+        }
       }
 
       setProduct(productData as any);
