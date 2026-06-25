@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,9 +26,11 @@ interface Profile {
 }
 
 const AdminUsers = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialFilter = searchParams.get("filter") || "all";
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState(initialFilter);
   
   // Modal states
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
@@ -44,13 +47,27 @@ const AdminUsers = () => {
     }
     
     const { data, error } = await query;
-    if (data) setUsers(data as Profile[]);
+    if (data) {
+      const sorted = [...data].sort((a, b) => {
+        if (a.identity_status === 'pending' && b.identity_status !== 'pending') return -1;
+        if (a.identity_status !== 'pending' && b.identity_status === 'pending') return 1;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+      setUsers(sorted as Profile[]);
+    }
     setLoading(false);
   };
 
   useEffect(() => {
     fetchUsers();
   }, [filter]);
+
+  useEffect(() => {
+    const currentFilter = searchParams.get("filter") || "all";
+    if (currentFilter !== filter) {
+      setFilter(currentFilter);
+    }
+  }, [searchParams]);
 
   const handleAction = async () => {
     if (!selectedUser || !action) return;
@@ -163,7 +180,15 @@ const AdminUsers = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          <Select value={filter} onValueChange={setFilter}>
+          <Select value={filter} onValueChange={(val) => {
+            setFilter(val);
+            if (val === "all") {
+              searchParams.delete("filter");
+            } else {
+              searchParams.set("filter", val);
+            }
+            setSearchParams(searchParams);
+          }}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filtrar por status" />
             </SelectTrigger>

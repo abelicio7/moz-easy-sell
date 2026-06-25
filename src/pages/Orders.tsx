@@ -26,9 +26,20 @@ const Orders = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const fetchOrders = async () => {
     if (!user) return;
+
+    // Check if current user is admin
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    setIsAdmin(profile?.role === "admin");
+
     const { data } = await supabase
       .from("orders")
       .select("*, products!inner(name, user_id, delivery_type, delivery_content)")
@@ -77,7 +88,7 @@ const Orders = () => {
               </div>
             ) : (
               paidOrders.map((order) => (
-                <OrderCard key={order.id} order={order} onRefresh={fetchOrders} />
+                <OrderCard key={order.id} order={order} onRefresh={fetchOrders} isAdmin={isAdmin} />
               ))
             )}
           </TabsContent>
@@ -89,7 +100,7 @@ const Orders = () => {
               </div>
             ) : (
               pendingOrders.map((order) => (
-                <OrderCard key={order.id} order={order} onRefresh={fetchOrders} />
+                <OrderCard key={order.id} order={order} onRefresh={fetchOrders} isAdmin={isAdmin} />
               ))
             )}
           </TabsContent>
@@ -107,7 +118,7 @@ const formatOrderPrice = (price: number, ordCurrency?: string) => {
   return `${price.toFixed(2)} MT`;
 };
 
-const OrderCard = ({ order, onRefresh }: { order: Order; onRefresh: () => void }) => (
+const OrderCard = ({ order, onRefresh, isAdmin }: { order: Order; onRefresh: () => void; isAdmin: boolean }) => (
   <Card className="overflow-hidden hover:border-primary/40 transition-colors">
     <CardContent className="p-0">
       <div className="flex flex-col md:flex-row md:items-center justify-between p-4 sm:p-5 gap-5">
@@ -216,44 +227,46 @@ const OrderCard = ({ order, onRefresh }: { order: Order; onRefresh: () => void }
                 <Mail className="w-4 h-4" /> Enviar Email
               </Button>
 
-              <Button 
-                size="sm" 
-                variant="secondary" 
-                className="w-full bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border-emerald-500/20 gap-2 mt-2"
-                onClick={async () => {
-                  if (!confirm("Deseja confirmar este pagamento manualmente? Isso enviará o produto ao cliente imediatamente.")) return;
-                  
-                  const toastId = toast.loading("Confirmando pagamento...");
-                  try {
-                    // 1. Atualizar status no banco
-                    const { error: updateError } = await supabase
-                      .from("orders")
-                      .update({ status: "paid" })
-                      .eq("id", order.id);
-
-                    if (updateError) throw updateError;
-
-                    // 2. Disparar entrega
-                    const { data: deliveryData, error: deliveryError } = await supabase.functions.invoke("deliver-product", {
-                      body: { orderId: order.id }
-                    });
+              {isAdmin && (
+                <Button 
+                  size="sm" 
+                  variant="secondary" 
+                  className="w-full bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 border-emerald-500/20 gap-2 mt-2"
+                  onClick={async () => {
+                    if (!confirm("Deseja confirmar este pagamento manualmente? Isso enviará o produto ao cliente imediatamente.")) return;
                     
-                    if (deliveryError) throw deliveryError;
-                    
-                    if (deliveryData?.success === false) {
-                      toast.error("Pagamento registrado, mas a entrega falhou: " + (deliveryData.message || "Erro desconhecido"), { id: toastId });
-                    } else {
-                      toast.success("Pagamento confirmado e produto entregue!", { id: toastId });
+                    const toastId = toast.loading("Confirmando pagamento...");
+                    try {
+                      // 1. Atualizar status no banco
+                      const { error: updateError } = await supabase
+                        .from("orders")
+                        .update({ status: "paid" })
+                        .eq("id", order.id);
+
+                      if (updateError) throw updateError;
+
+                      // 2. Disparar entrega
+                      const { data: deliveryData, error: deliveryError } = await supabase.functions.invoke("deliver-product", {
+                        body: { orderId: order.id }
+                      });
+                      
+                      if (deliveryError) throw deliveryError;
+                      
+                      if (deliveryData?.success === false) {
+                        toast.error("Pagamento registrado, mas a entrega falhou: " + (deliveryData.message || "Erro desconhecido"), { id: toastId });
+                      } else {
+                        toast.success("Pagamento confirmado e produto entregue!", { id: toastId });
+                      }
+                      
+                      onRefresh();
+                    } catch (err: any) {
+                      toast.error("Erro ao confirmar: " + err.message, { id: toastId });
                     }
-                    
-                    onRefresh();
-                  } catch (err: any) {
-                    toast.error("Erro ao confirmar: " + err.message, { id: toastId });
-                  }
-                }}
-              >
-                <CheckCircle2 className="w-4 h-4" /> Confirmar Manualmente
-              </Button>
+                  }}
+                >
+                  <CheckCircle2 className="w-4 h-4" /> Confirmar Manualmente
+                </Button>
+              )}
             </div>
           </div>
         )}

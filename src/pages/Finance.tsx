@@ -275,7 +275,7 @@ const Finance = () => {
                 <p style="margin: 0; font-size: 14px;"><strong>E-mail:</strong> ${user.email}</p>
               </div>
               <div style="text-align: center;">
-                <a href="${window.location.origin}/admin/users" style="display: inline-block; background-color: #3b82f6; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">Aceder Painel de KYC</a>
+                <a href="${window.location.origin}/admin/users?filter=pending" style="display: inline-block; background-color: #3b82f6; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">Aceder Painel de KYC</a>
               </div>
             </div>
           </div>
