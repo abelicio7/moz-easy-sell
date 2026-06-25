@@ -9,6 +9,7 @@ interface SellerProgressProps {
 
 export const SellerProgress = ({ revenue, currency = "MZN" }: SellerProgressProps) => {
   const isBrl = currency === "BRL";
+  const isZar = currency === "ZAR";
 
   const milestones = isBrl ? [
     { value: 0, label: "Iniciante", badge: "🌱", icon: Target, color: "text-slate-400", bgColor: "bg-slate-400" },
@@ -17,6 +18,13 @@ export const SellerProgress = ({ revenue, currency = "MZN" }: SellerProgressProp
     { value: 100000, label: "100K", badge: "🥇", icon: Trophy, color: "text-yellow-500", bgColor: "bg-yellow-500" },
     { value: 500000, label: "500K", badge: "🏆", icon: Crown, color: "text-indigo-500", bgColor: "bg-indigo-500" },
     { value: 1000000, label: "1 Milhão+", badge: "💎", icon: Crown, color: "text-cyan-400", bgColor: "bg-cyan-400" },
+  ] : isZar ? [
+    { value: 0, label: "Beginner", badge: "🌱", icon: Target, color: "text-slate-400", bgColor: "bg-slate-400" },
+    { value: 30000, label: "30K", badge: "🥉", icon: Star, color: "text-amber-700", bgColor: "bg-amber-700" },
+    { value: 150000, label: "150K", badge: "🥈", icon: Star, color: "text-slate-400", bgColor: "bg-slate-400" },
+    { value: 300000, label: "300K", badge: "🥇", icon: Trophy, color: "text-yellow-500", bgColor: "bg-yellow-500" },
+    { value: 1500000, label: "1.5M", badge: "🏆", icon: Crown, color: "text-indigo-500", bgColor: "bg-indigo-500" },
+    { value: 3000000, label: "3M+", badge: "💎", icon: Crown, color: "text-cyan-400", bgColor: "bg-cyan-400" },
   ] : [
     { value: 0, label: "Iniciante", badge: "🌱", icon: Target, color: "text-slate-400", bgColor: "bg-slate-400" },
     { value: 100000, label: "100K", badge: "🥉", icon: Star, color: "text-amber-700", bgColor: "bg-amber-700" },
@@ -37,15 +45,23 @@ export const SellerProgress = ({ revenue, currency = "MZN" }: SellerProgressProp
   const CurrentIcon = currentTier.icon;
 
   const formatValue = (val: number) => {
-    return isBrl 
-      ? val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 })
-      : `${val.toLocaleString('pt-MZ')} MT`;
+    if (isBrl) {
+      return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+    if (isZar) {
+      return val.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+    return `${val.toLocaleString('pt-MZ')} MT`;
   };
 
   const formatValueFull = (val: number) => {
-    return isBrl 
-      ? val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-      : `${val.toLocaleString('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MT`;
+    if (isBrl) {
+      return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+    if (isZar) {
+      return val.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' });
+    }
+    return `${val.toLocaleString('pt-MZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MT`;
   };
 
   return (
