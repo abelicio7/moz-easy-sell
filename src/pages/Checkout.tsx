@@ -95,6 +95,8 @@ const Checkout = () => {
       setProduct(productData as any);
       if (productData.currency === "BRL") {
         setForm(prev => ({ ...prev, payment_method: "pix" }));
+      } else if (productData.currency === "ZAR") {
+        setForm(prev => ({ ...prev, payment_method: "payfast" }));
       }
       setLoading(false);
 
@@ -176,7 +178,8 @@ const Checkout = () => {
     e.preventDefault();
     if (!product || submitting) return;
     const isBrl = product.currency === "BRL";
-    if (!form.name || !form.email || !form.customer_whatsapp || (!isBrl && !form.payment_phone) || (isBrl && !form.cpf)) {
+    const isZar = product.currency === "ZAR";
+    if (!form.name || !form.email || !form.customer_whatsapp || (!isBrl && !isZar && !form.payment_phone) || (isBrl && !form.cpf)) {
       toast.error("Preencha todos os campos obrigatórios.");
       return;
     }
@@ -206,11 +209,13 @@ const Checkout = () => {
           order_id: orderId,
           payment_method: form.payment_method,
           amount: product.price,
-          phone: form.payment_phone,
+          phone: form.payment_phone || form.customer_whatsapp,
           product_name: product.name,
+          product_id: product.id,
           name: form.name,
           email: form.email,
           cpf: form.cpf,
+          origin: window.location.origin
         }
       });
 
@@ -222,6 +227,16 @@ const Checkout = () => {
       if (form.payment_method === 'pix') {
         setPixQrCode(paymentData.pix_qr_code);
         setPixCopiaCola(paymentData.pix_copia_cola);
+      }
+
+      if (form.payment_method === 'payfast') {
+        const redirectUrl = paymentData.payment_url || paymentData.url || paymentData.data?.payment_url || paymentData.data?.url;
+        if (redirectUrl) {
+          window.location.href = redirectUrl;
+          return;
+        } else {
+          throw new Error("URL de redirecionamento do PayFast não recebida.");
+        }
       }
 
       setWaitingForPin(true);
@@ -358,7 +373,9 @@ const Checkout = () => {
                     <p className="text-2xl sm:text-3xl font-black text-primary tracking-tighter pt-1 sm:pt-2">
                       {product.currency === "BRL" 
                         ? product.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-                        : `${product.price.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT`}
+                        : product.currency === "ZAR"
+                          ? product.price.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })
+                          : `${product.price.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT`}
                     </p>
                   </div>
                 </div>
@@ -492,6 +509,22 @@ const Checkout = () => {
                             </div>
                           </div>
                         </label>
+                      ) : product?.currency === "ZAR" ? (
+                        <label
+                          htmlFor="payfast"
+                          className={`relative overflow-hidden col-span-2 flex items-center gap-2 rounded-xl p-3 cursor-pointer transition-all bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white hover:scale-[1.01] shadow-lg ring-2 ring-primary/20 opacity-100`}
+                        >
+                          <RadioGroupItem value="payfast" id="payfast" className="w-3 h-3 border-white text-white fill-white" />
+                          <div className="flex items-center gap-3 flex-1">
+                            <div className="w-12 h-8 rounded-lg flex items-center justify-center bg-white p-1.5 shadow-sm border border-slate-100 shrink-0">
+                              <span className="text-xs font-bold text-orange-600 font-sans tracking-tighter">PayFast</span>
+                            </div>
+                            <div>
+                              <p className="font-bold text-white text-[12px] leading-tight">PayFast</p>
+                              <p className="text-[9px] text-white/80 leading-none">Cartão de Crédito / Instant EFT</p>
+                            </div>
+                          </div>
+                        </label>
                       ) : (
                         <>
                           <label
@@ -564,6 +597,13 @@ const Checkout = () => {
                             Necessário para emissão e confirmação do Pix no Banco Central.
                           </p>
                         </div>
+                      ) : product?.currency === "ZAR" ? (
+                        <div className="space-y-1.5 p-4 bg-muted/30 rounded-xl border border-border text-center">
+                          <p className="text-sm font-semibold text-foreground">Redirecionamento Seguro</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Você será redirecionado para a página segura do PayFast para concluir o pagamento de <strong>R {product.price.toFixed(2)}</strong>.
+                          </p>
+                        </div>
                       ) : (
                         <div className="space-y-1.5">
                           <Label className="text-xs text-muted-foreground flex items-center justify-between uppercase tracking-wider font-bold">
@@ -593,9 +633,11 @@ const Checkout = () => {
                       className={`w-full h-16 text-white font-black text-xl rounded-xl transition-all duration-500 hover:scale-[1.01] active:scale-[0.98] group relative overflow-hidden shadow-2xl ${
                         form.payment_method === 'pix'
                           ? 'bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] hover:shadow-[#3b82f6]/40'
-                          : form.payment_method === 'mpesa' 
-                            ? 'bg-gradient-to-r from-[#E51B24] to-[#8A0A12] hover:shadow-[#E51B24]/40' 
-                            : 'bg-gradient-to-r from-[#F57C00] to-[#b34700] hover:shadow-[#F57C00]/40'
+                          : form.payment_method === 'payfast'
+                            ? 'bg-gradient-to-r from-[#f97316] to-[#ea580c] hover:shadow-[#f97316]/40'
+                            : form.payment_method === 'mpesa' 
+                              ? 'bg-gradient-to-r from-[#E51B24] to-[#8A0A12] hover:shadow-[#E51B24]/40' 
+                              : 'bg-gradient-to-r from-[#F57C00] to-[#b34700] hover:shadow-[#F57C00]/40'
                       }`}
                       onClick={handleSubmit}
                       disabled={submitting}

@@ -29,6 +29,9 @@ const formatWithdrawalAmount = (amount: number, wCurrency?: string) => {
   if (curr === "BRL") {
     return amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
+  if (curr === "ZAR") {
+    return amount.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' });
+  }
   return `${amount.toFixed(2)} MT`;
 };
 

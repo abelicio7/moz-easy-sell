@@ -34,7 +34,7 @@ interface SavedMethod {
 
 const Finance = () => {
   const { user } = useAuth();
-  const [currency, setCurrency] = useState<"MZN" | "BRL">("MZN");
+  const [currency, setCurrency] = useState<"MZN" | "BRL" | "ZAR">("MZN");
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [savedMethods, setSavedMethods] = useState<SavedMethod[]>([]);
   const [orders, setOrders] = useState<{ price: number; currency: string }[]>([]);
@@ -57,7 +57,7 @@ const Finance = () => {
   const [submitting, setSubmitting] = useState(false);
   const [customFee, setCustomFee] = useState<number | null>(null);
 
-  const WITHDRAWAL_FEE_PERCENT = customFee !== null ? customFee / 100 : (currency === "BRL" ? 0.08 : 0.12);
+  const WITHDRAWAL_FEE_PERCENT = customFee !== null ? customFee / 100 : (currency === "BRL" ? 0.08 : currency === "ZAR" ? 0.10 : 0.12);
 
   useEffect(() => {
     if (!user) return;
@@ -173,6 +173,8 @@ const Finance = () => {
     const filtered = savedMethods.filter(m => {
       if (currency === "BRL") {
         return m.method_type === "Pix" || m.method_type === "Transferência Bancária";
+      } else if (currency === "ZAR") {
+        return m.method_type === "EFT";
       } else {
         return m.method_type === "M-Pesa" || m.method_type === "E-Mola";
       }
@@ -210,6 +212,8 @@ const Finance = () => {
   const formatCurrency = (val: number) => {
     if (currency === "BRL") {
       return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    } else if (currency === "ZAR") {
+      return val.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' });
     }
     return `${val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MT`;
   };
@@ -218,6 +222,8 @@ const Finance = () => {
     const curr = wCurrency || "MZN";
     if (curr === "BRL") {
       return val.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    } else if (curr === "ZAR") {
+      return val.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' });
     }
     return `${val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MT`;
   };
@@ -360,8 +366,8 @@ const Finance = () => {
   const handleWithdrawalRequest = async () => {
     if (!user) return;
     
-    const minAmount = currency === "BRL" ? 50 : 500;
-    const currencySymbol = currency === "BRL" ? "R$" : "MT";
+    const minAmount = currency === "BRL" ? 50 : currency === "ZAR" ? 150 : 500;
+    const currencySymbol = currency === "BRL" ? "R$" : currency === "ZAR" ? "R" : "MT";
 
     if (!numAmount || numAmount < minAmount) {
       toast.error(`O valor mínimo para saque é de ${currencySymbol} ${minAmount}.`);
@@ -489,7 +495,7 @@ const Finance = () => {
         
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full md:w-auto">
           {/* Currency Switcher */}
-          <div className="flex bg-muted/65 p-1.5 rounded-2xl border border-border/50 shrink-0">
+          <div className="flex bg-muted/65 p-1.5 rounded-2xl border border-border/50 shrink-0 gap-1">
             <button
               onClick={() => setCurrency("MZN")}
               className={`py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
@@ -510,12 +516,22 @@ const Finance = () => {
             >
               Brasil (BRL)
             </button>
+            <button
+              onClick={() => setCurrency("ZAR")}
+              className={`py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
+                currency === "ZAR"
+                  ? "bg-primary text-white shadow-lg"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              África do Sul (ZAR)
+            </button>
           </div>
 
           <Dialog open={modalOpen} onOpenChange={(open) => {
             if (open) {
-              const minVal = currency === "BRL" ? 50 : 500;
-              const unitSymbol = currency === "BRL" ? "R$" : "MT";
+              const minVal = currency === "BRL" ? 50 : currency === "ZAR" ? 150 : 500;
+              const unitSymbol = currency === "BRL" ? "R$" : currency === "ZAR" ? "R" : "MT";
               if (totalRevenue === 0) {
                 toast.error("🔒 Faça pelo menos uma venda para poder registar as suas informações de saque.");
                 return;
@@ -550,17 +566,17 @@ const Finance = () => {
               
               <div className="space-y-6 py-4">
                 <div className="space-y-2">
-                  <Label>Valor do Saque ({currency === "BRL" ? "R$" : "MT"})</Label>
+                  <Label>Valor do Saque ({currency === "BRL" ? "R$" : currency === "ZAR" ? "R" : "MT"})</Label>
                   <div className="relative">
                      <Input 
                       type="number"
-                      placeholder={currency === "BRL" ? "Min: R$ 50" : "Min: 500 MT"} 
+                      placeholder={currency === "BRL" ? "Min: R$ 50" : currency === "ZAR" ? "Min: R 150" : "Min: 500 MT"} 
                       value={amount}
                       onChange={(e) => setAmount(e.target.value)}
                       className="pr-16 text-lg font-bold"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">
-                      {currency === "BRL" ? "R$" : "MT"}
+                      {currency === "BRL" ? "R$" : currency === "ZAR" ? "R" : "MT"}
                     </div>
                   </div>
                   {numAmount > 0 && (
@@ -594,6 +610,8 @@ const Finance = () => {
                           .filter(m => {
                             if (currency === "BRL") {
                               return m.method_type === "Pix" || m.method_type === "Transferência Bancária";
+                            } else if (currency === "ZAR") {
+                              return m.method_type === "EFT";
                             } else {
                               return m.method_type === "M-Pesa" || m.method_type === "E-Mola";
                             }
@@ -621,6 +639,10 @@ const Finance = () => {
                                 <SelectItem value="Pix">Pix</SelectItem>
                                 <SelectItem value="Transferência Bancária">Transferência Bancária</SelectItem>
                               </>
+                            ) : currency === "ZAR" ? (
+                              <>
+                                <SelectItem value="EFT">EFT (Transferência Bancária)</SelectItem>
+                              </>
                             ) : (
                               <>
                                 <SelectItem value="M-Pesa">M-Pesa</SelectItem>
@@ -636,13 +658,17 @@ const Finance = () => {
                           <Label className="text-xs">
                             {currency === "BRL" 
                               ? (paymentMethod === "Pix" ? "Chave Pix" : "Agência / Conta")
-                              : "Número"
+                              : currency === "ZAR"
+                                ? "Dados Bancários"
+                                : "Número"
                             }
                           </Label>
                           <Input 
                             placeholder={currency === "BRL" 
                               ? (paymentMethod === "Pix" ? "CPF, E-mail, Celular..." : "Agência e Conta")
-                              : "84/85..."
+                              : currency === "ZAR"
+                                ? "Banco, Agência e Conta"
+                                : "84/85..."
                             } 
                             value={paymentDetails}
                             onChange={(e) => setPaymentDetails(e.target.value)}
@@ -651,7 +677,7 @@ const Finance = () => {
                         </div>
                         <div className="space-y-2">
                           <Label className="text-xs">
-                            {currency === "BRL" ? "Nome do Beneficiário" : "Titular da Conta"}
+                            {currency === "BRL" ? "Nome do Beneficiário" : currency === "ZAR" ? "Titular da Conta" : "Titular da Conta"}
                           </Label>
                           <Input 
                             placeholder="Nome completo" 
@@ -697,7 +723,7 @@ const Finance = () => {
                 Para garantir a segurança dos seus fundos, novos vendedores ou contas não verificadas precisam enviar um <strong>Documento de Identidade</strong> (BI ou Passaporte) antes de realizar o primeiro saque.
                 <br/><br/>
                 <span className="text-destructive font-semibold">
-                  Atenção: O nome no documento deve coincidir com o nome do titular da conta de destino ({currency === "BRL" ? "Pix ou Conta Bancária" : "M-Pesa ou E-Mola"}) escolhida para o saque.
+                  Atenção: O nome no documento deve coincidir com o nome do titular da conta de destino ({currency === "BRL" ? "Pix ou Conta Bancária" : currency === "ZAR" ? "EFT" : "M-Pesa ou E-Mola"}) escolhida para o saque.
                 </span>
               </DialogDescription>
             </DialogHeader>
@@ -808,13 +834,15 @@ const Finance = () => {
                   {savedMethods.filter(m => {
                     if (currency === "BRL") {
                       return m.method_type === "Pix" || m.method_type === "Transferência Bancária";
+                    } else if (currency === "ZAR") {
+                      return m.method_type === "EFT";
                     } else {
                       return m.method_type === "M-Pesa" || m.method_type === "E-Mola";
                     }
                   }).length === 0 ? (
                     <div className="py-8 text-center border-2 border-dashed border-border rounded-2xl bg-muted/20">
                       <p className="text-xs text-muted-foreground max-w-[220px] mx-auto leading-normal">
-                        Nenhum método de saque salvo para {currency === "BRL" ? "Brasil" : "Moçambique"}. Adicione um método ao solicitar seu próximo saque.
+                        Nenhum método de saque salvo para {currency === "BRL" ? "Brasil" : currency === "ZAR" ? "África do Sul" : "Moçambique"}. Adicione um método ao solicitar seu próximo saque.
                       </p>
                     </div>
                   ) : (
@@ -823,6 +851,8 @@ const Finance = () => {
                         .filter(m => {
                           if (currency === "BRL") {
                             return m.method_type === "Pix" || m.method_type === "Transferência Bancária";
+                          } else if (currency === "ZAR") {
+                            return m.method_type === "EFT";
                           } else {
                             return m.method_type === "M-Pesa" || m.method_type === "E-Mola";
                           }
@@ -831,6 +861,7 @@ const Finance = () => {
                           const isMpesa = m.method_type.toLowerCase().includes("pesa");
                           const isEmola = m.method_type.toLowerCase().includes("mola");
                           const isPix = m.method_type.toLowerCase().includes("pix");
+                          const isEft = m.method_type.toLowerCase().includes("eft");
                           
                           return (
                             <div 
@@ -842,7 +873,9 @@ const Finance = () => {
                                     ? 'bg-gradient-to-br from-[#F57C00] to-[#b34700]'
                                     : isPix
                                       ? 'bg-gradient-to-br from-[#00bfa5] to-[#00796b]'
-                                      : 'bg-gradient-to-br from-slate-700 to-slate-800'
+                                      : isEft
+                                        ? 'bg-gradient-to-br from-[#005c53] to-[#042940]'
+                                        : 'bg-gradient-to-br from-slate-700 to-slate-800'
                               }`}
                             >
                               {/* Virtual chip decoration */}
@@ -900,7 +933,7 @@ const Finance = () => {
                     <li><strong className="text-foreground/80">Taxa Administrativa:</strong> {(WITHDRAWAL_FEE_PERCENT * 100).toFixed(0)}% fixo por saque</li>
                     <li>
                       <strong className="text-foreground/80">Canais suportados:</strong>{" "}
-                      {currency === "BRL" ? "Pix e Transferência Bancária" : "M-Pesa e E-Mola"}
+                      {currency === "BRL" ? "Pix e Transferência Bancária" : currency === "ZAR" ? "EFT (Transferência Bancária)" : "M-Pesa e E-Mola"}
                     </li>
                   </ul>
                   <div className="space-y-1 pt-2 border-t border-border/50">

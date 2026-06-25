@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const { order_id, amount, phone, payment_method, name, email, cpf, product_name } = await req.json()
+    const { order_id, amount, phone, payment_method, name, email, cpf, product_name, product_id, origin } = await req.json()
     
     // MERCADO PAGO PIX PAYMENT PROCESS
     if (payment_method === 'pix') {
@@ -91,16 +91,12 @@ serve(async (req) => {
       )
     }
 
-    // MOZAMBIQUE LOCAL PAYMENT PROCESS (MPESA / EMOLA)
-    // SANITIZE PHONE: Remove +258 and non-digits
-    const cleanPhone = phone.replace(/\D/g, '').replace(/^258/, '')
-    
-    console.log(`Processing payment for order ${order_id}, amount ${amount}, phone ${cleanPhone}, method ${payment_method}`)
-
+    // MOZAMBIQUE LOCAL & RAND PAYFAST PAYMENT PROCESS (DEBITO ORQUESTRADOR)
     const DEBITO_API_KEY = Deno.env.get('DEBITO_API_KEY')
     const MERCHANT_ID = Deno.env.get('DEBITO_MERCHANT_ID')
     const WALLET_EMOLA = Deno.env.get('DEBITO_WALLET_EMOLA')
     const WALLET_MPESA = Deno.env.get('DEBITO_WALLET_MPESA')
+    const WALLET_PAYFAST = Deno.env.get('DEBITO_WALLET_PAYFAST')
     
     const DEBITO_BASE_URL = "https://gyqoaningqhurhvdugne.supabase.co/functions/v1"
 
@@ -108,31 +104,50 @@ serve(async (req) => {
       throw new Error('DEBITO configuration missing in Supabase Secrets')
     }
 
-    const walletCode = payment_method === 'emola' ? WALLET_EMOLA : WALLET_MPESA
+    let walletCode = ""
+    let currency = "MZN"
+    
+    if (payment_method === 'payfast') {
+      walletCode = WALLET_PAYFAST || ""
+      currency = "ZAR"
+    } else {
+      walletCode = payment_method === 'emola' ? WALLET_EMOLA || "" : WALLET_MPESA || ""
+    }
 
     if (!walletCode) {
       throw new Error(`Wallet code not configured for ${payment_method}`)
     }
 
+    const cleanPhone = phone ? phone.replace(/\D/g, '').replace(/^258/, '') : ""
+    
+    console.log(`Processing payment for order ${order_id}, amount ${amount}, phone ${cleanPhone}, method ${payment_method}, currency ${currency}`)
+
     // 1. Call Débito Payment Orchestrator with EXACT documentation fields
+    const paymentBody: any = {
+      action: "process",
+      payment_method: payment_method, // EXACT field name from docs
+      merchant_id: MERCHANT_ID,
+      wallet_code: walletCode,
+      amount: Number(amount),
+      currency: currency,
+      phone: cleanPhone, // Use sanitized phone
+      source: "gateway",
+      source_id: order_id,
+      external_reference: order_id
+    }
+
+    if (payment_method === 'payfast' && origin && product_id) {
+      paymentBody.return_url = `${origin}/thank-you?order_id=${order_id}&product_id=${product_id}&amount=${amount}`
+      paymentBody.cancel_url = `${origin}/checkout/${product_id}`
+    }
+
     const response = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${DEBITO_API_KEY}`
       },
-      body: JSON.stringify({
-        action: "process",
-        payment_method: payment_method, // EXACT field name from docs
-        merchant_id: MERCHANT_ID,
-        wallet_code: walletCode,
-        amount: Number(amount),
-        currency: "MZN",
-        phone: cleanPhone, // Use sanitized phone
-        source: "gateway",
-        source_id: order_id,
-        external_reference: order_id
-      })
+      body: JSON.stringify(paymentBody)
     })
 
     const debitoData = await response.json()
@@ -180,6 +195,7 @@ serve(async (req) => {
       .from('orders')
       .update({ 
         debito_reference: String(debitoRef),
+        currency: currency,
         status: 'pending'
       })
       .eq('id', order_id)

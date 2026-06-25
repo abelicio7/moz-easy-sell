@@ -46,7 +46,7 @@ const AdminUsers = () => {
   const [sellerProducts, setSellerProducts] = useState<any[]>([]);
   const [sellerOrders, setSellerOrders] = useState<any[]>([]);
   const [sellerWithdrawals, setSellerWithdrawals] = useState<any[]>([]);
-  const [sellerStats, setSellerStats] = useState({ revenueMzn: 0, revenueBrl: 0, salesCount: 0 });
+  const [sellerStats, setSellerStats] = useState({ revenueMzn: 0, revenueBrl: 0, revenueZar: 0, salesCount: 0 });
   const [loadingDetails, setLoadingDetails] = useState(false);
 
   const [editStatus, setEditStatus] = useState<string>("approved");
@@ -116,9 +116,11 @@ const AdminUsers = () => {
       const paidOrds = ordersList.filter(o => ["paid", "delivered"].includes(o.status));
       const revenueMzn = paidOrds.filter(o => o.currency === "MZN" || !o.currency).reduce((s, o) => s + Number(o.price), 0);
       const revenueBrl = paidOrds.filter(o => o.currency === "BRL").reduce((s, o) => s + Number(o.price), 0);
+      const revenueZar = paidOrds.filter(o => o.currency === "ZAR").reduce((s, o) => s + Number(o.price), 0);
       setSellerStats({
         revenueMzn,
         revenueBrl,
+        revenueZar,
         salesCount: paidOrds.length
       });
     } catch (e) {
@@ -542,7 +544,7 @@ const AdminUsers = () => {
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">%</div>
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-1">
-                  Deixe vazio para usar a taxa padrão da plataforma (12% MZN / 8% BRL).
+                  Deixe vazio para usar a taxa padrão da plataforma (12% MZN / 8% BRL / 10% ZAR).
                 </p>
               </div>
 
@@ -566,7 +568,7 @@ const AdminUsers = () => {
 
                   {/* Aba Resumo */}
                   <TabsContent value="overview" className="space-y-4 mt-4">
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       <div className="p-4 bg-muted/30 border border-border/50 rounded-xl">
                         <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Vendas Legítimas</span>
                         <div className="text-xl font-black text-foreground flex items-center gap-1">
@@ -584,6 +586,12 @@ const AdminUsers = () => {
                         <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Receita BRL</span>
                         <div className="text-xl font-black text-primary truncate" title={`R$ ${sellerStats.revenueBrl.toFixed(2)}`}>
                           R$ {sellerStats.revenueBrl.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                        </div>
+                      </div>
+                      <div className="p-4 bg-muted/30 border border-border/50 rounded-xl">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Receita ZAR</span>
+                        <div className="text-xl font-black text-primary truncate" title={`R ${sellerStats.revenueZar.toFixed(2)}`}>
+                          R {sellerStats.revenueZar.toLocaleString('en-ZA', { minimumFractionDigits: 0 })}
                         </div>
                       </div>
                     </div>
@@ -619,7 +627,7 @@ const AdminUsers = () => {
                           </div>
                           <div className="text-right">
                             <p className="font-bold text-primary">
-                              {p.currency === "BRL" ? `R$ ${Number(p.price).toFixed(2)}` : `${Number(p.price).toFixed(2)} MT`}
+                              {p.currency === "BRL" ? `R$ ${Number(p.price).toFixed(2)}` : p.currency === "ZAR" ? `R ${Number(p.price).toFixed(2)}` : `${Number(p.price).toFixed(2)} MT`}
                             </p>
                             <Badge className={p.status === "approved" ? "bg-green-500/10 text-green-600 hover:bg-green-500/10 border-0" : "bg-orange-500/10 text-orange-600 hover:bg-orange-500/10 border-0"}>
                               {p.status}
@@ -643,7 +651,7 @@ const AdminUsers = () => {
                           </div>
                           <div className="text-right">
                             <p className="font-bold text-primary">
-                              {o.currency === "BRL" ? `R$ ${Number(o.price).toFixed(2)}` : `${Number(o.price).toFixed(2)} MT`}
+                              {o.currency === "BRL" ? `R$ ${Number(o.price).toFixed(2)}` : o.currency === "ZAR" ? `R ${Number(o.price).toFixed(2)}` : `${Number(o.price).toFixed(2)} MT`}
                             </p>
                             <Badge className={["paid", "delivered"].includes(o.status) ? "bg-green-500/10 text-green-600 hover:bg-green-500/10 border-0" : "bg-red-500/10 text-red-600 hover:bg-red-500/10 border-0"}>
                               {o.status}
@@ -667,7 +675,7 @@ const AdminUsers = () => {
                           </div>
                           <div className="text-right">
                             <p className="font-bold text-primary">
-                              {w.currency === "BRL" ? `R$ ${Number(w.amount).toFixed(2)}` : `${Number(w.amount).toFixed(2)} MT`}
+                              {w.currency === "BRL" ? `R$ ${Number(w.amount).toFixed(2)}` : w.currency === "ZAR" ? `R ${Number(w.amount).toFixed(2)}` : `${Number(w.amount).toFixed(2)} MT`}
                             </p>
                             <Badge className={w.status === "completed" ? "bg-green-500/10 text-green-600 hover:bg-green-500/10 border-0" : w.status === "pending" ? "bg-orange-500/10 text-orange-600 hover:bg-orange-500/10 border-0" : "bg-red-500/10 text-red-600 hover:bg-red-500/10 border-0"}>
                               {w.status}

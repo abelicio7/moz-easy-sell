@@ -264,7 +264,7 @@ const NewProduct = () => {
             </div>
             <div className="space-y-2">
               <Label>Moeda *</Label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => setForm({ ...form, currency: "MZN" })}
@@ -274,7 +274,7 @@ const NewProduct = () => {
                       : "border-border bg-card text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Moçambique (MZN)
+                  MZN
                 </button>
                 <button
                   type="button"
@@ -285,14 +285,25 @@ const NewProduct = () => {
                       : "border-border bg-card text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  Brasil (BRL)
+                  BRL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, currency: "ZAR" })}
+                  className={`py-2.5 px-3 rounded-xl border text-center transition-all text-xs font-bold uppercase ${
+                    form.currency === "ZAR"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-card text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  ZAR
                 </button>
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Preço ({form.currency === "BRL" ? "R$" : "MT"}) *</Label>
-              <Input type="number" min="0" step="0.01" placeholder={form.currency === "BRL" ? "50.00" : "150.00"} value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required />
+              <Label>Preço ({form.currency === "BRL" ? "R$" : form.currency === "ZAR" ? "R" : "MT"}) *</Label>
+              <Input type="number" min="0" step="0.01" placeholder={form.currency === "BRL" ? "50.00" : form.currency === "ZAR" ? "199.00" : "150.00"} value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required />
             </div>
             <div className="space-y-3">
               <Label>Tipo de entrega *</Label>

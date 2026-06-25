@@ -22,7 +22,7 @@ interface Transaction {
 const Sales = () => {
   const { user } = useAuth();
   const [rawTransactions, setRawTransactions] = useState<Transaction[]>([]);
-  const [currency, setCurrency] = useState<"MZN" | "BRL">("MZN");
+  const [currency, setCurrency] = useState<"MZN" | "BRL" | "ZAR">("MZN");
   const [loading, setLoading] = useState(true);
 
   const transactions = useMemo(() => {
@@ -94,7 +94,7 @@ const Sales = () => {
           </div>
 
           {/* Currency Switcher */}
-          <div className="flex bg-muted/65 p-1.5 rounded-2xl border border-border/50 shrink-0">
+          <div className="flex bg-muted/65 p-1.5 rounded-2xl border border-border/50 shrink-0 gap-1">
             <button
               onClick={() => setCurrency("MZN")}
               className={`py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
@@ -114,6 +114,16 @@ const Sales = () => {
               }`}
             >
               Brasil (BRL)
+            </button>
+            <button
+              onClick={() => setCurrency("ZAR")}
+              className={`py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
+                currency === "ZAR"
+                  ? "bg-primary text-white shadow-lg"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              África do Sul (ZAR)
             </button>
           </div>
         </div>
@@ -144,6 +154,8 @@ const Sales = () => {
                   <p className="text-4xl font-black text-foreground tracking-tighter">
                     {currency === "BRL"
                       ? totalBilling.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                      : currency === "ZAR"
+                      ? totalBilling.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })
                       : totalBilling.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}
                   </p>
                   <div className="flex items-center gap-2 mt-4 text-[10px] font-bold text-muted-foreground uppercase">
@@ -241,10 +253,12 @@ const Sales = () => {
                         <p className="text-xl font-black tracking-tighter text-foreground">
                           {currency === "BRL" 
                             ? t.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                            : currency === "ZAR"
+                            ? t.amount.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })
                             : `${t.amount.toFixed(2)} MT`}
                         </p>
                         <p className="text-[10px] text-muted-foreground font-bold uppercase flex items-center justify-end gap-1">
-                          {t.payment_method || (currency === 'BRL' ? 'Pix' : 'M-PESA')} <ArrowUpRight className="w-3 h-3" />
+                          {t.payment_method || (currency === 'BRL' ? 'Pix' : currency === 'ZAR' ? 'PayFast' : 'M-PESA')} <ArrowUpRight className="w-3 h-3" />
                         </p>
                       </div>
                     </CardContent>

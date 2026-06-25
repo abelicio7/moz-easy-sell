@@ -47,7 +47,7 @@ const Dashboard = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [rawOrders, setRawOrders] = useState<any[]>([]);
   const [rawWithdrawals, setRawWithdrawals] = useState<any[]>([]);
-  const [currency, setCurrency] = useState<"MZN" | "BRL">("MZN");
+  const [currency, setCurrency] = useState<"MZN" | "BRL" | "ZAR">("MZN");
   const [timeRange, setTimeRange] = useState<7 | 15 | 30>(15);
   const [loading, setLoading] = useState(true);
 
@@ -73,17 +73,22 @@ const Dashboard = () => {
     const filteredWithdrawals = rawWithdrawals.filter(w => (w.currency || "MZN") === currency);
     const filteredProductsCount = products.filter(p => (p.currency || "MZN") === currency).length;
 
-    // Cross-border opposite currency stats
-    const oppositeCurrency = currency === "MZN" ? "BRL" : "MZN";
-    const oppositeOrders = rawOrders.filter(o => (o.currency || "MZN") === oppositeCurrency);
-    const oppositeRevenue = oppositeOrders
-      .filter((o: any) => ["paid", "delivered"].includes(o.status))
-      .reduce((sum: number, o: any) => sum + Number(o.price), 0);
+    // Cross-border opposite currencies stats
+    const oppositeSales = ["MZN", "BRL", "ZAR"]
+      .filter(c => c !== currency)
+      .map(c => {
+        const amount = rawOrders
+          .filter(o => (o.currency || "MZN") === c && ["paid", "delivered"].includes(o.status))
+          .reduce((sum: number, o: any) => sum + Number(o.price), 0);
+        return { currency: c, amount };
+      })
+      .filter(s => s.amount > 0);
 
     const methodStats = filteredOrders.reduce((acc: any, order: any) => {
       const method = order.payment_method || 'Outro';
       const cleanMethod = 
         method.toLowerCase() === 'pix' ? 'Pix' : 
+        method.toLowerCase() === 'payfast' ? 'PayFast' : 
         (method.toLowerCase() === 'mpesa' || method.toLowerCase() === 'm-pesa') ? 'M-Pesa' : 
         (method.toLowerCase() === 'emola' || method.toLowerCase() === 'e-mola') ? 'E-Mola' : 
         method;
@@ -199,7 +204,7 @@ const Dashboard = () => {
       revenueAllTime: totalNetEarningsAllTime,
       availableBalance,
       methodStats,
-      oppositeRevenue,
+      oppositeSales,
       timelineData,
       recentActivities,
       revenueGrowth,
@@ -224,7 +229,7 @@ const Dashboard = () => {
         </div>
 
         {/* Currency Switcher */}
-        <div className="flex bg-muted/65 p-1.5 rounded-2xl border border-border/50 shrink-0">
+        <div className="flex bg-muted/65 p-1.5 rounded-2xl border border-border/50 shrink-0 gap-1">
           <button
             onClick={() => setCurrency("MZN")}
             className={`py-2 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
@@ -233,7 +238,7 @@ const Dashboard = () => {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Moçambique (MZN)
+            MZN
           </button>
           <button
             onClick={() => setCurrency("BRL")}
@@ -243,14 +248,24 @@ const Dashboard = () => {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Brasil (BRL)
+            BRL
+          </button>
+          <button
+            onClick={() => setCurrency("ZAR")}
+            className={`py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${
+              currency === "ZAR"
+                ? "bg-primary text-white shadow-lg"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            ZAR
           </button>
         </div>
       </div>
 
 
       {/* Multicurrency Cross-Border Summary Banner */}
-      {stats.oppositeRevenue > 0 && (
+      {stats.oppositeSales.length > 0 && (
         <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-500/25 flex items-center justify-between gap-4 animate-in fade-in duration-300">
           <div className="flex items-center gap-3">
             <span className="text-xl sm:text-2xl">🌍</span>
@@ -259,23 +274,23 @@ const Dashboard = () => {
                 Vendas Cruzadas Ativas
               </p>
               <div className="text-xs text-muted-foreground mt-0.5">
-                {currency === "MZN" ? (
-                  <>Você também acumulou <span className="font-bold text-foreground">{stats.oppositeRevenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span> em vendas para o Brasil 🇧🇷</>
-                ) : (
-                  <>Você também acumulou <span className="font-bold text-foreground">{stats.oppositeRevenue.toLocaleString('pt-MZ', { style: 'currency', currency: 'MZN' })}</span> em vendas locais em Moçambique 🇲🇿</>
-                )}
+                Você também acumulou vendas em outras moedas:{" "}
+                {stats.oppositeSales.map((s, idx) => {
+                  const formatted = s.currency === "BRL" 
+                    ? s.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                    : s.currency === "ZAR"
+                      ? s.amount.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })
+                      : `${s.amount.toLocaleString('pt-MZ', { minimumFractionDigits: 2 })} MT`;
+                  return (
+                    <span key={s.currency}>
+                      {idx > 0 && ", "}
+                      <span className="font-bold text-foreground">{formatted}</span> ({s.currency})
+                    </span>
+                  );
+                })}
               </div>
             </div>
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 hover:bg-emerald-500/10 shrink-0 gap-1"
-            onClick={() => setCurrency(currency === "MZN" ? "BRL" : "MZN")}
-          >
-            Ver Detalhes
-            <ArrowUpRight className="w-3.5 h-3.5" />
-          </Button>
         </div>
       )}
 
@@ -340,7 +355,9 @@ const Dashboard = () => {
                   <p className="text-2xl font-black text-foreground tracking-tight">
                     {currency === "BRL" 
                       ? stats.revenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 })
-                      : `${stats.revenue.toFixed(0)} MT`}
+                      : currency === "ZAR"
+                        ? stats.revenue.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                        : `${stats.revenue.toFixed(0)} MT`}
                   </p>
                   <p className="text-xs text-muted-foreground font-medium">Faturamento ({timeRange}D)</p>
                 </div>
@@ -371,7 +388,9 @@ const Dashboard = () => {
                   <p className="text-2xl font-black text-foreground tracking-tight">
                     {currency === "BRL" 
                       ? stats.availableBalance.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 })
-                      : `${stats.availableBalance.toFixed(0)} MT`}
+                      : currency === "ZAR"
+                        ? stats.availableBalance.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR', minimumFractionDigits: 0, maximumFractionDigits: 0 })
+                        : `${stats.availableBalance.toFixed(0)} MT`}
                   </p>
                   <p className="text-xs text-muted-foreground font-medium">Saldo Disponível</p>
                 </div>
@@ -572,11 +591,13 @@ const Dashboard = () => {
                     <p className="text-xs font-bold text-foreground">
                       {act.currency === "BRL" 
                         ? act.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-                        : `${act.price.toFixed(0)} MT`}
+                        : act.currency === "ZAR"
+                          ? act.price.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })
+                          : `${act.price.toFixed(0)} MT`}
                     </p>
                     <div className="flex items-center gap-1.5 justify-end mt-0.5">
                       <span className="text-[9px] font-medium text-muted-foreground">
-                        {act.currency === "BRL" ? "🇧🇷 BRL" : "🇲🇿 MZN"}
+                        {act.currency === "BRL" ? "🇧🇷 BRL" : act.currency === "ZAR" ? "🇿🇦 ZAR" : "🇲🇿 MZN"}
                       </span>
                       <span className={`w-1.5 h-1.5 rounded-full ${
                         ["paid", "delivered"].includes(act.status) ? "bg-emerald-500" : "bg-amber-500 animate-pulse"
@@ -605,7 +626,9 @@ const Dashboard = () => {
                       ? 'bg-gradient-to-br from-[#F57C00] to-[#b34700]' 
                       : method.toLowerCase() === 'pix'
                         ? 'bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8]'
-                        : 'bg-gradient-to-br from-primary to-primary/80'
+                        : method.toLowerCase() === 'payfast'
+                          ? 'bg-gradient-to-br from-[#f97316] to-[#ea580c]'
+                          : 'bg-gradient-to-br from-primary to-primary/80'
                 }`}
               >
                 {/* Decorative circles */}
@@ -622,6 +645,8 @@ const Dashboard = () => {
                         <img src="/emola_logo.png" alt="E-Mola" className="max-w-full max-h-full object-contain" />
                       ) : method.toLowerCase() === 'pix' ? (
                         <img src="/pix_checkout_logo.png" alt="Pix" className="max-w-full max-h-full object-contain" />
+                      ) : method.toLowerCase() === 'payfast' ? (
+                        <span className="text-base font-black text-orange-600">PayFast</span>
                       ) : (
                         <div className="text-center text-primary">
                           <Smartphone className="w-7 h-7 mx-auto mb-1" />
@@ -636,7 +661,9 @@ const Dashboard = () => {
                     <p className="text-2xl md:text-3xl font-black tracking-tight mb-1">
                       {currency === "BRL" 
                         ? data.revenue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-                        : `${data.revenue.toFixed(2)} MZN`}
+                        : currency === "ZAR"
+                          ? data.revenue.toLocaleString('en-ZA', { style: 'currency', currency: 'ZAR' })
+                          : `${data.revenue.toFixed(2)} MZN`}
                     </p>
                     <p className="text-xs font-semibold text-white/90 mb-3">
                       Total Coletado
