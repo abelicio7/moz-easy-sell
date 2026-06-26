@@ -748,7 +748,7 @@ const Finance = () => {
                     
                     <input 
                       type="file" 
-                      accept="image/*,.pdf" 
+                      accept="image/*,.heic,.heif,.pdf,.docx,.doc" 
                       onChange={(e) => setDocFile(e.target.files?.[0] || null)}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
@@ -757,7 +757,7 @@ const Finance = () => {
                       <p className="text-xs font-bold text-foreground">
                         {docFile ? docFile.name : "Clique para selecionar ou arraste o arquivo"}
                       </p>
-                      <p className="text-[10px] text-muted-foreground">Máx: 5MB • Formatos aceitos: PNG, JPG, PDF</p>
+                      <p className="text-[10px] text-muted-foreground">Máx: 5MB • Formatos aceitos: PNG, JPG, HEIC, PDF, DOC/DOCX</p>
                     </div>
                   </div>
                   <p className="text-[10px] text-muted-foreground italic text-center">O processo de aprovação do seu documento levará em média 12 a 24 horas.</p>
