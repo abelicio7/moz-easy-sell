@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Clock, Ban, User, ArrowUpRight, ArrowDownToLine, ShoppingCart, ShieldAlert } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Ban, User, ArrowUpRight, ArrowDownToLine, ShoppingCart, ShieldAlert, Search } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 
@@ -34,6 +34,17 @@ const AdminUsers = () => {
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState(initialFilter);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredUsers = users.filter(user => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      (user.full_name || "").toLowerCase().includes(query) ||
+      (user.email || "").toLowerCase().includes(query) ||
+      (user.cpf || "").toLowerCase().includes(query)
+    );
+  });
   
   // Modal states
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
@@ -315,7 +326,16 @@ const AdminUsers = () => {
           <p className="text-muted-foreground mt-1">Gerencie a aprovação de documentos e saques dos vendedores.</p>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+          <div className="relative w-full sm:w-[220px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Pesquisar vendedor..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
           <Select value={filter} onValueChange={(val) => {
             setFilter(val);
             if (val === "all") {
@@ -356,12 +376,12 @@ const AdminUsers = () => {
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center">Carregando usuários...</td>
                   </tr>
-                ) : users.length === 0 ? (
+                ) : filteredUsers.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center">Nenhum usuário encontrado.</td>
                   </tr>
                 ) : (
-                  users.map((user) => (
+                  filteredUsers.map((user) => (
                     <tr key={user.id} className={`border-b border-border/50 last:border-0 hover:bg-muted/20 ${user.identity_status === 'pending' ? 'bg-orange-500/5 dark:bg-orange-500/10' : ''}`}>
                       <td className="px-6 py-4 font-medium text-foreground">
                         <div className="flex items-center gap-2">
