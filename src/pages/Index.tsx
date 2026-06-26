@@ -27,7 +27,7 @@ const steps = [
   { 
     icon: Package, 
     title: "Crie seu produto", 
-    desc: "Em menos de 2 minutos, configure o seu curso, ebook ou mentoria e escolha a moeda (MT ou R$).",
+    desc: "Em menos de 2 minutos, configure o seu curso, ebook ou mentoria e escolha a moeda (MZN, BRL ou ZAR).",
     color: "bg-blue-500/10 text-blue-600"
   },
   { 
@@ -39,7 +39,7 @@ const steps = [
   { 
     icon: CreditCard, 
     title: "Venda local ou internacional", 
-    desc: "Moçambicanos pagam via M-Pesa/E-Mola. Brasileiros pagam via Pix. O sistema valida na hora.",
+    desc: "Moçambicanos pagam via M-Pesa/E-Mola. Brasileiros pagam via Pix. Sul-africanos pagam via PayFast. O sistema valida na hora.",
     color: "bg-red-500/10 text-red-600"
   },
   { 
@@ -53,8 +53,8 @@ const steps = [
 const features = [
   {
     icon: Globe,
-    title: "Moçambique 🇲🇿 para Brasil 🇧🇷",
-    desc: "Venda seus infoprodutos para o Brasil estando em Moçambique. Receba pagamentos via Pix direto na plataforma."
+    title: "Vendas Internacionais 🇧🇷 🇿🇦",
+    desc: "Venda seus infoprodutos para o Brasil (via Pix) e para a África do Sul (via PayFast) estando em Moçambique. Receba pagamentos direto na plataforma."
   },
   {
     icon: Zap,
@@ -64,17 +64,17 @@ const features = [
   {
     icon: ShieldCheck,
     title: "Saques Simplificados",
-    desc: "Saque suas vendas em Meticais direto para M-Pesa/E-Mola ou suas vendas em Reais para sua conta Pix."
+    desc: "Saque suas vendas em Meticais direto para M-Pesa/E-Mola, Reais para sua conta Pix ou Rands para sua conta bancária."
   },
   {
     icon: BarChart3,
     title: "Gestão Multimoeda",
-    desc: "Acompanhe seus lucros, taxas e vendas separadamente por Metical (MZN) e Real (BRL) no dashboard."
+    desc: "Acompanhe seus lucros, taxas e vendas separadamente por Metical (MZN), Real (BRL) e Rand (ZAR) no dashboard."
   }
 ];
 
 const Index = () => {
-  const [previewCurrency, setPreviewCurrency] = useState<'MZN' | 'BRL'>('MZN');
+  const [previewCurrency, setPreviewCurrency] = useState<'MZN' | 'BRL' | 'ZAR'>('MZN');
 
   return (
     <div className="min-h-screen bg-[#fafafa] dark:bg-background overflow-x-hidden">
@@ -105,6 +105,10 @@ const Index = () => {
         .animate-wave-wind-br {
           animation: waveWind 7s ease-in-out infinite;
           animation-delay: 1.2s;
+        }
+        .animate-wave-wind-za {
+          animation: waveWind 8s ease-in-out infinite;
+          animation-delay: 2.4s;
         }
       `}</style>
       
@@ -143,10 +147,22 @@ const Index = () => {
             </div>
           </div>
 
+          {/* South Africa Flag floating badge */}
+          <div className="absolute left-3 md:-left-24 top-28 md:top-60 animate-wave-wind-za z-20 pointer-events-none">
+            <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-white/20 dark:border-slate-800/40 p-2 sm:p-2.5 rounded-2xl shadow-xl flex items-center gap-2">
+              <img 
+                src="/south_africa_waving.png" 
+                alt="Bandeira da África do Sul" 
+                className="w-12 sm:w-16 md:w-20 h-auto object-contain block rounded-lg"
+              />
+              <span className="text-[9px] sm:text-xs font-black text-foreground uppercase tracking-widest hidden xs:inline">ZA</span>
+            </div>
+          </div>
+
           <div className="max-w-4xl mx-auto text-center space-y-6 md:space-y-8">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] sm:text-xs font-bold uppercase tracking-wider animate-fade-in text-center">
               <Sparkles className="w-3.5 h-3.5 animate-pulse shrink-0" />
-              NOVIDADE: Venda para o Brasil 🇧🇷 e receba em Moçambique 🇲🇿
+              NOVIDADE: Venda para Brasil 🇧🇷 e África do Sul 🇿🇦 e receba em Moçambique 🇲🇿
             </div>
             
             <h1 className="text-3xl sm:text-5xl md:text-7xl lg:text-8xl font-black tracking-tight text-foreground leading-[0.95] animate-fade-in-up">
@@ -155,7 +171,7 @@ const Index = () => {
             </h1>
             
             <p className="text-sm sm:text-base md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed animate-fade-in-up" style={{ animationDelay: "0.2s" }}>
-              Crie seu checkout profissional em minutos. Aceite pagamentos locais via <span className="text-foreground font-bold">M-Pesa e E-Mola</span> em Moçambique, e venda para o Brasil inteiro recebendo via <span className="text-emerald-500 font-bold">Pix</span>. Tudo de forma automática e integrada.
+              Crie seu checkout profissional em minutos. Aceite pagamentos locais via <span className="text-foreground font-bold">M-Pesa e E-Mola</span> em Moçambique, venda para a África do Sul via <span className="text-blue-500 font-bold">PayFast</span> (Rand) e para o Brasil via <span className="text-emerald-500 font-bold">Pix</span>. Tudo de forma automática e integrada.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>
@@ -202,6 +218,15 @@ const Index = () => {
                     className="max-w-full max-h-full object-contain block transition-transform duration-300 group-hover:scale-110" 
                   />
                 </div>
+
+                {/* PayFast logo card */}
+                <div className="bg-white dark:bg-white border-2 border-slate-100 dark:border-slate-100 p-2 sm:p-3 rounded-2xl shadow-md hover:shadow-xl hover:scale-105 hover:border-blue-500/50 hover:shadow-blue-500/5 transition-all duration-300 flex items-center justify-center w-28 sm:w-36 h-12 sm:h-16 group">
+                  <img 
+                    src="/payfast_logo.png" 
+                    alt="PayFast" 
+                    className="max-w-full max-h-full object-contain block transition-transform duration-300 group-hover:scale-110" 
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -236,7 +261,7 @@ const Index = () => {
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
-                      <span>🇲🇿</span> MT
+                      <span>🇲🇿</span> MZN
                     </button>
                     <button 
                       onClick={() => setPreviewCurrency('BRL')}
@@ -246,7 +271,17 @@ const Index = () => {
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
-                      <span>🇧🇷</span> R$
+                      <span>🇧🇷</span> BRL
+                    </button>
+                    <button 
+                      onClick={() => setPreviewCurrency('ZAR')}
+                      className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg font-bold shadow-sm flex items-center justify-center gap-1.5 transition-all ${
+                        previewCurrency === 'ZAR' 
+                          ? 'bg-white dark:bg-slate-900 text-foreground' 
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <span>🇿🇦</span> ZAR
                     </button>
                   </div>
                 </div>
@@ -256,7 +291,7 @@ const Index = () => {
                   <div className="bg-white dark:bg-slate-900 border border-border p-4 rounded-xl space-y-2 shadow-sm">
                     <p className="text-xs text-muted-foreground font-medium">Saldo Disponível</p>
                     <h3 className="text-xl sm:text-2xl font-black text-foreground">
-                      {previewCurrency === 'MZN' ? '24.850,00 MT' : 'R$ 1.840,00'}
+                      {previewCurrency === 'MZN' ? '24.850,00 MT' : previewCurrency === 'BRL' ? 'R$ 1.840,00' : 'R 5.250,00'}
                     </h3>
                     <div className="text-[10px] text-emerald-500 font-bold flex items-center gap-1">
                       <span>↑ 18.4%</span> esta semana
@@ -264,16 +299,18 @@ const Index = () => {
                   </div>
                   <div className="bg-white dark:bg-slate-900 border border-border p-4 rounded-xl space-y-2 shadow-sm">
                     <p className="text-xs text-muted-foreground font-medium">
-                      {previewCurrency === 'MZN' ? 'Saques Processados' : 'Vendas via Pix (BRL)'}
+                      {previewCurrency === 'MZN' ? 'Saques Processados' : previewCurrency === 'BRL' ? 'Vendas via Pix (BRL)' : 'Vendas via PayFast (ZAR)'}
                     </p>
                     <h3 className="text-xl sm:text-2xl font-black text-secondary">
-                      {previewCurrency === 'MZN' ? '9.450,00 MT' : 'R$ 540,00'}
+                      {previewCurrency === 'MZN' ? '9.450,00 MT' : previewCurrency === 'BRL' ? 'R$ 540,00' : 'R 1.200,00'}
                     </h3>
                     <div className="text-[10px] text-emerald-500 font-bold flex items-center gap-1">
                       {previewCurrency === 'MZN' ? (
                         <span>Enviado via E-Mola/M-Pesa</span>
-                      ) : (
+                      ) : previewCurrency === 'BRL' ? (
                         <span>Vendas internacionais ativas ⚡</span>
+                      ) : (
+                        <span>Pagamentos integrados via PayFast ⚡</span>
                       )}
                     </div>
                   </div>
@@ -317,7 +354,7 @@ const Index = () => {
                         <span className="font-bold text-red-500 text-right shrink-0">- 1.970,00 MT</span>
                       </div>
                     </>
-                  ) : (
+                  ) : previewCurrency === 'BRL' ? (
                     <>
                       <div className="flex justify-between items-center p-3 rounded-lg bg-white dark:bg-slate-900 border border-border/50 shadow-sm">
                         <div className="flex items-center gap-2">
@@ -350,6 +387,39 @@ const Index = () => {
                         <span className="font-bold text-red-500 text-right shrink-0">- R$ 50,00</span>
                       </div>
                     </>
+                  ) : (
+                    <>
+                      <div className="flex justify-between items-center p-3 rounded-lg bg-white dark:bg-slate-900 border border-border/50 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                          <div>
+                            <p className="font-bold text-foreground">Venda via PayFast (África do Sul)</p>
+                            <p className="text-[10px] text-muted-foreground">Ebook: Digital Business Blueprint</p>
+                          </div>
+                        </div>
+                        <span className="font-bold text-emerald-500 text-right shrink-0">+ R 150,00</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 rounded-lg bg-white dark:bg-slate-900 border border-border/50 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                          <div>
+                            <p className="font-bold text-foreground">Venda via PayFast (África do Sul)</p>
+                            <p className="text-[10px] text-muted-foreground">Mentoria Individual</p>
+                          </div>
+                        </div>
+                        <span className="font-bold text-emerald-500 text-right shrink-0">+ R 450,00</span>
+                      </div>
+                      <div className="flex justify-between items-center p-3 rounded-lg bg-white dark:bg-slate-900 border border-border/50 shadow-sm">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                          <div>
+                            <p className="font-bold text-foreground">Saque Rand Processado</p>
+                            <p className="text-[10px] text-muted-foreground">Transferência bancária internacional</p>
+                          </div>
+                        </div>
+                        <span className="font-bold text-red-500 text-right shrink-0">- R 300,00</span>
+                      </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -361,7 +431,7 @@ const Index = () => {
                 <span className="text-xs font-black uppercase text-secondary tracking-widest">Prova Social Real</span>
                 <h3 className="text-2xl sm:text-3xl font-black text-foreground">Notificações Reais</h3>
                 <p className="text-xs sm:text-sm text-muted-foreground">
-                  Veja capturas reais de notificações recebidas pelos vendedores da EnsinaPay tanto em Meticais quanto em Reais. Clique nas abas ao lado para ver como cada transação se destaca!
+                  Veja capturas reais de notificações recebidas pelos vendedores da EnsinaPay em Meticais (MZN), Reais (BRL) e Rands (ZAR). Clique nas abas ao lado para ver como cada transação se destaca!
                 </p>
               </div>
 
@@ -651,7 +721,7 @@ const Index = () => {
                 A sua jornada sem fronteiras <br /> <span className="bg-clip-text text-transparent bg-gradient-to-r from-secondary to-emerald-400">começa aqui.</span>
               </h2>
               <p className="text-sm sm:text-base md:text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
-                Junte-se a centenas de criadores moçambicanos que já estão a faturar localmente e vendendo para o Brasil. Receba via M-Pesa, E-Mola ou Pix com facilidade.
+                Junte-se a centenas de criadores moçambicanos que já estão a faturar localmente e vendendo para o Brasil e África do Sul. Receba via M-Pesa, E-Mola, Pix ou PayFast com facilidade.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                 <Button size="lg" className="w-full sm:w-auto h-16 px-12 text-xl font-bold bg-secondary hover:bg-secondary/90 text-white rounded-2xl transition-all hover:scale-105" asChild>
@@ -670,7 +740,7 @@ const Index = () => {
             <div className="space-y-4 text-center md:text-left">
               <Logo size="md" />
               <p className="text-sm text-muted-foreground max-w-xs">
-                A plataforma líder em vendas de infoprodutos com pagamentos locais em Moçambique e Pix no Brasil.
+                A plataforma líder em vendas de infoprodutos com pagamentos locais em Moçambique, Pix no Brasil e PayFast na África do Sul.
               </p>
               {/* Mini payment icons for footer */}
               <div className="flex items-center justify-center md:justify-start gap-3 opacity-100">
@@ -682,6 +752,9 @@ const Index = () => {
                 </div>
                 <div className="bg-white dark:bg-white p-1 rounded-lg border border-slate-100 flex items-center justify-center w-16 h-8 hover:scale-105 transition-transform shadow-sm group">
                   <img src="/pix_logo.png" alt="Pix" className="max-w-full max-h-full object-contain transition-transform group-hover:scale-110 duration-255" />
+                </div>
+                <div className="bg-white dark:bg-white p-1 rounded-lg border border-slate-100 flex items-center justify-center w-16 h-8 hover:scale-105 transition-transform shadow-sm group">
+                  <img src="/payfast_logo.png" alt="PayFast" className="max-w-full max-h-full object-contain transition-transform group-hover:scale-110 duration-255" />
                 </div>
               </div>
             </div>
