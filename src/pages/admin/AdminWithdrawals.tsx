@@ -14,6 +14,8 @@ import { CheckCircle2, XCircle, Clock, Banknote } from "lucide-react";
 interface Withdrawal {
   id: string;
   amount: number;
+  fee_amount?: number;
+  net_amount?: number;
   status: string;
   payment_method: string;
   payment_details: string;
@@ -257,8 +259,21 @@ const AdminWithdrawals = () => {
                             <div className="py-4 space-y-4">
                               <div className="bg-muted p-4 rounded-lg space-y-3">
                                 <div><span className="text-muted-foreground text-xs block">Vendedor</span><span className="font-medium text-foreground">{item.profiles?.full_name}</span></div>
-                                <div><span className="text-muted-foreground text-xs block">Valor Solicitado</span><span className="font-bold text-xl text-primary">{formatWithdrawalAmount(item.amount, item.currency)}</span></div>
-                                <div className="border-t border-border/50 pt-3 mt-3">
+                                <div className="grid grid-cols-3 gap-2 border-b border-border/50 pb-3">
+                                  <div>
+                                    <span className="text-muted-foreground text-xs block">Valor Solicitado</span>
+                                    <span className="font-bold text-sm text-foreground">{formatWithdrawalAmount(item.amount, item.currency)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground text-xs block">Taxa Cobrada</span>
+                                    <span className="font-bold text-sm text-red-500">-{formatWithdrawalAmount(item.fee_amount || 0, item.currency)}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground text-xs block">Valor Líquido</span>
+                                    <span className="font-black text-base text-emerald-600">{formatWithdrawalAmount(item.net_amount || item.amount, item.currency)}</span>
+                                  </div>
+                                </div>
+                                <div className="pt-1">
                                   <span className="text-muted-foreground text-xs block">Canal de Transferência</span>
                                   <span className="font-medium text-foreground">{item.payment_method}</span>
                                 </div>
@@ -293,7 +308,7 @@ const AdminWithdrawals = () => {
                                   {action === "approve" && (
                                     <div className="p-3 bg-green-500/10 text-green-700 rounded-lg text-sm border border-green-500/20 flex gap-2 items-start">
                                       <Banknote className="w-5 h-5 shrink-0" />
-                                      Confirme que você já efetuou a transferência de {formatWithdrawalAmount(item.amount, item.currency)} para o vendedor através do {item.payment_method}. O status mudará para concluído.
+                                      Confirme que você já efetuou a transferência de {formatWithdrawalAmount(item.net_amount || item.amount, item.currency)} (valor líquido após taxas) para o vendedor através do {item.payment_method}. O status mudará para concluído.
                                     </div>
                                   )}
                                   
