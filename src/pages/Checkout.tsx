@@ -181,7 +181,7 @@ const Checkout = () => {
               content_ids: ['${productData.id}'],
               content_type: 'product',
               value: ${productData.price},
-              currency: 'MZN'
+              currency: '${productData.currency || 'MZN'}'
             });
           `;
           

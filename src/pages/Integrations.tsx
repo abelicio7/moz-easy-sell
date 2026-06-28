@@ -163,6 +163,13 @@ const Integrations = () => {
       setSavingPixel(true);
       
       const pixelIdStr = pixelId.trim();
+      
+      if (pixelIdStr && !/^\d+$/.test(pixelIdStr)) {
+        toast.error("O ID do Pixel deve conter apenas números. Não cole links ou URLs completas.");
+        setSavingPixel(false);
+        return;
+      }
+      
       const is_active = pixelIdStr.length > 0;
       
       const existing = integrations["facebook_pixel"];
@@ -400,7 +407,10 @@ const Integrations = () => {
                         value={pixelId}
                         onChange={(e) => setPixelId(e.target.value)}
                       />
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground font-medium text-amber-600 dark:text-amber-400">
+                        Atenção: insira apenas os números do ID (ex: 860780338). Não cole links ou URLs completas.
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
                         Deixe em branco para desativar esta integração.
                       </p>
                     </div>
