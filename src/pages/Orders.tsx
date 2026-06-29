@@ -6,8 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ShoppingCart, Mail, CheckCircle2 } from "lucide-react";
+import { ShoppingCart, Mail, CheckCircle2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface Order {
   id: string;
@@ -27,6 +30,14 @@ const Orders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // State for manual client invite
+  const [sellerProducts, setSellerProducts] = useState<Array<{ id: string; name: string; currency: string }>>([]);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [inviteName, setInviteName] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [selectedProductId, setSelectedProductId] = useState("");
+  const [inviting, setInviting] = useState(false);
 
   const fetchOrders = async () => {
     if (!user) return;
@@ -49,7 +60,100 @@ const Orders = () => {
     setLoading(false);
   };
 
-  useEffect(() => { fetchOrders(); }, [user]);
+  const fetchSellerProducts = async () => {
+    if (!user) return;
+    try {
+      const { data } = await supabase
+        .from("products")
+        .select("id, name, currency")
+        .eq("user_id", user.id)
+        .order("name", { ascending: true });
+      setSellerProducts(data || []);
+    } catch (err) {
+      console.error("Erro ao carregar produtos:", err);
+    }
+  };
+
+  useEffect(() => { 
+    fetchOrders(); 
+    fetchSellerProducts();
+  }, [user]);
+
+  const handleInviteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    const email = inviteEmail.trim().toLowerCase();
+    const name = inviteName.trim() || "Cliente";
+
+    if (!email) {
+      toast.error("Por favor, insira o email do cliente.");
+      return;
+    }
+
+    if (!selectedProductId) {
+      toast.error("Por favor, selecione um produto.");
+      return;
+    }
+
+    if (!email.includes("@")) {
+      toast.error("Por favor, insira um email válido.");
+      return;
+    }
+
+    const selectedProduct = sellerProducts.find(p => p.id === selectedProductId);
+    if (!selectedProduct) {
+      toast.error("Produto selecionado não encontrado.");
+      return;
+    }
+
+    setInviting(true);
+    const toastId = toast.loading("Concedendo acesso...");
+
+    try {
+      const orderId = crypto.randomUUID();
+
+      // 1. Insert manual order
+      const { error: insertError } = await supabase.from("orders").insert({
+        id: orderId,
+        product_id: selectedProductId,
+        customer_name: name,
+        customer_email: email,
+        payment_method: "manual_invite",
+        price: 0,
+        status: "paid",
+        currency: selectedProduct.currency || "MZN",
+        tracking_parameters: { manual_invite: true }
+      });
+
+      if (insertError) throw insertError;
+
+      // 2. Trigger access delivery email via Edge Function
+      const { data: deliveryData, error: deliveryError } = await supabase.functions.invoke("deliver-product", {
+        body: { orderId }
+      });
+
+      if (deliveryError) throw deliveryError;
+
+      if (deliveryData?.success === false) {
+        toast.error("Acesso registrado, mas o e-mail falhou: " + (deliveryData.message || "Erro desconhecido"), { id: toastId });
+      } else {
+        toast.success("Cliente convidado e acesso enviado com sucesso!", { id: toastId });
+      }
+
+      setInviteName("");
+      setInviteEmail("");
+      setSelectedProductId("");
+      setInviteModalOpen(false);
+
+      fetchOrders();
+    } catch (err: any) {
+      console.error("Erro ao convidar cliente:", err);
+      toast.error("Erro ao conceder acesso: " + (err.message || "Tente novamente"), { id: toastId });
+    } finally {
+      setInviting(false);
+    }
+  };
 
   const paidOrders = orders.filter(o => ["paid", "delivered"].includes(o.status));
   const pendingOrders = orders.filter(o => ["pending", "failed"].includes(o.status));
@@ -58,6 +162,70 @@ const Orders = () => {
     <DashboardLayout>
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
         <h2 className="text-2xl font-bold text-foreground">Pedidos e Vendas</h2>
+        
+        <Dialog open={inviteModalOpen} onOpenChange={setInviteModalOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm gap-2">
+              <UserPlus className="w-4 h-4" /> Adicionar Cliente/Aluno
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Conceder Acesso Manual</DialogTitle>
+              <DialogDescription>
+                Adicione um cliente a um produto. Ele será registrado com preço zerado e receberá os dados de acesso por e-mail imediatamente.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleInviteSubmit} className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="inviteEmail">E-mail do Cliente *</Label>
+                <Input
+                  id="inviteEmail"
+                  type="email"
+                  placeholder="exemplo@email.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="inviteName">Nome do Cliente</Label>
+                <Input
+                  id="inviteName"
+                  type="text"
+                  placeholder="Nome completo (opcional)"
+                  value={inviteName}
+                  onChange={(e) => setInviteName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="productSelect">Produto *</Label>
+                <select
+                  id="productSelect"
+                  value={selectedProductId}
+                  onChange={(e) => setSelectedProductId(e.target.value)}
+                  required
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="">Selecione um produto...</option>
+                  {sellerProducts.map((product) => (
+                    <option key={product.id} value={product.id}>
+                      {product.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <DialogFooter className="pt-4">
+                <Button type="button" variant="outline" onClick={() => setInviteModalOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={inviting}>
+                  {inviting ? "Concedendo..." : "Conceder Acesso"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {loading ? (
