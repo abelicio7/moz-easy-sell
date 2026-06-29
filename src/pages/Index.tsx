@@ -435,7 +435,6 @@ const Index = () => {
                 </p>
               </div>
 
-              {/* iOS notification container */}
               <div className="space-y-4 p-3 sm:p-4 rounded-2xl bg-slate-950/5 dark:bg-slate-950/40 border border-border/40 backdrop-blur-sm max-h-[300px] sm:max-h-[350px] overflow-y-auto custom-scrollbar flex-1">
                 {/* 1. BRL Sale */}
                 <div 
@@ -446,12 +445,12 @@ const Index = () => {
                   }`}
                 >
                   <img 
-                    src="/notifications/notification_brl_55.png" 
+                    src="/notification_sale_brl_2.png" 
                     alt="Notificação Venda R$ 55,00" 
                     className="w-full h-auto object-contain block"
                   />
                 </div>
-                {/* 2. MZN 447 Sale */}
+                {/* 2. MZN Sale 1 */}
                 <div 
                   className={`rounded-2xl overflow-hidden shadow-lg border border-white/10 transition-all duration-300 ${
                     previewCurrency === 'MZN' 
@@ -460,8 +459,8 @@ const Index = () => {
                   }`}
                 >
                   <img 
-                    src="/notifications/notification_mzn_447.png" 
-                    alt="Notificação Venda 447 MT" 
+                    src="/notification_sale_mzn_1.png" 
+                    alt="Notificação Venda 179 MT" 
                     className="w-full h-auto object-contain block"
                   />
                 </div>
@@ -474,12 +473,26 @@ const Index = () => {
                   }`}
                 >
                   <img 
-                    src="/notifications/withdrawal_brl_50.png" 
-                    alt="Notificação Saque R$ 50,00" 
+                    src="/notification_withdrawal_brl.png" 
+                    alt="Notificação Saque R$ 100,00" 
                     className="w-full h-auto object-contain block"
                   />
                 </div>
-                {/* 4. MZN 147 Sale */}
+                {/* 4. ZAR Sale */}
+                <div 
+                  className={`rounded-2xl overflow-hidden shadow-lg border border-white/10 transition-all duration-300 ${
+                    previewCurrency === 'ZAR' 
+                      ? 'ring-2 ring-blue-500 scale-[1.02] opacity-100' 
+                      : 'opacity-50 hover:opacity-100 scale-100'
+                  }`}
+                >
+                  <img 
+                    src="/notification_sale_zar.png" 
+                    alt="Notificação Venda R 200,00" 
+                    className="w-full h-auto object-contain block"
+                  />
+                </div>
+                {/* 5. MZN Sale 2 */}
                 <div 
                   className={`rounded-2xl overflow-hidden shadow-lg border border-white/10 transition-all duration-300 ${
                     previewCurrency === 'MZN' 
@@ -488,12 +501,26 @@ const Index = () => {
                   }`}
                 >
                   <img 
-                    src="/notifications/notification_mzn_147.png" 
-                    alt="Notificação Venda 147 MT" 
+                    src="/notification_sale_mzn_2.png" 
+                    alt="Notificação Venda 179 MT" 
                     className="w-full h-auto object-contain block"
                   />
                 </div>
-                {/* 5. MZN Withdrawal */}
+                {/* 6. BRL Sale 2 */}
+                <div 
+                  className={`rounded-2xl overflow-hidden shadow-lg border border-white/10 transition-all duration-300 ${
+                    previewCurrency === 'BRL' 
+                      ? 'ring-2 ring-emerald-500 scale-[1.02] opacity-100' 
+                      : 'opacity-50 hover:opacity-100 scale-100'
+                  }`}
+                >
+                  <img 
+                    src="/notification_sale_brl_1.png" 
+                    alt="Notificação Venda R$ 47,00" 
+                    className="w-full h-auto object-contain block"
+                  />
+                </div>
+                {/* 7. MZN Withdrawal */}
                 <div 
                   className={`rounded-2xl overflow-hidden shadow-lg border border-white/10 transition-all duration-300 ${
                     previewCurrency === 'MZN' 
@@ -502,8 +529,22 @@ const Index = () => {
                   }`}
                 >
                   <img 
-                    src="/notifications/withdrawal_mzn_1970.png" 
-                    alt="Notificação Saque 1970 MT" 
+                    src="/notification_withdrawal_mzn.png" 
+                    alt="Notificação Saque 2450 MT" 
+                    className="w-full h-auto object-contain block"
+                  />
+                </div>
+                {/* 8. ZAR Withdrawal */}
+                <div 
+                  className={`rounded-2xl overflow-hidden shadow-lg border border-white/10 transition-all duration-300 ${
+                    previewCurrency === 'ZAR' 
+                      ? 'ring-2 ring-blue-500 scale-[1.02] opacity-100' 
+                      : 'opacity-50 hover:opacity-100 scale-100'
+                  }`}
+                >
+                  <img 
+                    src="/notification_withdrawal_zar.png" 
+                    alt="Notificação Saque R 500,00" 
                     className="w-full h-auto object-contain block"
                   />
                 </div>
