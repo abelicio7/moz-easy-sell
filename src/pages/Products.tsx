@@ -131,7 +131,13 @@ const Products = () => {
                         </span>
                         <span className="text-muted-foreground/30">•</span>
                         <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider bg-muted text-muted-foreground border-0">
-                          {product.delivery_type === "link" ? "Link" : product.delivery_type === "file" ? "Arquivo" : "Mensagem"}
+                          {product.delivery_type === "link" 
+                            ? "Link" 
+                            : product.delivery_type === "file" 
+                              ? "Arquivo" 
+                              : product.delivery_type === "hosted"
+                                ? "Biblioteca (Hospedado)" 
+                                : "Mensagem"}
                         </Badge>
                         
                         {product.status === 'pending' && <Badge className="bg-amber-500/10 text-amber-600 border-0 text-[10px] font-bold uppercase tracking-wider">Pendente</Badge>}
