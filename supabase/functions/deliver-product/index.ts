@@ -86,14 +86,23 @@ serve(async (req) => {
       throw new Error("BREVO_API_KEY not configured")
     }
 
+    const isManualInvite = order.payment_method === 'manual_invite'
+    const emailSubject = isManualInvite 
+      ? `🔑 Acesso Concedido: ${productName}`
+      : `✅ Acesso Confirmado: ${productName}`
+    const introTitle = `O teu acesso chegou! 🚀`
+    const introText = isManualInvite
+      ? `Olá ${order.customer_name}, você recebeu acesso ao produto <strong>${productName}</strong>.`
+      : `Olá ${order.customer_name}, o teu pagamento foi confirmado e o produto <strong>${productName}</strong> já está disponível.`
+
     const htmlContent = `
       <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0b; border-radius: 24px; overflow: hidden; border: 1px solid #1c1c1e;">
         <div style="background-color: #141416; padding: 40px 20px; text-align: center; border-bottom: 1px solid #1c1c1e;">
           <img src="https://ensinapay.com/logo.png" alt="EnsinaPay" style="height: 32px;">
         </div>
         <div style="padding: 50px 40px; background-color: #0a0a0b; text-align: center;">
-          <h1 style="color: #ffffff; font-size: 28px; font-weight: 800; margin: 0 0 10px 0; letter-spacing: -1px;">O teu acesso chegou! 🚀</h1>
-          <p style="color: #9ca3af; font-size: 16px; line-height: 1.5; margin: 0 0 40px 0;">Olá ${order.customer_name}, o teu pagamento foi confirmado e o produto <strong>${productName}</strong> já está disponível.</p>
+          <h1 style="color: #ffffff; font-size: 28px; font-weight: 800; margin: 0 0 10px 0; letter-spacing: -1px;">${introTitle}</h1>
+          <p style="color: #9ca3af; font-size: 16px; line-height: 1.5; margin: 0 0 40px 0;">${introText}</p>
           
           <div style="background-color: #141416; padding: 25px; border-radius: 16px; border: 1px solid #232326; text-align: left; margin-bottom: 40px;">
             <h3 style="color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 15px 0;">Conteúdo do Produto:</h3>
@@ -123,7 +132,7 @@ serve(async (req) => {
       body: JSON.stringify({
         sender: { name: "EnsinaPay", email: "suporte@ensinapay.com" },
         to: [{ email: customerEmail, name: order.customer_name }],
-        subject: `✅ Acesso Confirmado: ${productName}`,
+        subject: emailSubject,
         htmlContent: htmlContent
       })
     })
@@ -285,8 +294,8 @@ serve(async (req) => {
         }
       }
 
-      // 4A. Notify Seller
-      if (seller && seller.email) {
+      // 4A. Notify Seller (Bypassed for manual invites)
+      if (seller && seller.email && !isManualInvite) {
         const sellerSubject = `🎉 Venda Realizada! - ${productName}`;
         const sellerHtml = `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
@@ -322,13 +331,13 @@ serve(async (req) => {
         }
       }
 
-      // 4B. Notify Admins
+      // 4B. Notify Admins (Bypassed for manual invites)
       const { data: admins, error: adminError } = await supabase
         .from('profiles')
         .select('email')
         .eq('role', 'admin');
 
-      if (!adminError && admins && admins.length > 0) {
+      if (!adminError && admins && admins.length > 0 && !isManualInvite) {
         const adminEmails = admins.map(a => ({ email: a.email })).filter(a => a.email);
         const adminSubject = `✅ Pedido pago: ${order.id}`;
         const adminHtml = `
@@ -371,7 +380,7 @@ serve(async (req) => {
         const PUBLIC_VAPID_KEY = Deno.env.get('VAPID_PUBLIC_KEY') || "";
         const PRIVATE_VAPID_KEY = Deno.env.get('VAPID_PRIVATE_KEY') || "";
 
-        if (sellerId) {
+        if (sellerId && !isManualInvite) {
           const { data: subs, error: subsError } = await supabase
             .from('push_subscriptions')
             .select('*')
