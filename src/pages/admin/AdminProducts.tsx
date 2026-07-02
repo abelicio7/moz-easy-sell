@@ -27,6 +27,14 @@ interface Product {
   profiles: { full_name: string; email: string };
   currency?: string;
 }
+const COMMON_REJECTION_REASONS = [
+  "Conteúdo de entrega inválido! (Ficheiro corrompido, vazio ou ilegível)",
+  "Link de produto inválido ou inacessível (Erro 404, acesso privado)",
+  "Descrição do produto insuficiente ou incompleta",
+  "Preço ou moeda incoerente com o mercado ou descrição",
+  "Produto viola os Termos de Serviço da plataforma (Conteúdo proibido)",
+  "Imagem de capa inadequada ou de baixíssima qualidade"
+];
 
 const AdminProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -369,14 +377,33 @@ const AdminProducts = () => {
                               ) : (
                                 <div className="space-y-4 pt-4 border-t border-border animate-in fade-in zoom-in-95">
                                   {action === "reject" && (
-                                    <div className="space-y-2">
-                                      <Label>Motivo da Rejeição (Será enviado ao vendedor)</Label>
-                                      <Textarea 
-                                        placeholder="Ex: Conteúdo viola as políticas da plataforma..." 
-                                        value={reason}
-                                        onChange={(e) => setReason(e.target.value)}
-                                        required
-                                      />
+                                    <div className="space-y-4">
+                                      <div className="space-y-2">
+                                        <Label>Motivo da Rejeição (Será enviado ao vendedor)</Label>
+                                        <Textarea 
+                                          placeholder="Ex: Conteúdo viola as políticas da plataforma..." 
+                                          value={reason}
+                                          onChange={(e) => setReason(e.target.value)}
+                                          required
+                                        />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <span className="text-xs font-semibold text-muted-foreground block">
+                                          Motivos comuns de recusa (clique para preencher):
+                                        </span>
+                                        <div className="flex flex-wrap gap-2">
+                                          {COMMON_REJECTION_REASONS.map((r) => (
+                                            <Badge
+                                              key={r}
+                                              variant="outline"
+                                              className="cursor-pointer hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 border-muted-foreground/20 transition-all duration-200 py-1"
+                                              onClick={() => setReason(r)}
+                                            >
+                                              {r}
+                                            </Badge>
+                                          ))}
+                                        </div>
+                                      </div>
                                     </div>
                                   )}
                                   {action === "approve" && (
