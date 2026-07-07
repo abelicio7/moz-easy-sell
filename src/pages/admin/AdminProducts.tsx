@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { CheckCircle2, XCircle, Clock, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -40,6 +41,7 @@ const AdminProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   
   // Modal states
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -83,6 +85,16 @@ const AdminProducts = () => {
   useEffect(() => {
     fetchProducts();
   }, [filter]);
+
+  const filteredProducts = products.filter((product) => {
+    const term = searchQuery.toLowerCase();
+    return (
+      product.name.toLowerCase().includes(term) ||
+      (product.description || "").toLowerCase().includes(term) ||
+      (product.profiles?.full_name || "").toLowerCase().includes(term) ||
+      (product.profiles?.email || "").toLowerCase().includes(term)
+    );
+  });
 
   const handleAction = async () => {
     if (!selectedProduct || !action) return;
@@ -193,9 +205,15 @@ const AdminProducts = () => {
           <p className="text-muted-foreground mt-1">Gerencie a aprovação de produtos na plataforma.</p>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+          <Input
+            placeholder="Pesquisar produto ou vendedor..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full sm:w-[260px]"
+          />
           <Select value={filter} onValueChange={setFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filtrar por status" />
             </SelectTrigger>
             <SelectContent>
@@ -226,12 +244,12 @@ const AdminProducts = () => {
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center">Carregando produtos...</td>
                   </tr>
-                ) : products.length === 0 ? (
+                ) : filteredProducts.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center">Nenhum produto encontrado.</td>
                   </tr>
                 ) : (
-                  products.map((product) => (
+                  filteredProducts.map((product) => (
                     <tr key={product.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20">
                       <td className="px-6 py-4 font-medium text-foreground flex items-center gap-3">
                         {product.image_url ? (
