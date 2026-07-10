@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/Logo";
-import { Package, ShoppingCart, LogOut, Menu, X, BarChart3, LayoutTemplate, Puzzle, Wallet, ShieldAlert, TrendingUp, UserCircle, Trash2, Users, ShoppingBag, Download, MessageCircle, Terminal } from "lucide-react";
+import { Package, ShoppingCart, LogOut, Menu, X, BarChart3, LayoutTemplate, Puzzle, Wallet, ShieldAlert, TrendingUp, UserCircle, Trash2, Users, ShoppingBag, Download, MessageCircle, Terminal, AlertTriangle, Info, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -34,6 +34,43 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showSupportMenu, setShowSupportMenu] = useState(false);
+  const [announcement, setAnnouncement] = useState<{ message: string; type: string } | null>(null);
+
+  useEffect(() => {
+    const fetchAnnouncement = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("system_announcements")
+          .select("message, type")
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (error) throw error;
+        setAnnouncement(data);
+      } catch (err) {
+        console.error("Erro ao carregar aviso global:", err);
+      }
+    };
+
+    fetchAnnouncement();
+
+    const channel = supabase
+      .channel("system-announcements-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "system_announcements" },
+        () => {
+          fetchAnnouncement();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   useEffect(() => {
     const registerPush = async () => {
@@ -383,6 +420,25 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
             <LogOut className="w-4 h-4 mr-2" />
             Sair
           </Button>
+        </div>
+      )}
+
+      {announcement && (
+        <div className={`border-b text-sm transition-all duration-300 animate-in slide-in-from-top duration-300 ${
+          announcement.type === 'error' 
+            ? 'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400' 
+            : announcement.type === 'warning'
+              ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400'
+              : 'bg-primary/10 border-primary/20 text-primary'
+        }`}>
+          <div className="container py-3 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              {announcement.type === 'error' && <XCircle className="w-4 h-4 shrink-0 text-red-500" />}
+              {announcement.type === 'warning' && <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />}
+              {announcement.type === 'info' && <Info className="w-4 h-4 shrink-0 text-primary" />}
+              <span className="font-semibold">{announcement.message}</span>
+            </div>
+          </div>
         </div>
       )}
 

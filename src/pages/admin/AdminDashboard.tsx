@@ -2,10 +2,14 @@ import { useEffect, useState } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Users, Package, Banknote, ShieldCheck, Terminal } from "lucide-react";
+import { Users, Package, Banknote, ShieldCheck, Terminal, Megaphone } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -19,6 +23,98 @@ const AdminDashboard = () => {
     totalSales: 0,
   });
   const [loading, setLoading] = useState(true);
+
+  // Estados do aviso global
+  const [announcementMessage, setAnnouncementMessage] = useState("");
+  const [announcementType, setAnnouncementType] = useState("info");
+  const [announcementActive, setAnnouncementActive] = useState(false);
+  const [savingAnnouncement, setSavingAnnouncement] = useState(false);
+
+  useEffect(() => {
+    const fetchAnnouncement = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("system_announcements")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (data) {
+          setAnnouncementMessage(data.message);
+          setAnnouncementType(data.type);
+          setAnnouncementActive(data.is_active);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar aviso:", err);
+      }
+    };
+    fetchAnnouncement();
+  }, []);
+
+  const handleSaveAnnouncement = async () => {
+    if (!announcementMessage.trim()) {
+      toast.error("A mensagem do aviso não pode estar vazia.");
+      return;
+    }
+
+    setSavingAnnouncement(true);
+    const toastId = toast.loading("Salvando aviso global...");
+    try {
+      const { error } = await supabase
+        .from("system_announcements")
+        .upsert({
+          id: "00000000-0000-0000-0000-000000000000",
+          message: announcementMessage,
+          type: announcementType,
+          is_active: announcementActive,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+      toast.success("Aviso global atualizado com sucesso!", { id: toastId });
+    } catch (err: any) {
+      toast.error("Erro ao salvar aviso: " + err.message, { id: toastId });
+    } finally {
+      setSavingAnnouncement(false);
+    }
+  };
+
+  // Estados para e-mail em massa
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+
+  const handleSendBulkEmail = async () => {
+    if (!emailSubject.trim() || !emailBody.trim()) {
+      toast.error("O assunto e o corpo do e-mail não podem estar vazios.");
+      return;
+    }
+
+    if (!window.confirm("Deseja realmente disparar este e-mail para todos os vendedores cadastrados?")) {
+      return;
+    }
+
+    setSendingEmail(true);
+    const toastId = toast.loading("Iniciando envio dos e-mails...");
+    try {
+      const { data, error } = await supabase.functions.invoke("send-bulk-email", {
+        body: { subject: emailSubject, htmlContent: emailBody }
+      });
+
+      if (error || data?.success === false) {
+        throw new Error(error?.message || data?.error || "Erro no envio");
+      }
+
+      toast.success(`Comunicado enviado com sucesso para ${data.sentCount || 0} vendedores!`, { id: toastId });
+      setEmailSubject("");
+      setEmailBody("");
+    } catch (err: any) {
+      toast.error("Falha ao disparar comunicados: " + err.message, { id: toastId });
+    } finally {
+      setSendingEmail(false);
+    }
+  };
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -469,6 +565,109 @@ const AdminDashboard = () => {
                     </Button>
                   </div>
                 </div>
+              </div>
+          </Card>
+
+          <Card className="border-border/60 bg-card hover:border-primary/50 transition-all md:col-span-2 lg:col-span-2">
+            <CardHeader className="pb-2.5 border-b border-border/40">
+              <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Megaphone className="w-4 h-4 text-primary animate-pulse" />
+                Aviso Global do Sistema (Vendedores)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="announcement-message">Mensagem para todos os vendedores</Label>
+                <Textarea
+                  id="announcement-message"
+                  placeholder="Ex: Estaremos em manutenção hoje das 22h às 23h..."
+                  value={announcementMessage}
+                  onChange={(e) => setAnnouncementMessage(e.target.value)}
+                  className="min-h-[80px]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="announcement-type">Tipo de Alerta</Label>
+                  <Select value={announcementType} onValueChange={setAnnouncementType}>
+                    <SelectTrigger id="announcement-type" className="w-full">
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="info">💡 Informação (Azul)</SelectItem>
+                      <SelectItem value="warning">⚠️ Atenção (Amarelo)</SelectItem>
+                      <SelectItem value="error">🛑 Perigo / Manutenção (Vermelho)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex items-center gap-2 h-full pt-6">
+                  <input
+                    type="checkbox"
+                    id="announcement-active"
+                    checked={announcementActive}
+                    onChange={(e) => setAnnouncementActive(e.target.checked)}
+                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                  />
+                  <Label htmlFor="announcement-active" className="cursor-pointer font-medium text-sm">
+                    Ativar e exibir aviso imediatamente
+                  </Label>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-border/40">
+                <Button
+                  onClick={handleSaveAnnouncement}
+                  disabled={savingAnnouncement}
+                  className="font-bold bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  {savingAnnouncement ? "Salvando..." : "Salvar Aviso"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/60 bg-card hover:border-primary/50 transition-all md:col-span-2 lg:col-span-2">
+            <CardHeader className="pb-2.5 border-b border-border/40">
+              <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Megaphone className="w-4 h-4 text-purple-500 animate-pulse" />
+                Enviar E-mail em Massa (Vendedores)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email-subject">Assunto do E-mail</Label>
+                <Input
+                  id="email-subject"
+                  placeholder="Ex: Atualização nos Termos de Uso"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email-body" className="flex items-center justify-between">
+                  <span>Conteúdo do E-mail (HTML permitido)</span>
+                  <span className="text-[10px] text-muted-foreground font-normal">Use {"{nome}"} para personalizar</span>
+                </Label>
+                <Textarea
+                  id="email-body"
+                  placeholder="Ex: Olá {nome}, gostaríamos de informar..."
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                  className="min-h-[120px]"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-border/40">
+                <Button
+                  onClick={handleSendBulkEmail}
+                  disabled={sendingEmail || !emailSubject.trim() || !emailBody.trim()}
+                  className="font-bold bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  {sendingEmail ? "Enviando..." : "Disparar Comunicado"}
+                </Button>
               </div>
             </CardContent>
           </Card>
