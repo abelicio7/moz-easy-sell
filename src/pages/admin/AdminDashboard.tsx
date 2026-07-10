@@ -566,6 +566,7 @@ const AdminDashboard = () => {
                   </div>
                 </div>
               </div>
+            </CardContent>
           </Card>
 
           <Card className="border-border/60 bg-card hover:border-primary/50 transition-all md:col-span-2 lg:col-span-2">
