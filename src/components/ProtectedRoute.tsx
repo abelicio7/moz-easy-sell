@@ -258,6 +258,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
                     </div>
                   )}
 
+                  <div className="p-4 bg-amber-500/10 border-l-4 border-amber-500 text-amber-800 dark:text-amber-300 rounded-r-xl space-y-1 text-xs">
+                    <p className="font-bold flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
+                      <AlertTriangle className="w-4.5 h-4.5" />
+                      Aviso Importante: Titularidade das Contas
+                    </p>
+                    <p className="font-medium leading-relaxed">
+                      O nome no documento enviado deve ser idêntico ao titular da conta bancária / carteira móvel cadastrada para recebimento dos saques.
+                    </p>
+                  </div>
+
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Tipo de Documento</Label>
