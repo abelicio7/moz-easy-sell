@@ -136,8 +136,12 @@ serve(async (req) => {
       const zumboData = await response.json()
       console.log("RESPOSTA COMPLETA DA ZUMBOPAY (DEBUG):", JSON.stringify(zumboData))
 
-      if (!response.ok || zumboData.error) {
-        const errMsg = zumboData.error?.message || zumboData.message || 'Error processing payment with ZumboPay'
+      if (!response.ok || zumboData.error || zumboData.message) {
+        console.error("ZumboPay error response:", JSON.stringify(zumboData))
+        const errMsg = 
+          (typeof zumboData.error === 'object' ? zumboData.error?.message : zumboData.error) || 
+          zumboData.message || 
+          'Error processing payment with ZumboPay'
         throw new Error(errMsg)
       }
 
