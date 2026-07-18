@@ -51,7 +51,7 @@ const AdminProducts = () => {
 
   const fetchProducts = async () => {
     setLoading(true);
-    let query = supabase.from("products").select("*").order("created_at", { ascending: false });
+    let query = supabase.from("products").select("*").eq("is_deleted", false).order("created_at", { ascending: false });
     
     if (filter !== "all") {
       query = query.eq("status", filter);

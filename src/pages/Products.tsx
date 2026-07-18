@@ -42,6 +42,7 @@ const Products = () => {
       .from("products")
       .select("*")
       .eq("user_id", user.id)
+      .eq("is_deleted", false)
       .order("created_at", { ascending: false });
       
     setProducts(data as Product[] || []);
@@ -63,7 +64,7 @@ const Products = () => {
       setIsDeleting(productId);
       const { error } = await supabase
         .from("products")
-        .delete()
+        .update({ is_deleted: true })
         .eq("id", productId);
 
       if (error) throw error;

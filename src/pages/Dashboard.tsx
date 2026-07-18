@@ -55,7 +55,7 @@ const Dashboard = () => {
     if (!user) return;
     const fetchData = async () => {
       const [{ data: prods }, { data: orders }, { data: withdrawals }] = await Promise.all([
-        supabase.from("products").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("products").select("*").eq("user_id", user.id).eq("is_deleted", false).order("created_at", { ascending: false }),
         supabase.from("orders").select("*, products!inner(name, user_id)").eq("products.user_id", user.id),
         supabase.from("withdrawals").select("amount, status, currency").eq("user_id", user.id),
       ]);

@@ -125,7 +125,7 @@ const Checkout = () => {
     const initPage = async () => {
       const { data: productData, error: productError } = await supabase
         .from("products")
-        .select(`id, name, description, price, image_url, user_id, status, currency`)
+        .select(`id, name, description, price, image_url, user_id, status, currency, is_deleted`)
         .eq("id", productId)
         .maybeSingle();
       
@@ -135,7 +135,7 @@ const Checkout = () => {
         return;
       }
 
-      if (productData.status !== "approved") {
+      if (productData.status !== "approved" || productData.is_deleted) {
         setIsNotApproved(true);
         setLoading(false);
         return;
