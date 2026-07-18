@@ -226,11 +226,13 @@ const AdminUsers = () => {
     setProcessing(true);
     try {
       const newStatus = action === "approve" ? "approved" : "rejected";
+      const newAccountStatus = action === "approve" ? "approved" : "pending";
       
       const { error } = await supabase
         .from("profiles")
         .update({ 
           identity_status: newStatus,
+          status: newAccountStatus,
           rejection_reason: action === "reject" ? reason : null
         })
         .eq("id", selectedUser.id);

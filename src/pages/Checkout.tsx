@@ -42,6 +42,7 @@ const Checkout = () => {
   const [pixQrCode, setPixQrCode] = useState<string | null>(null);
   const [pixCopiaCola, setPixCopiaCola] = useState<string | null>(null);
   const [isSuspended, setIsSuspended] = useState(false);
+  const [isNotApproved, setIsNotApproved] = useState(false);
 
   const [trackingParams, setTrackingParams] = useState<any>({});
 
@@ -134,6 +135,12 @@ const Checkout = () => {
         return;
       }
 
+      if (productData.status !== "approved") {
+        setIsNotApproved(true);
+        setLoading(false);
+        return;
+      }
+
       if (productData.user_id) {
         const { data: ownerStatus, error: statusError } = await supabase
           .rpc("get_seller_status", { p_seller_id: productData.user_id });
@@ -142,6 +149,10 @@ const Checkout = () => {
           console.error("Erro ao obter status do vendedor:", statusError);
         } else if (ownerStatus === "blocked" || ownerStatus === "suspended") {
           setIsSuspended(true);
+          setLoading(false);
+          return;
+        } else if (ownerStatus !== "approved") {
+          setIsNotApproved(true);
           setLoading(false);
           return;
         }
@@ -382,6 +393,23 @@ const Checkout = () => {
         <p className="text-muted-foreground text-sm max-w-sm">
           {t("suspendedText")}
         </p>
+      </div>
+    );
+  }
+
+  if (isNotApproved) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 text-center animate-in fade-in duration-300">
+        <div className="w-20 h-20 bg-amber-500/10 text-amber-600 rounded-full flex items-center justify-center mb-6">
+          <Package className="w-10 h-10 text-amber-500 animate-pulse" />
+        </div>
+        <h1 className="text-2xl font-bold mb-2">Produto Indisponível</h1>
+        <p className="text-muted-foreground text-sm max-w-sm">
+          Este produto ou a conta do vendedor está sob análise ou inativa no momento. Por favor, tente novamente mais tarde.
+        </p>
+        <Button variant="outline" className="mt-8 rounded-xl" onClick={() => navigate('/')}>
+          {t("backHome")}
+        </Button>
       </div>
     );
   }
