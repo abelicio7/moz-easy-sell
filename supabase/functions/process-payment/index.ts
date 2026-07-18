@@ -91,7 +91,92 @@ serve(async (req) => {
       )
     }
 
-    // MOZAMBIQUE LOCAL & RAND PAYFAST PAYMENT PROCESS (DEBITO ORQUESTRADOR)
+    // MOZAMBIQUE LOCAL PAYMENT PROCESS via ZumboPay (M-Pesa / E-Mola)
+    if (payment_method === 'emola' || payment_method === 'mpesa') {
+      const ZUMBOPAY_API_KEY = Deno.env.get('ZUMBOPAY_API_KEY')
+      const ZUMBOPAY_MERCHANT_ID = Deno.env.get('ZUMBOPAY_MERCHANT_ID')
+      const ZUMBOPAY_WALLET_EMOLA = Deno.env.get('ZUMBOPAY_WALLET_EMOLA')
+      const ZUMBOPAY_WALLET_MPESA = Deno.env.get('ZUMBOPAY_WALLET_MPESA')
+
+      if (!ZUMBOPAY_API_KEY || !ZUMBOPAY_MERCHANT_ID) {
+        throw new Error('ZumboPay configuration (API Key or Merchant ID) missing in Supabase Secrets')
+      }
+
+      const walletId = payment_method === 'emola' ? ZUMBOPAY_WALLET_EMOLA : ZUMBOPAY_WALLET_MPESA
+      if (!walletId) {
+        throw new Error(`ZumboPay Wallet ID not configured for ${payment_method}`)
+      }
+
+      // ZumboPay expects phone starting with 258 country code
+      let msisdn = phone ? phone.replace(/\D/g, '') : ""
+      if (msisdn && !msisdn.startsWith('258')) {
+        msisdn = '258' + msisdn
+      }
+
+      console.log(`Processing ZumboPay payment for order ${order_id}, amount ${amount}, msisdn ${msisdn}, method ${payment_method}`)
+
+      const paymentBody = {
+        wallet_id: walletId,
+        amount: Number(amount),
+        msisdn: msisdn,
+        customer_name: name || "Cliente EnsinaPay",
+        source_id: order_id
+      }
+
+      const response = await fetch('https://zumbopay.com/api/public/v1/charges', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${ZUMBOPAY_API_KEY}`,
+          'X-Merchant-Id': ZUMBOPAY_MERCHANT_ID
+        },
+        body: JSON.stringify(paymentBody)
+      })
+
+      const zumboData = await response.json()
+      console.log("RESPOSTA COMPLETA DA ZUMBOPAY (DEBUG):", JSON.stringify(zumboData))
+
+      if (!response.ok || zumboData.error) {
+        const errMsg = zumboData.error?.message || zumboData.message || 'Error processing payment with ZumboPay'
+        throw new Error(errMsg)
+      }
+
+      const ref = zumboData.data?.reference || zumboData.data?.id || zumboData.reference || zumboData.id
+
+      if (!ref) {
+        throw new Error("Nenhuma referência de transação retornada pela ZumboPay")
+      }
+
+      // Update order with ZumboPay reference
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      )
+
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({ 
+          debito_reference: String(ref),
+          currency: 'MZN',
+          status: 'pending'
+        })
+        .eq('id', order_id)
+
+      if (updateError) {
+        console.error("Error updating order:", updateError)
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true,
+          reference: ref,
+          data: zumboData.data
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // MOZAMBIQUE LOCAL & RAND PAYFAST PAYMENT PROCESS (DEBITO ORQUESTRADOR FALLBACK)
     const DEBITO_API_KEY = Deno.env.get('DEBITO_API_KEY')
     const MERCHANT_ID = Deno.env.get('DEBITO_MERCHANT_ID')
     const WALLET_EMOLA = Deno.env.get('DEBITO_WALLET_EMOLA')
