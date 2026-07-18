@@ -210,9 +210,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/verify-2fa" state={{ from: location }} replace />;
   }
 
-  // INTERCEPT SELLER REGISTRATION / MANUAL APPROVAL / KYC WORKFLOW
-  if (profile && profile.role !== "admin" && (profile.status === "pending" || profile.identity_status !== "approved")) {
-    const kycStatus = profile.identity_status || "unverified";
+  // INTERCEPT SELLER REGISTRATION / MANUAL APPROVAL
+  if (profile && profile.role !== "admin" && profile.status === "pending") {
+    const isRejected = profile.identity_status === "rejected";
     
     return (
       <div className="min-h-screen flex flex-col justify-between bg-muted/30 p-4">
@@ -228,147 +228,44 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         {/* Main Content Area */}
         <main className="flex-1 flex items-center justify-center py-8">
           <div className="w-full max-w-lg transition-all duration-300 animate-in fade-in duration-500">
-            {kycStatus === "unverified" || kycStatus === "rejected" ? (
-              /* State 1: KYC Upload Form */
-              <Card className="shadow-2xl border-border/50 bg-background/95 backdrop-blur-sm overflow-hidden">
-                <div className="p-6 sm:p-8 bg-card border-b border-border/50 space-y-2">
-                  <div className="flex items-center gap-2 text-primary">
-                    <Sparkles className="w-5 h-5 animate-pulse" />
-                    <span className="text-xs font-black uppercase tracking-wider">Ativação de Conta</span>
-                  </div>
-                  <CardTitle className="text-2xl font-bold text-foreground">Verifique a sua Identidade</CardTitle>
-                  <CardDescription className="text-sm">
-                    Para começares a vender e configurar os teus checkouts na EnsinaPay, precisamos de validar os teus documentos de identidade.
-                  </CardDescription>
-                </div>
-                
-                <CardContent className="p-6 sm:p-8 space-y-6">
-                  {kycStatus === "rejected" && (
-                    <div className="p-4 bg-red-500/10 border-l-4 border-red-500 text-red-600 rounded-r-xl space-y-1 text-xs">
-                      <p className="font-bold flex items-center gap-1.5">
-                        <AlertTriangle className="w-4 h-4" />
-                        Documentação Recusada pela Equipe
-                      </p>
-                      <p className="font-medium text-red-600/90 leading-relaxed mt-1">
-                        Motivo: {profile.rejection_reason || "Informações ilegíveis ou documentos incorretos."}
-                      </p>
-                      <p className="text-[10px] text-red-500/80 pt-1">
-                        Por favor, envie um novo documento com imagens nítidas.
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="p-4 bg-amber-500/10 border-l-4 border-amber-500 text-amber-800 dark:text-amber-300 rounded-r-xl space-y-1 text-xs">
-                    <p className="font-bold flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
-                      <AlertTriangle className="w-4.5 h-4.5" />
-                      Aviso Importante: Titularidade das Contas
-                    </p>
-                    <p className="font-medium leading-relaxed">
-                      O nome no documento enviado deve ser idêntico ao titular da conta bancária / carteira móvel cadastrada para recebimento dos saques.
-                    </p>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Tipo de Documento</Label>
-                      <Select value={docType} onValueChange={setDocType}>
-                        <SelectTrigger className="h-11">
-                          <SelectValue placeholder="Selecione o documento" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="bi">Bilhete de Identidade (BI)</SelectItem>
-                          <SelectItem value="passport">Passaporte</SelectItem>
-                          <SelectItem value="dire">DIRE</SelectItem>
-                          <SelectItem value="other">Outro Documento Oficial</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-3">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Anexar Cópia do Documento</Label>
-                      <label className="relative border-2 border-dashed border-primary/20 hover:border-primary/50 rounded-2xl p-6 text-center hover:bg-muted/10 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group">
-                        <input 
-                          type="file" 
-                          accept="image/*,.pdf" 
-                          onChange={(e) => setDocFile(e.target.files?.[0] || null)}
-                          className="hidden"
-                          disabled={uploadingDoc}
-                        />
-                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300">
-                          <Upload className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-foreground">
-                            {docFile ? docFile.name : "Clique para selecionar o documento"}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground mt-1">Máximo: 5MB • Formatos: PNG, JPG, PDF</p>
-                        </div>
-                      </label>
-                    </div>
-
-                    <div className="space-y-3">
-                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Selfie segurando o Documento</Label>
-                      <label className="relative border-2 border-dashed border-primary/20 hover:border-primary/50 rounded-2xl p-6 text-center hover:bg-muted/10 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group">
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          onChange={(e) => setSelfieFile(e.target.files?.[0] || null)}
-                          className="hidden"
-                          disabled={uploadingDoc}
-                        />
-                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300">
-                          <Upload className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-foreground">
-                            {selfieFile ? selfieFile.name : "Clique para tirar/anexar selfie"}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground mt-1">Foto do seu rosto segurando o documento • Máximo: 5MB • Formato: Imagem</p>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-
-                  <Button 
-                    onClick={handleKycUpload} 
-                    disabled={!docFile || !selfieFile || uploadingDoc} 
-                    className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/20"
-                  >
-                    {uploadingDoc ? "A enviar documentos..." : "Submeter para Verificação"}
-                  </Button>
-                </CardContent>
-
-                <CardFooter className="bg-muted/30 border-t border-border/50 p-4 text-[10px] text-muted-foreground flex items-center justify-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-primary" />
-                  Os teus dados estão encriptados de forma segura conforme as diretrizes de privacidade.
-                </CardFooter>
-              </Card>
-            ) : (
-              /* State 2: KYC Under Review */
-              <Card className="shadow-2xl border-border/50 bg-background/95 backdrop-blur-sm p-6 sm:p-8 space-y-8 text-center">
-                <div className="flex justify-center">
-                  <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center animate-pulse">
+            <Card className="shadow-2xl border-border/50 bg-background/95 backdrop-blur-sm p-6 sm:p-8 space-y-6 text-center">
+              <div className="flex justify-center">
+                <div className={`w-16 h-16 ${isRejected ? 'bg-red-500/10' : 'bg-amber-500/10'} rounded-full flex items-center justify-center ${!isRejected ? 'animate-pulse' : ''}`}>
+                  {isRejected ? (
+                    <Ban className="w-8 h-8 text-red-500" />
+                  ) : (
                     <Clock className="w-8 h-8 text-amber-500" />
-                  </div>
+                  )}
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <Badge className="bg-amber-500/10 text-amber-600 border-0 hover:bg-amber-500/10 font-bold uppercase tracking-wider text-[10px] px-3 py-1">
-                    Análise Pendente
-                  </Badge>
-                  <CardTitle className="text-2xl font-bold text-foreground">Verificação em Andamento</CardTitle>
-                  <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-                    Recebemos os teus documentos! A nossa equipe de conformidade está a analisar o teu perfil para ativar a tua conta de vendedor.
-                  </p>
+              <div className="space-y-2">
+                <Badge className={isRejected ? "bg-red-500/10 text-red-600 border-0 font-bold uppercase tracking-wider text-[10px] px-3 py-1 hover:bg-red-500/10" : "bg-amber-500/10 text-amber-600 border-0 font-bold uppercase tracking-wider text-[10px] px-3 py-1 hover:bg-amber-500/10"}>
+                  {isRejected ? "Cadastro Recusado" : "Análise Pendente"}
+                </Badge>
+                <CardTitle className="text-2xl font-bold text-foreground">
+                  {isRejected ? "Cadastro Não Aprovado" : "Aguardando Aprovação"}
+                </CardTitle>
+                <div className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                  {isRejected ? (
+                    <>
+                      Seu cadastro foi analisado e não pôde ser aprovado no momento.<br />
+                      <strong className="text-red-500 block mt-2">Motivo: {profile.rejection_reason || "Informações inconsistentes."}</strong>
+                    </>
+                  ) : (
+                    "Seu cadastro foi recebido com sucesso! A nossa equipe está a analisar o seu perfil para ativar a tua conta de vendedor. Não é necessário enviar nenhum documento."
+                  )}
                 </div>
+              </div>
 
-                {/* Simulated Timeline Tracker */}
+              {!isRejected && (
+                /* Simulated Timeline Tracker */
                 <div className="relative max-w-xs mx-auto py-2">
                   <div className="absolute left-[15px] top-0 bottom-0 w-0.5 bg-border -z-10" />
                   
                   <div className="space-y-6 text-left">
                     <div className="flex items-center gap-4">
-                      <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-md">✓</div>
+                      <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-md font-sans">✓</div>
                       <div>
                         <p className="text-xs font-bold text-foreground leading-tight">Conta Registada</p>
                         <p className="text-[10px] text-muted-foreground mt-0.5">Perfil de vendedor criado</p>
@@ -376,15 +273,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
                     </div>
 
                     <div className="flex items-center gap-4">
-                      <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-md">✓</div>
-                      <div>
-                        <p className="text-xs font-bold text-foreground leading-tight">Documentos Enviados</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">Identidade recebida com sucesso</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                      <div className="w-8 h-8 rounded-full bg-amber-500/20 border-2 border-amber-500 text-amber-600 flex items-center justify-center font-bold text-xs shrink-0 shadow-md z-10">⏳</div>
+                      <div className="w-8 h-8 rounded-full bg-amber-500/20 border-2 border-amber-500 text-amber-600 flex items-center justify-center font-bold text-xs shrink-0 shadow-md z-10 font-sans">⏳</div>
                       <div>
                         <p className="text-xs font-bold text-foreground leading-tight">Validação Manual</p>
                         <p className="text-[10px] text-muted-foreground mt-0.5">Revisão por um administrador da EnsinaPay</p>
@@ -392,7 +281,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
                     </div>
 
                     <div className="flex items-center gap-4 opacity-50">
-                      <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center font-bold text-xs shrink-0 border border-border">🔒</div>
+                      <div className="w-8 h-8 rounded-full bg-muted text-muted-foreground flex items-center justify-center font-bold text-xs shrink-0 border border-border font-sans">🔒</div>
                       <div>
                         <p className="text-xs font-bold text-foreground leading-tight">Painel Liberado</p>
                         <p className="text-[10px] text-muted-foreground mt-0.5">Acesso total para vendas e saques</p>
@@ -400,12 +289,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
                     </div>
                   </div>
                 </div>
+              )}
 
-                <div className="p-4 bg-muted/40 rounded-2xl border border-border/50 text-xs text-muted-foreground leading-relaxed max-w-sm mx-auto">
-                  💡 <strong>Prazo médio:</strong> A análise manual costuma ser concluída em um período de 12 a 24 horas úteis. Enviaremos uma notificação para o e-mail cadastrado assim que for concluído.
-                </div>
-              </Card>
-            )}
+              <div className="p-4 bg-muted/40 rounded-2xl border border-border/50 text-xs text-muted-foreground leading-relaxed max-w-sm mx-auto">
+                {isRejected ? (
+                  "Se tiver dúvidas ou quiser solicitar uma nova análise, entre em contato com o suporte."
+                ) : (
+                  <>💡 <strong>Prazo médio:</strong> A análise manual costuma ser concluída em um período de 12 a 24 horas úteis. Enviaremos um e-mail assim que for concluído.</>
+                )}
+              </div>
+            </Card>
           </div>
         </main>
 

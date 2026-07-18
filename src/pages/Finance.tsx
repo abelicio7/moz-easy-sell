@@ -41,10 +41,7 @@ const Finance = () => {
   const [loading, setLoading] = useState(true);
   const [identityStatus, setIdentityStatus] = useState<string>("unverified");
   
-  // KYC Modal state
-  const [kycModalOpen, setKycModalOpen] = useState(false);
-  const [uploadingDoc, setUploadingDoc] = useState(false);
-  const [docFile, setDocFile] = useState<File | null>(null);
+
   
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -228,140 +225,7 @@ const Finance = () => {
     return `${val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MT`;
   };
 
-  const handleKycUpload = async () => {
-    if (!user || !docFile) return;
-    
-    // Check file size (max 5MB)
-    if (docFile.size > 5 * 1024 * 1024) {
-      toast.error("O arquivo deve ter no máximo 5MB.");
-      return;
-    }
-    
-    try {
-      setUploadingDoc(true);
-      
-      const fileExt = docFile.name.split('.').pop();
-      const fileName = `${user.id}_${Math.random()}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('kyc_documents')
-        .upload(filePath, docFile, { upsert: true });
-        
-      if (uploadError) throw uploadError;
-      
-      const { data: publicUrlData } = supabase.storage
-        .from('kyc_documents')
-        .getPublicUrl(filePath);
-        
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          identity_status: 'pending',
-          identity_document_url: publicUrlData.publicUrl
-        })
-        .eq('id', user.id);
-        
-      if (updateError) throw updateError;
-      
-      toast.success("Documento enviado com sucesso! Aguarde a análise da nossa equipa (1-2 dias).");
-      setIdentityStatus('pending');
-      setKycModalOpen(false);
-      
-      // Notificar admins
-      try {
-        const adminHtmlContent = `
-          <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-            <div style="background-color: #0f172a; padding: 24px; text-align: center;">
-              <h2 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 700;">Alerta de Administração: Novo KYC</h2>
-            </div>
-            <div style="padding: 32px; line-height: 1.6; color: #334155;">
-              <p style="font-size: 16px; margin-top: 0; margin-bottom: 20px;">Olá, Administrador.</p>
-              <p style="font-size: 15px; margin-bottom: 20px;">Um novo vendedor enviou um documento de identidade para análise de verificação KYC. Detalhes do vendedor:</p>
-              <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
-                <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>Nome:</strong> ${user.user_metadata?.full_name || 'Vendedor'}</p>
-                <p style="margin: 0; font-size: 14px;"><strong>E-mail:</strong> ${user.email}</p>
-              </div>
-              <div style="text-align: center;">
-                <a href="${window.location.origin}/admin/users?filter=pending" style="display: inline-block; background-color: #3b82f6; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;">Aceder Painel de KYC</a>
-              </div>
-            </div>
-          </div>
-        `;
 
-        await supabase.functions.invoke("notify-admins", {
-          body: { 
-            subject: `🪪 NOVO DOCUMENTO KYC: ${user.user_metadata?.full_name || user.email}`, 
-            htmlContent: adminHtmlContent
-          }
-        });
-      } catch (adminErr) {
-        console.error("Erro ao notificar admins sobre KYC:", adminErr);
-      }
-
-      // Notificar vendedor por e-mail
-      try {
-        const sellerHtmlContent = `
-          <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
-            <div style="background-color: #0f172a; padding: 32px; text-align: center;">
-              <h1 style="color: #ffffff; font-size: 24px; font-weight: 700; margin: 0; letter-spacing: -0.025em;">Verificação de Identidade Recebida</h1>
-            </div>
-            <div style="padding: 40px 32px; line-height: 1.6; color: #334155;">
-              <p style="font-size: 16px; margin-top: 0; margin-bottom: 24px;">Olá, <strong>${user.user_metadata?.full_name || 'Vendedor'}</strong>.</p>
-              
-              <p style="font-size: 15px; margin-bottom: 24px;">Confirmamos com sucesso a receção do seu documento de identificação para análise do processo de KYC (Know Your Customer).</p>
-              
-              <div style="background-color: #f8fafc; border-left: 4px solid #3b82f6; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
-                <h3 style="margin-top: 0; margin-bottom: 8px; color: #1e3a8a; font-size: 15px;">🔍 O que acontece a seguir?</h3>
-                <p style="margin: 0; font-size: 14px; color: #475569;">A nossa equipa de conformidade está a analisar o seu documento. Este processo serve para garantir a segurança dos seus saques e cumprir as regulamentações financeiras.</p>
-              </div>
-              
-              <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
-                <tr>
-                  <td style="padding: 12px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #64748b;">Prazo Estimado de Análise</td>
-                  <td style="padding: 12px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; font-weight: 600; color: #0f172a; text-align: right;">12 a 24 horas úteis</td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #64748b;">Notificação</td>
-                  <td style="padding: 12px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; font-weight: 600; color: #0f172a; text-align: right;">Enviaremos um e-mail assim que for aprovado ou se necessitarmos de novo documento</td>
-                </tr>
-                <tr>
-                  <td style="padding: 12px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; color: #64748b;">Saques</td>
-                  <td style="padding: 12px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; font-weight: 600; color: #10b981; text-align: right;">Liberados imediatamente após aprovação</td>
-                </tr>
-              </table>
-              
-              <p style="font-size: 15px; margin-bottom: 32px;">Se tiver alguma dúvida sobre o processo de verificação ou precisar de ajuda, sinta-se à vontade para entrar em contacto com a nossa equipa de suporte técnico.</p>
-              
-              <div style="text-align: center; margin-bottom: 16px;">
-                <a href="${window.location.origin}/dashboard" style="display: inline-block; background-color: #0f172a; color: #ffffff; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px;">Ir para o Painel</a>
-              </div>
-            </div>
-            <div style="background-color: #f8fafc; padding: 24px; text-align: center; border-top: 1px solid #e2e8f0;">
-              <p style="margin: 0; font-size: 12px; color: #94a3b8;">&copy; ${new Date().getFullYear()} EnsinaPay. Todos os direitos reservados.</p>
-              <p style="margin: 4px 0 0 0; font-size: 11px; color: #94a3b8;">Este é um e-mail automático do sistema. Por favor, não responda diretamente.</p>
-            </div>
-          </div>
-        `;
-
-        await supabase.functions.invoke("send-email-notification", {
-          body: { 
-            to: user.email, 
-            subject: "🪪 Documento de Identificação Recebido - EnsinaPay", 
-            htmlContent: sellerHtmlContent,
-            senderName: "EnsinaPay"
-          }
-        });
-      } catch (sellerErr) {
-        console.error("Erro ao enviar e-mail de confirmação de KYC ao vendedor:", sellerErr);
-      }
-    } catch (err: any) {
-      console.error(err);
-      toast.error("Erro ao fazer upload do documento.");
-    } finally {
-      setUploadingDoc(false);
-    }
-  };
 
   const handleWithdrawalRequest = async () => {
     if (!user) return;
@@ -540,13 +404,7 @@ const Finance = () => {
                 toast.error(`O valor mínimo para realizar um saque e guardar os seus dados é de ${unitSymbol} ${minVal}.`);
                 return;
               }
-              if (identityStatus === 'unverified' || identityStatus === 'rejected') {
-                setKycModalOpen(true);
-                return;
-              } else if (identityStatus === 'pending') {
-                toast.info("A aguardar verificação de identidade. Por favor, aguarde a aprovação do seu documento para solicitar saques.");
-                return;
-              }
+
             }
             setModalOpen(open);
           }}>
@@ -714,63 +572,6 @@ const Finance = () => {
           </Dialog>
         </div>
 
-        {/* KYC Verification Modal */}
-        <Dialog open={kycModalOpen} onOpenChange={setKycModalOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Verificação de Identidade Obrigatória</DialogTitle>
-              <DialogDescription>
-                Para garantir a segurança dos seus fundos, novos vendedores ou contas não verificadas precisam enviar um <strong>Documento de Identidade</strong> (BI ou Passaporte) antes de realizar o primeiro saque.
-                <br/><br/>
-                <span className="text-destructive font-semibold">
-                  Atenção: O nome no documento deve coincidir com o nome do titular da conta de destino ({currency === "BRL" ? "Pix ou Conta Bancária" : currency === "ZAR" ? "EFT" : "M-Pesa ou E-Mola"}) escolhida para o saque.
-                </span>
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-6 space-y-4">
-               {identityStatus === 'rejected' && (
-                 <div className="p-3 bg-destructive/10 text-destructive text-sm rounded border border-destructive/20 mb-4">
-                   O seu documento anterior foi rejeitado. Por favor, envie uma imagem clara e legível do seu BI ou passaporte.
-                 </div>
-               )}
-                <div className="space-y-3">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Anexar Imagem do Documento (BI ou Passaporte)</Label>
-                  <div className="relative border-2 border-dashed border-primary/20 hover:border-primary/50 rounded-2xl p-6 text-center hover:bg-muted/10 transition-all overflow-hidden group">
-                    {/* Neon scanner laser animation */}
-                    <div className="absolute left-0 right-0 h-0.5 bg-primary shadow-[0_0_8px_rgba(59,130,246,0.8)] animate-[scan_2s_ease-in-out_infinite] pointer-events-none" />
-                    
-                    <style>{`
-                      @keyframes scan {
-                        0%, 100% { top: 0%; opacity: 0.1; }
-                        50% { top: 100%; opacity: 0.9; }
-                      }
-                    `}</style>
-                    
-                    <input 
-                      type="file" 
-                      accept="image/*,.heic,.heif,.pdf,.docx,.doc" 
-                      onChange={(e) => setDocFile(e.target.files?.[0] || null)}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <span className="text-3xl">🪪</span>
-                      <p className="text-xs font-bold text-foreground">
-                        {docFile ? docFile.name : "Clique para selecionar ou arraste o arquivo"}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">Máx: 5MB • Formatos aceitos: PNG, JPG, HEIC, PDF, DOC/DOCX</p>
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground italic text-center">O processo de aprovação do seu documento levará em média 12 a 24 horas.</p>
-                </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setKycModalOpen(false)}>Cancelar</Button>
-              <Button onClick={handleKycUpload} disabled={!docFile || uploadingDoc}>
-                {uploadingDoc ? "Enviando..." : "Enviar para Verificação"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
 
       {loading ? (
