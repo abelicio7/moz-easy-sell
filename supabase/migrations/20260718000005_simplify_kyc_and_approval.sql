@@ -45,5 +45,5 @@ SELECT cron.unschedule(jobid) FROM cron.job WHERE jobname = 'cleanup-pg-net-logs
 SELECT cron.schedule(
     'cleanup-pg-net-logs',
     '0 0 * * *', -- Diariamente à meia-noite
-    $$ DELETE FROM net.http_responses WHERE created_at < NOW() - INTERVAL '3 days'; $$
+    $$ DELETE FROM net._http_response WHERE created < NOW() - INTERVAL '3 days'; $$
 );
