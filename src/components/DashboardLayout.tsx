@@ -282,7 +282,6 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
         { to: "/admin/users", label: "Vendedores", icon: Users },
         { to: "/admin/products", label: "Produtos", icon: Package },
         { to: "/admin/withdrawals", label: "Saques", icon: Wallet },
-        { to: "/admin/requests", label: "Solicitações", icon: ShieldAlert },
         { to: "/admin/audit-logs", label: "Logs de Auditoria", icon: Terminal },
         { to: "/dashboard", label: "Voltar ao Painel", icon: LayoutTemplate },
       ]
