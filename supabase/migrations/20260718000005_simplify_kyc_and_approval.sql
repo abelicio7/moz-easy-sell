@@ -14,7 +14,7 @@ WHERE id IN (
 );
 
 -- 3. Otimizar o agendamento de verificação de pagamentos
-SELECT cron.unschedule('check-pending-payments');
+SELECT cron.unschedule(jobid) FROM cron.job WHERE jobname = 'check-pending-payments';
 
 SELECT cron.schedule(
     'check-pending-payments',
@@ -40,7 +40,7 @@ SELECT cron.schedule(
 );
 
 -- 4. Criar rotina de autolimpeza diária de logs do pg_net para evitar inchaço do banco
-SELECT cron.unschedule('cleanup-pg-net-logs');
+SELECT cron.unschedule(jobid) FROM cron.job WHERE jobname = 'cleanup-pg-net-logs';
 
 SELECT cron.schedule(
     'cleanup-pg-net-logs',
