@@ -68,7 +68,9 @@ const AdminUsers = () => {
     setLoading(true);
     let query = supabase.from("profiles").select("*").order("created_at", { ascending: false });
     
-    if (filter !== "all") {
+    if (filter === "pending") {
+      query = query.eq("status", "pending");
+    } else if (filter !== "all") {
       query = query.eq("identity_status", filter);
     }
     

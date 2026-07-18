@@ -119,7 +119,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       const [usersRes, productsRes, withdrawalsRes, approvedUsersRes] = await Promise.all([
-        supabase.from("profiles").select("id", { count: "exact" }).eq("identity_status", "pending"),
+        supabase.from("profiles").select("id", { count: "exact" }).eq("status", "pending"),
         supabase.from("products").select("id", { count: "exact" }).eq("status", "pending"),
         supabase.from("withdrawals").select("id", { count: "exact" }).eq("status", "pending"),
         supabase.from("profiles").select("id", { count: "exact" }).eq("status", "approved"),
