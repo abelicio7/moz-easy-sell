@@ -21,6 +21,7 @@ interface Profile {
   status: string;
   identity_status: string;
   identity_document_url: string;
+  identity_selfie_url?: string;
   cpf: string;
   email: string;
   rejection_reason: string;

@@ -21,6 +21,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   // KYC specific states
   const [docFile, setDocFile] = useState<File | null>(null);
+  const [selfieFile, setSelfieFile] = useState<File | null>(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [docType, setDocType] = useState("bi");
 
@@ -32,7 +33,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     try {
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("status, identity_status, role, rejection_reason")
+        .select("status, identity_status, role, rejection_reason, identity_selfie_url")
         .eq("id", user.id)
         .maybeSingle();
 
@@ -57,48 +58,71 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }, [user, authLoading]);
 
   const handleKycUpload = async () => {
-    if (!user || !docFile) return;
+    if (!user || !docFile || !selfieFile) {
+      toast.error("Por favor, selecione ambos os arquivos (documento e selfie).");
+      return;
+    }
     
-    // Check file size (max 5MB)
-    if (docFile.size > 5 * 1024 * 1024) {
-      toast.error("O arquivo deve ter no máximo 5MB.");
+    // Check file sizes (max 5MB)
+    if (docFile.size > 5 * 1024 * 1024 || selfieFile.size > 5 * 1024 * 1024) {
+      toast.error("Os arquivos devem ter no máximo 5MB cada.");
       return;
     }
     
     try {
       setUploadingDoc(true);
       
-      const fileExt = docFile.name.split('.').pop();
-      const fileName = `${user.id}_${Math.random()}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
+      // 1. Upload Doc File
+      const docExt = docFile.name.split('.').pop();
+      const docFileName = `id_${user.id}_${Math.random()}.${docExt}`;
+      const docFilePath = `${user.id}/${docFileName}`;
       
-      const { error: uploadError } = await supabase.storage
+      const { error: docUploadError } = await supabase.storage
         .from('kyc_documents')
-        .upload(filePath, docFile, { upsert: true });
+        .upload(docFilePath, docFile, { upsert: true });
         
-      if (uploadError) throw uploadError;
+      if (docUploadError) throw docUploadError;
       
-      const { data: publicUrlData } = supabase.storage
+      const { data: docUrlData } = supabase.storage
         .from('kyc_documents')
-        .getPublicUrl(filePath);
+        .getPublicUrl(docFilePath);
+
+      // 2. Upload Selfie File
+      const selfieExt = selfieFile.name.split('.').pop();
+      const selfieFileName = `selfie_${user.id}_${Math.random()}.${selfieExt}`;
+      const selfieFilePath = `${user.id}/${selfieFileName}`;
+      
+      const { error: selfieUploadError } = await supabase.storage
+        .from('kyc_documents')
+        .upload(selfieFilePath, selfieFile, { upsert: true });
         
+      if (selfieUploadError) throw selfieUploadError;
+      
+      const { data: selfieUrlData } = supabase.storage
+        .from('kyc_documents')
+        .getPublicUrl(selfieFilePath);
+        
+      // 3. Update Profile Table
       const { error: updateError } = await supabase
         .from('profiles')
         .update({
           identity_status: 'pending',
-          identity_document_url: publicUrlData.publicUrl
+          identity_document_url: docUrlData.publicUrl,
+          identity_selfie_url: selfieUrlData.publicUrl
         })
         .eq('id', user.id);
         
       if (updateError) throw updateError;
       
-      toast.success("Documento enviado com sucesso! Aguarde a análise da nossa equipa.");
+      toast.success("Documento e selfie enviados com sucesso! Aguarde a análise da nossa equipa.");
       setProfile((prev: any) => ({
         ...prev,
         identity_status: 'pending',
-        identity_document_url: publicUrlData.publicUrl
+        identity_document_url: docUrlData.publicUrl,
+        identity_selfie_url: selfieUrlData.publicUrl
       }));
       setDocFile(null);
+      setSelfieFile(null);
       
       // Notify admins
       try {
@@ -109,7 +133,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
             </div>
             <div style="padding: 32px; line-height: 1.6; color: #334155;">
               <p style="font-size: 16px; margin-top: 0; margin-bottom: 20px;">Olá, Administrador.</p>
-              <p style="font-size: 15px; margin-bottom: 20px;">Um novo vendedor enviou um documento de identidade para análise de verificação KYC. Detalhes do vendedor:</p>
+              <p style="font-size: 15px; margin-bottom: 20px;">Um novo vendedor enviou documento e selfie para análise de verificação KYC. Detalhes do vendedor:</p>
               <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 24px;">
                 <p style="margin: 0 0 8px 0; font-size: 14px;"><strong>Nome:</strong> ${user.user_metadata?.full_name || 'Vendedor'}</p>
                 <p style="margin: 0; font-size: 14px;"><strong>E-mail:</strong> ${user.email}</p>
@@ -140,8 +164,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
             </div>
             <div style="padding: 40px 32px; line-height: 1.6; color: #334155;">
               <p style="font-size: 16px; margin-top: 0; margin-bottom: 24px;">Olá, <strong>${user.user_metadata?.full_name || 'Vendedor'}</strong>.</p>
-              <p style="font-size: 15px; margin-bottom: 24px;">Confirmamos com sucesso a receção do seu documento de identificação para análise do processo de KYC (Know Your Customer).</p>
-              <p style="font-size: 15px; margin-bottom: 24px;">A nossa equipe de conformidade está a analisar o seu documento. Assim que a conta for validada, seu acesso ao painel estará liberado.</p>
+              <p style="font-size: 15px; margin-bottom: 24px;">Confirmamos com sucesso a receção do seu documento de identificação e da sua selfie para análise do processo de KYC (Know Your Customer).</p>
+              <p style="font-size: 15px; margin-bottom: 24px;">A nossa equipe de conformidade está a analisar as suas informações. Assim que a conta for validada, seu acesso ao painel estará liberado.</p>
             </div>
           </div>
         `;
@@ -149,7 +173,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         await supabase.functions.invoke("send-email-notification", {
           body: { 
             to: user.email, 
-            subject: "🪪 Documento de Identificação Recebido - EnsinaPay", 
+            subject: "🪪 Informações de Identidade Recebidas - EnsinaPay", 
             htmlContent: sellerHtmlContent,
             senderName: "EnsinaPay"
           }
@@ -159,7 +183,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (err: any) {
       console.error(err);
-      toast.error("Erro ao fazer upload do documento.");
+      toast.error("Erro ao fazer upload dos documentos.");
     } finally {
       setUploadingDoc(false);
     }
@@ -252,7 +276,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
                     <div className="space-y-3">
                       <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Anexar Cópia do Documento</Label>
-                      <label className="relative border-2 border-dashed border-primary/20 hover:border-primary/50 rounded-2xl p-8 text-center hover:bg-muted/10 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group">
+                      <label className="relative border-2 border-dashed border-primary/20 hover:border-primary/50 rounded-2xl p-6 text-center hover:bg-muted/10 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group">
                         <input 
                           type="file" 
                           accept="image/*,.pdf" 
@@ -260,14 +284,36 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
                           className="hidden"
                           disabled={uploadingDoc}
                         />
-                        <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300">
-                          <Upload className="w-5 h-5" />
+                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300">
+                          <Upload className="w-4 h-4" />
                         </div>
                         <div>
                           <p className="text-sm font-bold text-foreground">
-                            {docFile ? docFile.name : "Clique para selecionar ou arraste o arquivo"}
+                            {docFile ? docFile.name : "Clique para selecionar o documento"}
                           </p>
                           <p className="text-[10px] text-muted-foreground mt-1">Máximo: 5MB • Formatos: PNG, JPG, PDF</p>
+                        </div>
+                      </label>
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Selfie segurando o Documento</Label>
+                      <label className="relative border-2 border-dashed border-primary/20 hover:border-primary/50 rounded-2xl p-6 text-center hover:bg-muted/10 transition-all flex flex-col items-center justify-center gap-3 cursor-pointer group">
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={(e) => setSelfieFile(e.target.files?.[0] || null)}
+                          className="hidden"
+                          disabled={uploadingDoc}
+                        />
+                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300">
+                          <Upload className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-foreground">
+                            {selfieFile ? selfieFile.name : "Clique para tirar/anexar selfie"}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground mt-1">Foto do seu rosto segurando o documento • Máximo: 5MB • Formato: Imagem</p>
                         </div>
                       </label>
                     </div>
@@ -275,10 +321,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
                   <Button 
                     onClick={handleKycUpload} 
-                    disabled={!docFile || uploadingDoc} 
+                    disabled={!docFile || !selfieFile || uploadingDoc} 
                     className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/20"
                   >
-                    {uploadingDoc ? "A enviar documento..." : "Submeter para Verificação"}
+                    {uploadingDoc ? "A enviar documentos..." : "Submeter para Verificação"}
                   </Button>
                 </CardContent>
 
