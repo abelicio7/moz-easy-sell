@@ -458,6 +458,17 @@ const AdminUsers = () => {
                                      </button>
                                    </div>
                                  )}
+                                 {user.identity_selfie_url && (
+                                   <div className="col-span-1 sm:col-span-2 pt-2 pb-1 border-t border-border/50">
+                                     <span className="text-muted-foreground block text-xs mb-1">Selfie segurando o Documento</span>
+                                     <button 
+                                       onClick={() => handleViewDocument(user.identity_selfie_url)} 
+                                       className="text-primary hover:underline text-sm font-bold truncate block bg-primary/5 p-3 rounded border border-primary/20 cursor-pointer w-full text-left"
+                                     >
+                                       🤳 Visualizar Selfie com Documento
+                                     </button>
+                                   </div>
+                                 )}
                                </div>
                                
                                {!action ? (
