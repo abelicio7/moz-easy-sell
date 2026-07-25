@@ -21,6 +21,9 @@ interface Product {
   currency?: string;
 }
 
+// Toggle to hide E-Mola payment method when it is offline at the provider level
+const SHOW_EMOLA = false;
+
 const Checkout = () => {
   const { productId } = useParams();
   const navigate = useNavigate();
@@ -625,6 +628,8 @@ const Checkout = () => {
                           <label
                             htmlFor="mpesa"
                             className={`relative overflow-hidden flex items-center gap-2 rounded-xl p-3 cursor-pointer transition-all bg-gradient-to-br from-[#E51B24] to-[#8A0A12] text-white hover:scale-[1.01] ${
+                              !SHOW_EMOLA ? "col-span-2" : ""
+                            } ${
                               form.payment_method === "mpesa"
                                 ? "shadow-lg ring-2 ring-primary/20 opacity-100"
                                 : "opacity-80 hover:opacity-100"
@@ -646,29 +651,31 @@ const Checkout = () => {
                             </div>
                           </label>
                           
-                          <label
-                            htmlFor="emola"
-                            className={`relative overflow-hidden flex items-center gap-2 rounded-xl p-3 cursor-pointer transition-all bg-gradient-to-br from-[#F57C00] to-[#b34700] text-white hover:scale-[1.01] ${
-                              form.payment_method === "emola"
-                                ? "shadow-lg ring-2 ring-primary/20 opacity-100"
-                                : "opacity-80 hover:opacity-100"
-                            }`}
-                          >
-                            <RadioGroupItem value="emola" id="emola" className="w-3 h-3 border-white text-white fill-white" />
-                            <div className="flex items-center gap-3 flex-1">
-                              <div className="w-12 h-8 rounded-lg flex items-center justify-center bg-white p-1.5 shadow-sm border border-slate-100 shrink-0">
-                                <img 
-                                  src="/emola_logo.png" 
-                                  alt="E-Mola" 
-                                  className="max-w-full max-h-full object-contain block" 
-                                />
+                          {SHOW_EMOLA && (
+                            <label
+                              htmlFor="emola"
+                              className={`relative overflow-hidden flex items-center gap-2 rounded-xl p-3 cursor-pointer transition-all bg-gradient-to-br from-[#F57C00] to-[#b34700] text-white hover:scale-[1.01] ${
+                                form.payment_method === "emola"
+                                  ? "shadow-lg ring-2 ring-primary/20 opacity-100"
+                                  : "opacity-80 hover:opacity-100"
+                              }`}
+                            >
+                              <RadioGroupItem value="emola" id="emola" className="w-3 h-3 border-white text-white fill-white" />
+                              <div className="flex items-center gap-3 flex-1">
+                                <div className="w-12 h-8 rounded-lg flex items-center justify-center bg-white p-1.5 shadow-sm border border-slate-100 shrink-0">
+                                  <img 
+                                    src="/emola_logo.png" 
+                                    alt="E-Mola" 
+                                    className="max-w-full max-h-full object-contain block" 
+                                  />
+                                </div>
+                                <div>
+                                  <p className="font-bold text-white text-[12px] leading-tight">E-Mola</p>
+                                  <p className="text-[9px] text-white/80 leading-none">Movitel</p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="font-bold text-white text-[12px] leading-tight">E-Mola</p>
-                                <p className="text-[9px] text-white/80 leading-none">Movitel</p>
-                              </div>
-                            </div>
-                          </label>
+                            </label>
+                          )}
                         </>
                       )}
                     </RadioGroup>
