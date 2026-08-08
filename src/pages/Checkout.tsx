@@ -48,6 +48,7 @@ const Checkout = () => {
   const [isNotApproved, setIsNotApproved] = useState(false);
 
   const [trackingParams, setTrackingParams] = useState<any>({});
+  const [pixelId, setPixelId] = useState<string | null>(null);
 
   const isZar = product?.currency === "ZAR";
 
@@ -170,12 +171,13 @@ const Checkout = () => {
       setLoading(false);
 
       // --- INTEGRATIONS START ---
-      const { data: pixelId, error: pixelError } = await supabase.rpc('get_product_pixel', { p_product_id: productId });
+      const { data: pixelIdData, error: pixelError } = await supabase.rpc('get_product_pixel', { p_product_id: productId });
       
-      console.log("Pixel RPC debug:", { pixelId, pixelError });
+      console.log("Pixel RPC debug:", { pixelIdData, pixelError });
 
-      if (pixelId) {
-        console.log(`Injecting Meta Pixel: ${pixelId}`);
+      if (pixelIdData) {
+        setPixelId(pixelIdData);
+        console.log(`Injecting Meta Pixel: ${pixelIdData}`);
         
         const win = window as any;
         if (!win.fbq) {
@@ -189,7 +191,7 @@ const Checkout = () => {
           'https://connect.facebook.net/en_US/fbevents.js');
         }
         
-        win.fbq('init', pixelId);
+        win.fbq('init', pixelIdData);
         win.fbq('track', 'PageView');
         win.fbq('track', 'InitiateCheckout', {
           content_name: productData.name,
@@ -199,10 +201,10 @@ const Checkout = () => {
           currency: productData.currency || 'MZN'
         });
 
-        if (!document.getElementById(`fb-pixel-noscript-${pixelId}`)) {
+        if (!document.getElementById(`fb-pixel-noscript-${pixelIdData}`)) {
           const noscript = document.createElement("noscript");
-          noscript.id = `fb-pixel-noscript-${pixelId}`;
-          noscript.innerHTML = `<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1" />`;
+          noscript.id = `fb-pixel-noscript-${pixelIdData}`;
+          noscript.innerHTML = `<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${pixelIdData}&ev=PageView&noscript=1" />`;
           document.head.appendChild(noscript);
         }
       }
@@ -558,6 +560,21 @@ const Checkout = () => {
                         toast.error(t("emailError"));
                         return;
                       }
+
+                      // Track AddPaymentInfo in Meta Pixel
+                      if (pixelId && product) {
+                        const win = window as any;
+                        if (win.fbq) {
+                          win.fbq('track', 'AddPaymentInfo', {
+                            content_name: product.name,
+                            content_ids: [product.id],
+                            content_type: 'product',
+                            value: product.price,
+                            currency: product.currency || 'MZN'
+                          });
+                        }
+                      }
+
                       setCheckoutStep(2);
                     }}
                     className="w-full h-14 bg-primary hover:bg-primary/95 text-white font-black text-base rounded-xl transition-all duration-300 active:scale-[0.98] mt-6 flex items-center justify-center gap-2 shadow-lg"
