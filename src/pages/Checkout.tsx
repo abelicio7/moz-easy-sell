@@ -177,39 +177,31 @@ const Checkout = () => {
       if (pixelId) {
         console.log(`Injecting Meta Pixel: ${pixelId}`);
         
-        if (!document.getElementById(`fb-pixel-${pixelId}`)) {
-          // Standard Meta Pixel Code
-          const code = `
-            !function(f,b,e,v,n,t,s)
-            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-            n.queue=[];t=b.createElement(e);t.async=!0;
-            t.src=v;s=b.getElementsByTagName(e)[0];
-            s.parentNode.insertBefore(t,s)}(window, document,'script',
-            'https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init', '${pixelId}');
-            fbq('track', 'PageView');
-            fbq('track', 'InitiateCheckout', {
-              content_name: '${productData.name.replace(/'/g, "\\'")}',
-              content_ids: ['${productData.id}'],
-              content_type: 'product',
-              value: ${productData.price},
-              currency: '${productData.currency || 'MZN'}'
-            });
-          `;
-          
-          const script = document.createElement("script");
-          script.id = `fb-pixel-${pixelId}`;
-          script.type = "text/javascript";
-          try {
-            script.appendChild(document.createTextNode(code));
-          } catch (e) {
-            script.text = code;
-          }
-          document.head.appendChild(script);
+        const win = window as any;
+        if (!win.fbq) {
+          !function(f:any,b:any,e:any,v:any,n?:any,t?:any,s?:any)
+          {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+          n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+          if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+          n.queue=[];t=b.createElement(e);t.async=!0;
+          t.src=v;s=b.getElementsByTagName(e)[0];
+          s.parentNode.insertBefore(t,s)}(win, document,'script',
+          'https://connect.facebook.net/en_US/fbevents.js');
+        }
+        
+        win.fbq('init', pixelId);
+        win.fbq('track', 'PageView');
+        win.fbq('track', 'InitiateCheckout', {
+          content_name: productData.name,
+          content_ids: [productData.id],
+          content_type: 'product',
+          value: productData.price,
+          currency: productData.currency || 'MZN'
+        });
 
+        if (!document.getElementById(`fb-pixel-noscript-${pixelId}`)) {
           const noscript = document.createElement("noscript");
+          noscript.id = `fb-pixel-noscript-${pixelId}`;
           noscript.innerHTML = `<img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1" />`;
           document.head.appendChild(noscript);
         }
