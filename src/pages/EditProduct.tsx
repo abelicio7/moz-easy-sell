@@ -226,25 +226,47 @@ const EditProduct = () => {
             {/* Image upload */}
             <div className="space-y-2">
               <Label>Imagem do produto</Label>
-              {imagePreview ? (
-                <div className="relative aspect-video rounded-lg overflow-hidden border border-border">
-                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={removeImage}
-                    className="absolute top-2 right-2 bg-background/80 rounded-full p-1 hover:bg-background"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <label className="flex flex-col items-center justify-center gap-2 aspect-video rounded-lg border-2 border-dashed border-border hover:border-primary/50 cursor-pointer transition-colors">
-                  <Upload className="w-6 h-6 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Clique para adicionar imagem</span>
-                  <span className="text-xs text-muted-foreground">PNG, JPG até 5MB</span>
-                  <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                </label>
-              )}
+              <div 
+                className="relative aspect-video rounded-lg overflow-hidden border-2 border-dashed border-border hover:border-primary/50 cursor-pointer transition-colors group flex flex-col items-center justify-center gap-2"
+                onClick={() => document.getElementById("product-image-input")?.click()}
+              >
+                {imagePreview ? (
+                  <>
+                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover absolute inset-0" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      <Button type="button" size="sm" variant="secondary" className="pointer-events-none">
+                        <Upload className="w-4 h-4 mr-2" /> Substituir
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeImage();
+                          const input = document.getElementById("product-image-input") as HTMLInputElement;
+                          if (input) input.value = "";
+                        }}
+                      >
+                        <X className="w-4 h-4 mr-2" /> Remover
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="w-6 h-6 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Clique para adicionar imagem</span>
+                    <span className="text-xs text-muted-foreground">PNG, JPG até 5MB</span>
+                  </>
+                )}
+                <input 
+                  id="product-image-input"
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleImageChange} 
+                  className="hidden" 
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
