@@ -117,7 +117,8 @@ const EditProduct = () => {
   const uploadImage = async (): Promise<string | null> => {
     if (!imageFile || !id) return null;
     const ext = imageFile.name.split(".").pop();
-    const path = `${id}.${ext}`;
+    const uniqueSuffix = Date.now();
+    const path = `${id}-${uniqueSuffix}.${ext}`;
     const { error } = await supabase.storage.from("product-images").upload(path, imageFile, { upsert: true });
     if (error) {
       console.error("Upload error:", error);
@@ -134,6 +135,11 @@ const EditProduct = () => {
     let imageUrl: string | null | undefined = undefined;
     if (imageFile) {
       imageUrl = await uploadImage();
+      if (!imageUrl) {
+        setLoading(false);
+        toast.error("Erro ao carregar a imagem de capa do produto. Por favor, tente novamente.");
+        return;
+      }
     } else if (!imagePreview) {
       imageUrl = null; // image was removed
     }

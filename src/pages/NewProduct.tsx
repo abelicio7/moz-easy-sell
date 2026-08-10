@@ -78,7 +78,8 @@ const NewProduct = () => {
   const uploadImage = async (productId: string): Promise<string | null> => {
     if (!imageFile) return null;
     const ext = imageFile.name.split(".").pop();
-    const path = `${productId}.${ext}`;
+    const uniqueSuffix = Date.now();
+    const path = `${productId}-${uniqueSuffix}.${ext}`;
     const { error } = await supabase.storage.from("product-images").upload(path, imageFile, { upsert: true });
     if (error) {
       console.error("Upload error:", error);
