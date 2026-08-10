@@ -57,8 +57,10 @@ serve(async (req) => {
       hmac.update(rawBody);
       const hash = hmac.digest("hex");
 
-      if (hash !== signature) {
-        console.error(`INVALID WEBHOOK SIGNATURE. Hash mismatch. Calculated: ${hash}, Received: ${signature}`);
+      const cleanSignature = signature.replace(/^sha256=/, '');
+
+      if (hash !== cleanSignature) {
+        console.error(`INVALID WEBHOOK SIGNATURE. Hash mismatch. Calculated: ${hash}, Received: ${cleanSignature}`);
         return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401, headers: corsHeaders });
       }
       console.log("Webhook signature validated successfully.");
