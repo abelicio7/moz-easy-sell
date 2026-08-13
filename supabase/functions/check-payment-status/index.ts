@@ -88,7 +88,7 @@ serve(async (req) => {
       )
     }
 
-    // 3. POLL DEBITO API (Backup for missing webhook)
+    // 3. POLL ZUMBOPAY API (Backup for missing webhook)
     const ref = debito_reference || order.debito_reference
 
     if (!ref) {
@@ -98,88 +98,29 @@ serve(async (req) => {
       )
     }
 
-    const DEBITO_API_KEY = Deno.env.get('DEBITO_API_KEY')
-    const MERCHANT_ID = Deno.env.get('DEBITO_MERCHANT_ID')
-    const DEBITO_BASE_URL = "https://gyqoaningqhurhvdugne.supabase.co/functions/v1"
+    const ZUMBOPAY_API_KEY = Deno.env.get('ZUMBOPAY_API_KEY')
+    const ZUMBOPAY_MERCHANT_ID = Deno.env.get('ZUMBOPAY_MERCHANT_ID')
 
-    console.log(`Polling Débito Orchestrator for ref ${ref}...`)
-    
-    const payload = {
-      action: "check-status",
-      merchant_id: MERCHANT_ID,
-      transaction_id: ref,
-      payment_id: ref,
-      paymentId: ref,
-      id: ref,
-      reference: ref,
-      currency: order.currency || "MZN"
-    };
+    if (!ZUMBOPAY_API_KEY || !ZUMBOPAY_MERCHANT_ID) {
+      throw new Error('ZumboPay configuration missing in Supabase Secrets')
+    }
 
-    let response = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {
-      method: 'POST',
+    console.log(`Polling ZumboPay for ref ${ref}...`)
+
+    const response = await fetch(`https://zumbopay.com/api/public/v1/payments/${ref}`, {
+      method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEBITO_API_KEY}`
-      },
-      body: JSON.stringify(payload)
-    });
-
-    let debitoData = await response.json();
-
-    // Se não encontrar pela referência, tenta pelo ID do pedido (UUID)
-    if (!debitoData.success || debitoData.error?.includes("payment_id") || debitoData.error === "Payment not found") {
-      console.log(`Ref não encontrada no Check-Status. Tentando pelo ID do pedido: ${order_id}`);
-      const retryResponse = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${DEBITO_API_KEY}`
-        },
-        body: JSON.stringify({
-          ...payload,
-          transaction_id: order_id,
-          payment_id: order_id,
-          paymentId: order_id,
-          id: order_id,
-          external_reference: order_id
-        })
-      });
-      debitoData = await retryResponse.json();
-    }
-
-    console.log("Resposta do Gateway:", JSON.stringify(debitoData));
-
-    // Lógica de detecção restrita para evitar falsos positivos
-    const possibleStatuses = [
-      debitoData.payment?.status,
-      debitoData.payment?.payment_status,
-      debitoData.data?.status,
-      debitoData.data?.payment_status,
-      debitoData.data?.transaction_status,
-      debitoData.status,
-      debitoData.payment_status,
-      debitoData.transaction_status
-    ].filter(Boolean);
-
-    let hasFailure = false;
-    let hasPending = false;
-    let definitiveSuccess = false;
-
-    for (const s of possibleStatuses) {
-      const raw = String(s).toLowerCase();
-      if (['failed', 'fail', 'rejected', 'recusado', 'canceled', 'cancelled', 'error'].includes(raw) || raw.includes('fail') || raw.includes('reject')) {
-        hasFailure = true;
+        'Authorization': `Bearer ${ZUMBOPAY_API_KEY}`,
+        'X-Merchant-Id': ZUMBOPAY_MERCHANT_ID,
+        'Accept': 'application/json'
       }
-      if (['pending', 'pendente', 'processing', 'awaiting'].includes(raw)) {
-        hasPending = true;
-      }
-      if (['success', 'completed', 'paid', 'successful', 'pago', 'complete'].includes(raw)) {
-        definitiveSuccess = true;
-      }
-    }
+    })
 
-    // Para ser pago, deve ter confirmação de sucesso, ZERO indícios de falha e ZERO indícios de pendência.
-    const isPaid = definitiveSuccess && !hasFailure && !hasPending;
+    const zumboData = await response.json()
+    console.log("Resposta do ZumboPay:", JSON.stringify(zumboData))
+
+    const rawStatus = (zumboData.data?.status || zumboData.status || "").toLowerCase();
+    const isPaid = ['success', 'succeeded', 'paid'].includes(rawStatus);
 
     if (isPaid) {
       console.log(`✅ Payment confirmed via Polling for ${order_id}. Updating DB...`)

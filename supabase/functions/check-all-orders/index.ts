@@ -40,89 +40,31 @@ serve(async (req) => {
     console.log(`Processando ${pendingOrders.length} pedidos...`);
     const results = [];
 
-    const DEBITO_API_KEY = Deno.env.get('DEBITO_API_KEY');
-    const MERCHANT_ID = Deno.env.get('DEBITO_MERCHANT_ID');
-    const DEBITO_BASE_URL = "https://gyqoaningqhurhvdugne.supabase.co/functions/v1";
+    const ZUMBOPAY_API_KEY = Deno.env.get('ZUMBOPAY_API_KEY');
+    const ZUMBOPAY_MERCHANT_ID = Deno.env.get('ZUMBOPAY_MERCHANT_ID');
+
+    if (!ZUMBOPAY_API_KEY || !ZUMBOPAY_MERCHANT_ID) {
+      throw new Error('ZumboPay credentials missing in Supabase Secrets');
+    }
 
     for (const order of pendingOrders) {
       try {
         console.log(`Verificando Pedido: ${order.id} | Ref: ${order.debito_reference}`);
         
-        const payload = {
-          action: "check-status",
-          merchant_id: MERCHANT_ID,
-          transaction_id: order.debito_reference,
-          payment_id: order.debito_reference,
-          paymentId: order.debito_reference,
-          id: order.debito_reference,
-          reference: order.debito_reference,
-          currency: order.currency || "MZN"
-        };
-
-        let response = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {
-          method: 'POST',
+        const response = await fetch(`https://zumbopay.com/api/public/v1/payments/${order.debito_reference}`, {
+          method: 'GET',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${DEBITO_API_KEY}`
-          },
-          body: JSON.stringify(payload)
+            'Authorization': `Bearer ${ZUMBOPAY_API_KEY}`,
+            'X-Merchant-Id': ZUMBOPAY_MERCHANT_ID,
+            'Accept': 'application/json'
+          }
         });
 
-        let debitoData = await response.json();
-        
-        // Se ainda pedir payment_id ou der erro, tenta com o UUID
-        if (!debitoData.success || debitoData.error?.includes("payment_id")) {
-          console.log(`Tentativa 2 (UUID) para Pedido: ${order.id}`);
-          const retryResponse = await fetch(`${DEBITO_BASE_URL}/payment-orchestrator`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${DEBITO_API_KEY}`
-            },
-            body: JSON.stringify({
-              ...payload,
-              transaction_id: order.id,
-              payment_id: order.id,
-              paymentId: order.id,
-              id: order.id,
-              external_reference: order.id
-            })
-          });
-          debitoData = await retryResponse.json();
-        }
-        console.log(`Resposta completa do Gateway para Ref ${order.debito_reference}:`, JSON.stringify(debitoData));
+        const zumboData = await response.json();
+        console.log(`Resposta do ZumboPay para Ref ${order.debito_reference}:`, JSON.stringify(zumboData));
 
-        // Lógica de detecção restrita para evitar falsos positivos
-        const possibleStatuses = [
-          debitoData.payment?.status,
-          debitoData.payment?.payment_status,
-          debitoData.data?.status,
-          debitoData.data?.payment_status,
-          debitoData.data?.transaction_status,
-          debitoData.status,
-          debitoData.payment_status,
-          debitoData.transaction_status
-        ].filter(Boolean);
-
-        let hasFailure = false;
-        let hasPending = false;
-        let definitiveSuccess = false;
-
-        for (const s of possibleStatuses) {
-          const raw = String(s).toLowerCase();
-          if (['failed', 'fail', 'rejected', 'recusado', 'canceled', 'cancelled', 'error'].includes(raw) || raw.includes('fail') || raw.includes('reject')) {
-            hasFailure = true;
-          }
-          if (['pending', 'pendente', 'processing', 'awaiting'].includes(raw)) {
-            hasPending = true;
-          }
-          if (['success', 'completed', 'paid', 'successful', 'pago', 'complete'].includes(raw)) {
-            definitiveSuccess = true;
-          }
-        }
-
-        // Para ser pago, deve ter confirmação de sucesso, ZERO indícios de falha e ZERO pendências.
-        const isPaid = definitiveSuccess && !hasFailure && !hasPending;
+        const rawStatus = (zumboData.data?.status || zumboData.status || "").toLowerCase();
+        const isPaid = ['success', 'succeeded', 'paid'].includes(rawStatus);
 
         if (isPaid) {
           console.log(`✅ PAGAMENTO CONFIRMADO: Pedido ${order.id}. Atualizando para 'paid'...`);
@@ -146,8 +88,8 @@ serve(async (req) => {
 
           results.push({ order_id: order.id, status: 'paid' });
         } else {
-          console.log(`ℹ️ Pedido ${order.id} ainda não confirmado. Status recebido: ${status || "pendente"}`);
-          results.push({ order_id: order.id, status: status || 'still_pending' });
+          console.log(`ℹ️ Pedido ${order.id} ainda não confirmado. Status recebido: ${rawStatus || "pendente"}`);
+          results.push({ order_id: order.id, status: rawStatus || 'still_pending' });
         }
       } catch (err) {
         console.error(`Erro ao processar pedido ${order.id}:`, err.message);
