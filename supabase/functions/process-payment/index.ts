@@ -161,8 +161,7 @@ serve(async (req) => {
         .from('orders')
         .update({ 
           debito_reference: String(ref),
-          currency: 'MZN',
-          status: 'pending'
+          currency: 'MZN'
         })
         .eq('id', order_id)
 
