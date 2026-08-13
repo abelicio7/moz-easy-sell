@@ -131,18 +131,19 @@ serve(async (req) => {
 
     // ZumboPay sends reference in various fields depending on context
     const reference = data?.source_id || data?.reference || data?.transaction_reference || data?.id || body?.reference || body?.transaction_reference || body?.id;
+    const sourceId = data?.metadata?.source_id || body?.metadata?.source_id || data?.source_id || body?.source_id;
     const status = (data?.status || body?.status || "").toLowerCase();
 
-    console.log(`Processing ZumboPay event: ${event} for reference: ${reference}, status: ${status}`);
+    console.log(`Processing ZumboPay event: ${event} for reference: ${reference}, sourceId: ${sourceId}, status: ${status}`);
 
     // 4. PROCESS SUCCESSFUL PAYMENT EVENTS
     const isSuccessEvent = event === 'payment.succeeded' || event === 'charge.succeeded' || event === 'charge.success' || event === 'payment.completed';
     const isSuccessStatus = status === 'success' || status === 'succeeded' || status === 'paid' || status === 'completed';
 
     if (isSuccessEvent || (reference && isSuccessStatus)) {
-      if (!reference) {
-        console.error("ERRO: Nenhuma referência encontrada no corpo do webhook da ZumboPay.", body);
-        diagnostic.error = "No reference found";
+      if (!reference && !sourceId) {
+        console.error("ERRO: Nenhuma referência ou source_id encontrada no corpo do webhook da ZumboPay.", body);
+        diagnostic.error = "No reference or source_id found";
         
         if (logId) {
           await supabase.from('webhook_logs').update({
@@ -157,42 +158,63 @@ serve(async (req) => {
             }
           }).eq('id', logId);
         }
-        return new Response(JSON.stringify({ error: "No reference found" }), { status: 200, headers: corsHeaders });
+        return new Response(JSON.stringify({ error: "No reference or source_id found" }), { status: 200, headers: corsHeaders });
       }
 
-      // 1. Tentar encontrar por debito_reference (ID do ZumboPay / ID de transação)
-      console.log(`Procurando pedido com debito_reference: ${reference}`);
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .select('id, status, customer_email')
-        .eq('debito_reference', reference)
-        .maybeSingle();
+      let order: any = null;
 
-      if (orderError) console.error("Erro na busca 1:", orderError);
+      // 1. Tentar encontrar por debito_reference (ID do ZumboPay / ID de transação)
+      if (reference) {
+        console.log(`Procurando pedido com debito_reference: ${reference}`);
+        const { data: orderData, error: orderError } = await supabase
+          .from('orders')
+          .select('id, status, customer_email')
+          .eq('debito_reference', reference)
+          .maybeSingle();
+
+        if (orderError) {
+          console.error("Erro na busca por debito_reference:", orderError);
+          diagnostic.order_error = orderError;
+        }
+        order = orderData;
+      }
+
+      // 2. Fallback: Tentar encontrar pelo UUID (sourceId)
+      if (!order && sourceId) {
+        console.log(`Não encontrado por referência. Tentando buscar por UUID do pedido: ${sourceId}`);
+        const { data: orderById, error: idError } = await supabase
+          .from('orders')
+          .select('id, status, customer_email')
+          .eq('id', sourceId)
+          .maybeSingle();
+
+        if (idError) {
+          console.error("Erro na busca por UUID (sourceId):", idError);
+          diagnostic.id_error = idError;
+        }
+        order = orderById;
+      }
 
       if (order) {
-        console.log(`Pedido encontrado via debito_reference: ${order.id}`);
+        console.log(`Pedido encontrado: ${order.id}`);
+        diagnostic.order_found_id = order.id;
+        
         if (order.status !== 'paid' && order.status !== 'delivered') {
+          // Se o debito_reference ainda não estiver preenchido (corrida de banco), preenchemos agora
+          if (reference) {
+            const { error: updateRefError } = await supabase
+              .from('orders')
+              .update({ debito_reference: String(reference) })
+              .eq('id', order.id);
+            if (updateRefError) {
+              console.error("Erro ao atualizar debito_reference na corrida:", updateRefError);
+            }
+          }
           await processSuccessfulPayment(supabase, order.id);
         }
       } else {
-        // 2. Fallback: Tentar encontrar pelo próprio ID do pedido (UUID)
-        console.log(`Não encontrado por referência. Tentando buscar por UUID do pedido: ${reference}`);
-        const { data: orderById, error: idError } = await supabase
-          .from('orders')
-          .select('id, status')
-          .eq('id', reference)
-          .maybeSingle();
-
-        if (orderById) {
-          console.log(`Pedido encontrado via UUID: ${orderById.id}`);
-          if (orderById.status !== 'paid' && orderById.status !== 'delivered') {
-            await processSuccessfulPayment(supabase, orderById.id);
-          }
-        } else {
-          console.warn(`ALERTA: Nenhum pedido localizado no banco para a referência ZumboPay: ${reference}`);
-          diagnostic.warning = `No order found for reference ${reference}`;
-        }
+        console.warn(`ALERTA: Nenhum pedido localizado no banco para a referência ZumboPay: ${reference} ou UUID: ${sourceId}`);
+        diagnostic.warning = `No order found for reference ${reference} or UUID ${sourceId}`;
       }
     }
 
