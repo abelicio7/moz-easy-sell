@@ -40,9 +40,10 @@ serve(async (req) => {
       headersObj[key] = value;
     });
 
+    let logId: string | null = null;
     // 2. LOG RAW WEBHOOK FIRST FOR AUDIT
     try {
-      await supabase.from('webhook_logs').insert({ 
+      const { data: logData } = await supabase.from('webhook_logs').insert({ 
           payload: {
             gateway: "zumbopay",
             headers: headersObj,
@@ -51,42 +52,111 @@ serve(async (req) => {
             signature: signature,
             has_secret: !!webhookSecret
           }
-      });
+      }).select('id').single();
+      logId = logData?.id;
     } catch (logErr) {
       console.error("Error writing webhook log to DB:", logErr);
     }
 
-    // 3. VALIDATION (HMAC-SHA256 of the raw body)
-    if (webhookSecret && signature) {
-      const hmac = crypto.createHmac("sha256", webhookSecret);
-      hmac.update(rawBody);
-      const hash = hmac.digest("hex");
+    const diagnostic: any = {
+      received_signature: signature,
+      received_zumbo_signature: req.headers.get('x-zumbo-signature'),
+      secret_length: webhookSecret?.length || 0,
+      secret_prefix: webhookSecret ? webhookSecret.substring(0, 8) + '...' : 'none',
+      status: 'pending'
+    };
 
-      if (hash !== signature) {
-        console.error(`INVALID WEBHOOK SIGNATURE. Hash mismatch. Calculated: ${hash}, Received: ${signature}`);
-        return new Response(JSON.stringify({ error: "Invalid signature" }), { status: 401, headers: corsHeaders });
+    // 3. VALIDATION (HMAC-SHA256 of the raw body)
+    if (webhookSecret) {
+      // Calculate normal body HMAC
+      const hmac1 = crypto.createHmac("sha256", webhookSecret);
+      hmac1.update(rawBody);
+      const calculatedHashRaw = hmac1.digest("hex");
+      diagnostic.calculated_hash_raw = calculatedHashRaw;
+
+      // Calculate Stripe-like timestamp.body HMAC
+      const zumboTimestamp = req.headers.get('x-zumbopay-timestamp') || req.headers.get('x-zumbo-timestamp') || '';
+      diagnostic.timestamp = zumboTimestamp;
+      const signString = `${zumboTimestamp}.${rawBody}`;
+      const hmac2 = crypto.createHmac("sha256", webhookSecret);
+      hmac2.update(signString);
+      const calculatedHashStripe = hmac2.digest("hex");
+      diagnostic.calculated_hash_stripe = calculatedHashStripe;
+
+      // Extract Stripe-like signature if present in x-zumbo-signature (t=...,v1=...)
+      let stripeSigHex = '';
+      const zumboSigHeader = req.headers.get('x-zumbo-signature') || '';
+      const v1Match = zumboSigHeader.match(/v1=([a-f0-9]+)/i);
+      if (v1Match) {
+        stripeSigHex = v1Match[1];
       }
+      diagnostic.extracted_stripe_sig = stripeSigHex;
+
+      const isRawMatch = signature && (calculatedHashRaw === signature);
+      const isStripeMatch = stripeSigHex && (calculatedHashStripe === stripeSigHex);
+
+      diagnostic.is_raw_match = isRawMatch;
+      diagnostic.is_stripe_match = isStripeMatch;
+
+      if (!isRawMatch && !isStripeMatch) {
+        console.error(`INVALID WEBHOOK SIGNATURE. Hash mismatch. Raw calculated: ${calculatedHashRaw}, Stripe calculated: ${calculatedHashStripe}`);
+        diagnostic.status = 'failed_signature_mismatch';
+        
+        if (logId) {
+          await supabase.from('webhook_logs').update({
+            payload: {
+              gateway: "zumbopay",
+              headers: headersObj,
+              body: body,
+              rawBody: rawBody,
+              signature: signature,
+              has_secret: !!webhookSecret,
+              diagnostic: diagnostic
+            }
+          }).eq('id', logId);
+        }
+
+        return new Response(JSON.stringify({ error: "Invalid signature", diagnostic }), { status: 401, headers: corsHeaders });
+      }
+      
+      diagnostic.status = 'validated';
       console.log("Webhook signature validated successfully.");
-    } else if (!webhookSecret) {
+    } else {
       console.warn("ZUMBOPAY_WEBHOOK_SECRET not set. Skipping signature validation (DANGEROUS).");
+      diagnostic.status = 'skipped_no_secret';
     }
 
     const event = body.event || body.event_type || body.type;
     const data = body.data || body;
 
-    // ZumboPay sends the reference in data.source_id, data.reference, etc.
-    const reference = data?.source_id || data?.reference || data?.id || body?.reference || body?.id;
+    // ZumboPay sends reference in various fields depending on context
+    const reference = data?.source_id || data?.reference || data?.transaction_reference || data?.id || body?.reference || body?.transaction_reference || body?.id;
     const status = (data?.status || body?.status || "").toLowerCase();
 
     console.log(`Processing ZumboPay event: ${event} for reference: ${reference}, status: ${status}`);
 
     // 4. PROCESS SUCCESSFUL PAYMENT EVENTS
-    const isSuccessEvent = event === 'payment.succeeded' || event === 'charge.succeeded' || event === 'charge.success';
-    const isSuccessStatus = status === 'success' || status === 'succeeded' || status === 'paid';
+    const isSuccessEvent = event === 'payment.succeeded' || event === 'charge.succeeded' || event === 'charge.success' || event === 'payment.completed';
+    const isSuccessStatus = status === 'success' || status === 'succeeded' || status === 'paid' || status === 'completed';
 
     if (isSuccessEvent || (reference && isSuccessStatus)) {
       if (!reference) {
         console.error("ERRO: Nenhuma referência encontrada no corpo do webhook da ZumboPay.", body);
+        diagnostic.error = "No reference found";
+        
+        if (logId) {
+          await supabase.from('webhook_logs').update({
+            payload: {
+              gateway: "zumbopay",
+              headers: headersObj,
+              body: body,
+              rawBody: rawBody,
+              signature: signature,
+              has_secret: !!webhookSecret,
+              diagnostic: diagnostic
+            }
+          }).eq('id', logId);
+        }
         return new Response(JSON.stringify({ error: "No reference found" }), { status: 200, headers: corsHeaders });
       }
 
@@ -121,12 +191,29 @@ serve(async (req) => {
           }
         } else {
           console.warn(`ALERTA: Nenhum pedido localizado no banco para a referência ZumboPay: ${reference}`);
+          diagnostic.warning = `No order found for reference ${reference}`;
         }
       }
     }
 
+    if (logId) {
+      diagnostic.status = 'processed';
+      diagnostic.processed_reference = reference;
+      await supabase.from('webhook_logs').update({
+        payload: {
+          gateway: "zumbopay",
+          headers: headersObj,
+          body: body,
+          rawBody: rawBody,
+          signature: signature,
+          has_secret: !!webhookSecret,
+          diagnostic: diagnostic
+        }
+      }).eq('id', logId);
+    }
+
     // 5. RESPOND 200 OK
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({ success: true, diagnostic }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
