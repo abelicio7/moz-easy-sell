@@ -320,7 +320,7 @@ const Checkout = () => {
         .channel(`order-${orderId}`)
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` }, 
         (payload) => {
-          if (payload.new.status === 'paid') {
+          if (payload.new.status === 'paid' || payload.new.status === 'delivered') {
             finishOrder(orderId);
           }
         })
@@ -350,18 +350,26 @@ const Checkout = () => {
 
       const finishOrder = async (id: string) => {
         clearInterval(polling);
-        supabase.removeChannel(channel);
-        
-        // Mark cart as completed if it exists
-        if (form.email && product) {
-          await supabase.from("carts")
-            .update({ status: "completed" })
-            .eq("email", form.email)
-            .eq("product_id", product.id);
+        try {
+          supabase.removeChannel(channel);
+        } catch (chanErr) {
+          console.error("Error removing channel:", chanErr);
         }
-
+        
         toast.success(t("successPayment"));
         navigate(`/thank-you?order_id=${id}&product_id=${product.id}&amount=${product.price}`);
+
+        // Mark cart as completed in background (non-blocking)
+        if (form.email && product) {
+          try {
+            await supabase.from("carts")
+              .update({ status: "completed" })
+              .eq("email", form.email)
+              .eq("product_id", product.id);
+          } catch (e) {
+            console.error("Error updating cart status:", e);
+          }
+        }
       };
 
     } catch (err: any) {
